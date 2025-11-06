@@ -1,0 +1,21 @@
+**/bin/
+
+# Ignore compiled binaries
+*.class
+
+# Eclipse files
+*.settings
+*.project
+*.classpath
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+# Ignore log files
+*.log
+
+# Ignore coverage reports
+coverage/
