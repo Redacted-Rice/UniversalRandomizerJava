@@ -33,7 +33,7 @@ public class EnhancedFeaturesTest {
 
         @BeforeEach
         public void setup() {
-                String randomizerPath = new File("../UniversalRandomizerCore").getAbsolutePath();
+                String randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
                 RandomizerResourceExtractor.setPath(randomizerPath);
                 testModulesPath = new File("src/test/java/redactedrice/support/lua_modules")
                                 .getAbsolutePath();
