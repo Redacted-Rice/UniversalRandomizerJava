@@ -43,7 +43,7 @@ MIT License - Feel free to use in your projects!
 This includes an example app showing how this can be used. To run the example:
 
 ```bash
-./gradlew :appExample:run
+./gradlew runExample
 ```
 
 You should see the results output to the console.
@@ -82,14 +82,14 @@ Currently has a mix of unit testing and functional testing. Additionally uses th
 
 ## Test Coverage
 
-Coverage is separate from tests. Use `:test` to run tests only, and `:coverage` to run tests/application and generate coverage reports.
+Coverage is separate from tests. Use `test` to run tests only, and `coverage` to run tests/application and generate coverage reports.
 
 Commands for generating test coverage, example coverage, and combined coverage:
 
 ```bash
-./gradlew :libUniversalRandomizerJava:coverage
-./gradlew :appExample:coverage
 ./gradlew coverage
+./gradlew coverageExample
+./gradlew coverageCombined
 ```
 
 Coverage reports will be outputted in the `coverage` folder.

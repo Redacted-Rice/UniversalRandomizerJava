@@ -6,18 +6,62 @@ repositories {
     mavenCentral()
 }
 
-tasks.register<JacocoReport>("jacocoCombinedReport") {
+tasks.register("test") {
     group = "verification"
-    description = "Generates combined code coverage report from tests and application execution"
-    dependsOn(":libUniversalRandomizerJava:test", ":appExample:runWithCoverage")
+    description = "Runs tests for the library"
+    dependsOn(":libUniversalRandomizerJava:test")
+}
+
+tasks.register("coverage") {
+    group = "verification"
+    description = "Runs tests and generates coverage report for the library"
+    dependsOn(":libUniversalRandomizerJava:coverage")
+}
+
+tasks.register("runExample") {
+    group = "application"
+    description = "Runs the example application"
+
+    val appProject = project.findProject(":appExample")
+    if (appProject != null) {
+        dependsOn(":appExample:run")
+    } else {
+        doFirst {
+            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+        }
+    }
+}
+
+tasks.register<JacocoReport>("coverageCombined") {
+    group = "verification"
+    description = "Runs tests and app example and generates a combined coverage report"
 
     val libProject = project(":libUniversalRandomizerJava")
-    val appProject = project(":appExample")
+    val appProject = project.findProject(":appExample")
 
-    executionData(
-        file("${libProject.layout.buildDirectory.get().asFile}/jacoco/test.exec"),
-        file("${appProject.layout.buildDirectory.get().asFile}/jacoco/run.exec")
+    if (appProject == null) {
+        doFirst {
+            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+        }
+    }
+
+    val taskDependencies = mutableListOf<String>(":libUniversalRandomizerJava:test")
+    if (appProject != null) {
+        taskDependencies.add(":appExample:runWithCoverage")
+    }
+    dependsOn(taskDependencies)
+
+    val executionDataFiles = mutableListOf<File>(
+        file("${libProject.layout.buildDirectory.get().asFile}/jacoco/test.exec")
     )
+
+    if (appProject != null) {
+        executionDataFiles.add(
+            file("${appProject.layout.buildDirectory.get().asFile}/jacoco/run.exec")
+        )
+    }
+
+    executionData(executionDataFiles)
 
     sourceDirectories.setFrom(libProject.files("src/main/java"))
     classDirectories.setFrom(
@@ -31,17 +75,21 @@ tasks.register<JacocoReport>("jacocoCombinedReport") {
     reports {
         xml.required = false
         html.required = true
-        html.outputLocation.set(file("${rootProject.projectDir}/coverage/combined/html"))
+        html.outputLocation.set(file("${rootProject.projectDir}/coverage/combined"))
         csv.required = false
     }
 }
 
-tasks.register("coverage") {
+tasks.register("coverageExample") {
     group = "verification"
-    description = "Runs tests and app demo and generates a combined coverage report"
-    dependsOn(
-        ":libUniversalRandomizerJava:test",
-        ":appExample:runWithCoverage",
-        "jacocoCombinedReport"
-    )
+    description = "Runs the example app with coverage and generates coverage report"
+
+    val appProject = project.findProject(":appExample")
+    if (appProject != null) {
+        dependsOn(":appExample:coverage")
+    } else {
+        doFirst {
+            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+        }
+    }
 }
