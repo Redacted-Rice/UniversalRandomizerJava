@@ -12,4 +12,17 @@ plugins {
 
 rootProject.name = "UniversalRandomizerJava"
 include("libUniversalRandomizerJava")
-include("appExample")
+
+// Only include the example if asked or if the build command being run depends on it
+val shouldIncludeAppExample = providers.gradleProperty("includeAppExample").orElse("false").get().toBoolean() ||
+        gradle.startParameter.taskNames.any {
+            it.startsWith(":appExample:") ||
+            it.startsWith("appExample:") ||
+            it == "runExample" ||
+            it == "coverageCombined" ||
+            it == "coverageExample"
+        }
+
+if (shouldIncludeAppExample) {
+    include("appExample")
+}
