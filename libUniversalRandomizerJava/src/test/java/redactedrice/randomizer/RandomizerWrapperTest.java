@@ -25,7 +25,7 @@ public class RandomizerWrapperTest {
 
     @BeforeEach
     public void setUp() {
-        randomizerPath = new File("../UniversalRandomizerCore").getAbsolutePath();
+        randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
         RandomizerResourceExtractor.setPath(randomizerPath);
         modulesPath = new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
         wrapper = new LuaRandomizerWrapper(modulesPath);
