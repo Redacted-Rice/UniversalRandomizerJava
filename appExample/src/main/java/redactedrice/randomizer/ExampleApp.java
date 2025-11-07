@@ -67,8 +67,10 @@ public class ExampleApp {
 
         // Extract bundled randomizer file
         try {
-            // False means we won't overwrite existing files
-            RandomizerResourceExtractor.extract(false);
+            // Overwrite existing files. Normally I would probably not do this so the files can be modified
+            // if desired but for the example I do this to ensure it picks up any updates from the
+            // universal randomizer core
+            RandomizerResourceExtractor.extract(true);
             System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
         } catch (Exception e) {
             System.out.println(

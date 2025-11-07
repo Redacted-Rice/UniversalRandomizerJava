@@ -93,8 +93,16 @@ public class LuaSandbox {
             // fix windows backslashes for lua
             String luaPath = randomizerPath.replace('\\', '/');
 
-            // set search path for lua modules
-            String packagePath = luaPath + "/?.lua;" + luaPath + "/?/init.lua";
+            // We need to get the parent directory of the randomizer path
+            // to get requires to work right
+            File randomizerDir = new File(randomizerPath);
+            File parentDir = randomizerDir.getParentFile();
+            String parentPath = parentDir != null ? parentDir.getAbsolutePath().replace('\\', '/') : luaPath;
+
+            // Set the path lua looks for modules.
+            // TODO: Seems to me like we shouldn't need to specify the init but it seems like
+            // we need to and I plan to revisit the loading restrictions anyways
+            String packagePath = parentPath + "/?.lua;" + parentPath + "/?/init.lua";
             packageLib.set("path", LuaValue.valueOf(packagePath));
 
             // block c library loading
