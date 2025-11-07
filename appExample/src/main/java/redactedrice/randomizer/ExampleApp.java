@@ -5,6 +5,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
+import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,7 +54,10 @@ public class ExampleApp {
             File logFile, File warnErrFile) {
         System.out.println("=== Lua Randomizer Wrapper Example App ===\n");
 
-        String randomizerPath = new File("../UniversalRandomizerCore").getAbsolutePath();
+        // Set the extraction path for bundled randomizer files
+        // Default is "randomizer" if not set
+        String randomizerExtractionPath = new File("randomizer").getAbsolutePath();
+        RandomizerResourceExtractor.setPath(randomizerExtractionPath);
         String modulesPath = new File("lua_modules").getAbsolutePath();
 
         PseudoEnumRegistry pseudoEnums = new PseudoEnumRegistry();
@@ -61,8 +65,18 @@ public class ExampleApp {
         pseudoEnums.registerEnum("ModuleModifies", "name", "health", "damage", "speed", "defense",
                 "type", "startingItem");
 
-        LuaRandomizerWrapper wrapper = new LuaRandomizerWrapper(randomizerPath,
-                Collections.singletonList(modulesPath), pseudoEnums);
+        // Extract bundled randomizer file
+        try {
+            // False means we won't overwrite existing files
+            RandomizerResourceExtractor.extract(false);
+            System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
+        } catch (Exception e) {
+            System.out.println(
+                    "Failed to extract core lua randomizer files. Error: " + e.getMessage());
+        }
+
+        LuaRandomizerWrapper wrapper =
+                new LuaRandomizerWrapper(Collections.singletonList(modulesPath), pseudoEnums);
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)

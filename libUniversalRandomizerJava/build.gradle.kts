@@ -68,3 +68,19 @@ tasks.register("coverageForTests") {
     description = "Runs specific tests and generates code coverage report. Use --tests flag to filter."
     dependsOn("test", "jacocoTestReport")
 }
+
+// Task to copy randomizer Lua files from UniversalRandomizerCore into resources
+tasks.register<Copy>("copyRandomizerFiles") {
+    group = "build"
+    description = "Copies randomizer Lua files from UniversalRandomizerCore into resources"
+    
+    from("${rootProject.projectDir}/UniversalRandomizerCore/randomizer") {
+        include("*.lua")
+    }
+    into("${projectDir}/src/main/resources/randomizer")
+}
+
+// Make processResources depend on copyRandomizerFiles to ensure files are copied before packaging
+tasks.named("processResources") {
+    dependsOn("copyRandomizerFiles")
+}
