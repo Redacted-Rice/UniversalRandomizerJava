@@ -21,13 +21,8 @@ public class LuaRandomizerWrapper {
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
     List<Object> monitoredObjects;
 
-    public LuaRandomizerWrapper(String randomizerPath, List<String> searchPaths,
-            PseudoEnumRegistry pseudoEnumRegistry) {
-        if (randomizerPath == null || randomizerPath.trim().isEmpty()) {
-            throw new IllegalArgumentException("Randomizer path cannot be null or empty");
-        }
-
-        this.randomizerPath = randomizerPath;
+    public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
+        this.randomizerPath = RandomizerResourceExtractor.getPath();
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
         this.sandbox = new LuaSandbox(randomizerPath);
         this.moduleLoader = new LuaModuleLoader(sandbox);
@@ -39,16 +34,17 @@ public class LuaRandomizerWrapper {
         this.monitoredObjects = new ArrayList<>();
     }
 
-    public LuaRandomizerWrapper(String randomizerPath, List<String> searchPaths) {
-        this(randomizerPath, searchPaths, null);
+    public LuaRandomizerWrapper(List<String> searchPaths) {
+        this(searchPaths, null);
     }
 
-    public LuaRandomizerWrapper(String randomizerPath, String searchPath) {
-        this(randomizerPath, searchPath != null ? Collections.singletonList(searchPath) : null);
+    public LuaRandomizerWrapper(String searchPath) {
+        this(searchPath != null ? Collections.singletonList(searchPath) : null);
     }
 
-    public LuaRandomizerWrapper(String randomizerPath) {
-        this(randomizerPath, (List<String>) null);
+    public LuaRandomizerWrapper() {
+        // Cast to use the right other constructor
+        this((List<String>) null);
     }
 
     public void addSearchPath(String path) {
