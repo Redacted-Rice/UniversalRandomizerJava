@@ -69,11 +69,12 @@ tasks.register("coverageForTests") {
     dependsOn("test", "jacocoTestReport")
 }
 
-// Task to copy randomizer Lua files from UniversalRandomizerCore into resources
-tasks.register<Copy>("copyRandomizerFiles") {
+// Task to sync randomizer Lua files from UniversalRandomizerCore into resources
+// Using Sync instead of Copy should ensure files are kept up to date
+tasks.register<Sync>("copyRandomizerFiles") {
     group = "build"
-    description = "Copies randomizer Lua files from UniversalRandomizerCore into resources"
-    
+    description = "Syncs randomizer Lua files from UniversalRandomizerCore into resources"
+
     from("${rootProject.projectDir}/UniversalRandomizerCore/randomizer") {
         include("*.lua")
     }
