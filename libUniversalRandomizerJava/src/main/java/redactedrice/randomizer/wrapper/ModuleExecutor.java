@@ -31,7 +31,7 @@ public class ModuleExecutor {
 
     public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
             Map<String, Object> arguments, Integer seed, ChangeDetector changeDetector,
-            List<Object> monitoredObjects) {
+            List<Object> monitoredObjects, ObjectIdentifier objectIdentifier) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
         }
@@ -58,7 +58,7 @@ public class ModuleExecutor {
 
                 // snapshot the monitored objects so we can detect changes later
                 if (changeDetector != null && changeDetector.isEnabled()) {
-                    changeDetector.takeSnapshots(monitoredObjects);
+                    changeDetector.takeSnapshots(monitoredObjects, objectIdentifier);
                 }
 
                 // convert context to lua table
@@ -185,7 +185,7 @@ public class ModuleExecutor {
     public List<ExecutionResult> executeModules(List<LuaModuleMetadata> modules,
             JavaContext context, Map<String, Map<String, Object>> argumentsPerModule,
             Map<String, Integer> seedsPerModule, ChangeDetector changeDetector,
-            List<Object> monitoredObjects) {
+            List<Object> monitoredObjects, ObjectIdentifier objectIdentifier) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
         // run each module one by one
@@ -202,8 +202,8 @@ public class ModuleExecutor {
             // get seed for this module
             Integer seed = seedsPerModule != null ? seedsPerModule.get(module.getName()) : null;
 
-            ExecutionResult result =
-                    executeModule(module, context, args, seed, changeDetector, monitoredObjects);
+            ExecutionResult result = executeModule(module, context, args, seed, changeDetector,
+                    monitoredObjects, objectIdentifier);
             execResults.add(result);
 
             // TODO later add option to stop if module fails

@@ -5,12 +5,15 @@ import java.util.*;
 
 // detects changes in java objects by comparing before and after snapshots
 public class ChangeDetector {
+
     static class ObjectSnapshot {
         Object object;
         Map<String, Object> fieldValues;
+        ObjectIdentifier identifier;
 
-        public ObjectSnapshot(Object object) {
+        public ObjectSnapshot(Object object, ObjectIdentifier identifier) {
             this.object = object;
+            this.identifier = identifier;
             this.fieldValues = captureState(object);
         }
 
@@ -93,6 +96,13 @@ public class ChangeDetector {
         public Object getObject() {
             return object;
         }
+
+        public String getIdentifier() {
+            if (identifier != null) {
+                return identifier.identify(object);
+            }
+            return object.toString();
+        }
     }
 
     List<ObjectSnapshot> snapshots;
@@ -112,6 +122,10 @@ public class ChangeDetector {
     }
 
     public void takeSnapshots(List<Object> objects) {
+        takeSnapshots(objects, null);
+    }
+
+    public void takeSnapshots(List<Object> objects, ObjectIdentifier identifier) {
         snapshots.clear();
 
         if (!enabled || objects == null) {
@@ -120,7 +134,21 @@ public class ChangeDetector {
 
         for (Object obj : objects) {
             if (obj != null) {
-                snapshots.add(new ObjectSnapshot(obj));
+                snapshots.add(new ObjectSnapshot(obj, identifier));
+            }
+        }
+    }
+
+    public <T> void takeSnapshotsOfCollection(Collection<T> objects, ObjectIdentifier identifier) {
+        snapshots.clear();
+
+        if (!enabled || objects == null) {
+            return;
+        }
+
+        for (T obj : objects) {
+            if (obj != null) {
+                snapshots.add(new ObjectSnapshot(obj, identifier));
             }
         }
     }
@@ -137,14 +165,14 @@ public class ChangeDetector {
             Map<String, String> changes = snapshot.detectChanges();
 
             if (!changes.isEmpty()) {
-                // use simple class name for the key
-                String objectKey = snapshot.getObject().getClass().getSimpleName();
+                // use custom identifier if available, otherwise use simple class name
+                String objectKey = snapshot.getIdentifier();
 
                 // make key unique if needed by adding a number
                 int counter = 1;
                 String uniqueKey = objectKey;
                 while (allChanges.containsKey(uniqueKey)) {
-                    uniqueKey = objectKey + counter;
+                    uniqueKey = objectKey + " #" + counter;
                     counter++;
                 }
 

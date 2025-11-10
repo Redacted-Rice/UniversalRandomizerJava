@@ -20,6 +20,7 @@ public class LuaRandomizerWrapper {
     PseudoEnumRegistry pseudoEnumRegistry;
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
     List<Object> monitoredObjects;
+    ObjectIdentifier objectIdentifier;
 
     public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
         this.randomizerPath = RandomizerResourceExtractor.getPath();
@@ -132,10 +133,18 @@ public class LuaRandomizerWrapper {
 
     public void setMonitoredObjects(List<Object> objects) {
         this.monitoredObjects = objects != null ? new ArrayList<>(objects) : new ArrayList<>();
+        this.objectIdentifier = null;
     }
 
     public void setMonitoredObjects(Object... objects) {
         this.monitoredObjects = objects != null ? Arrays.asList(objects) : new ArrayList<>();
+        this.objectIdentifier = null;
+    }
+
+    public <T> void setMonitoredObjectsFromCollection(Collection<T> objects,
+            ObjectIdentifier identifier) {
+        this.monitoredObjects = objects != null ? new ArrayList<>(objects) : new ArrayList<>();
+        this.objectIdentifier = identifier;
     }
 
     public void setChangeDetectionEnabled(boolean enabled) {
@@ -179,7 +188,7 @@ public class LuaRandomizerWrapper {
         // run the modules
         moduleExecutor.clear();
         return moduleExecutor.executeModules(modulesToExecute, context, argumentsPerModule,
-                seedsPerModule, changeDetector, monitoredObjects);
+                seedsPerModule, changeDetector, monitoredObjects, objectIdentifier);
     }
 
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
@@ -214,7 +223,7 @@ public class LuaRandomizerWrapper {
 
         moduleExecutor.clear();
         return moduleExecutor.executeModule(module, context, arguments, seed, changeDetector,
-                monitoredObjects);
+                monitoredObjects, objectIdentifier);
     }
 
     public ExecutionResult executeModule(String moduleName, JavaContext context,
