@@ -19,13 +19,13 @@ import java.util.Map;
 // lets lua scripts access and modify registered java objects
 public class JavaContext {
     Map<String, Object> objects;
-    EnumContext enumContext;
     Map<String, Object> config;
+    EnumContext enumContext;
 
     public JavaContext() {
         this.objects = new HashMap<>();
-        this.enumContext = new EnumContext();
         this.config = new HashMap<>();
+        this.enumContext = new EnumContext();
     }
 
     public void register(String name, Object object) {
@@ -33,6 +33,17 @@ public class JavaContext {
             throw new IllegalArgumentException("Name cannot be null or empty");
         }
         objects.put(name, object);
+    }
+
+    public void setConfig(String key, Object value) {
+        if (key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Config key cannot be null or empty");
+        }
+        config.put(key, value);
+    }
+
+    public Object getConfig(String key) {
+        return config.get(key);
     }
 
     public <E extends Enum<E>> void registerEnum(Class<E> enumClass) {
@@ -90,18 +101,6 @@ public class JavaContext {
 
     public String[] getRegisteredNames() {
         return objects.keySet().toArray(new String[0]);
-    }
-
-    public void setConfig(Map<String, Object> config) {
-        if (config != null) {
-            this.config = new HashMap<>(config);
-        } else {
-            this.config = new HashMap<>();
-        }
-    }
-
-    public Map<String, Object> getConfig() {
-        return new HashMap<>(config);
     }
 
     public LuaTable toLuaTable() {

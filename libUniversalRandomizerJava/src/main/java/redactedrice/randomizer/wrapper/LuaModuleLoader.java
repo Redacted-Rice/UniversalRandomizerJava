@@ -65,84 +65,51 @@ public class LuaModuleLoader {
             }
         }
 
-        // Also load prescripts from /prescripts subfolder
+        // Load the pre & post scripts as well
         loadPreScriptsFromDirectory(directoryPath);
-
-        // Also load postscripts from /postscripts subfolder
         loadPostScriptsFromDirectory(directoryPath);
 
         return loadedCount;
     }
 
-    public int loadPreScriptsFromDirectory(String directoryPath) {
+    private int loadScriptsFromSubfolder(String directoryPath, String subfolder,
+            List<LuaModuleMetadata> targetList, String scriptType) {
         if (directoryPath == null || directoryPath.trim().isEmpty()) {
             return 0;
         }
 
-        // Look for /prescripts subfolder
-        File prescriptsDir = new File(directoryPath, "prescripts");
-        if (!prescriptsDir.exists() || !prescriptsDir.isDirectory()) {
-            // No prescripts folder, which is fine
+        File scriptsDir = new File(directoryPath, subfolder);
+        if (!scriptsDir.exists() || !scriptsDir.isDirectory()) {
             return 0;
         }
 
         int loadedCount = 0;
-        List<File> luaFiles = findLuaFiles(prescriptsDir, false); // Don't exclude script folders
-                                                                  // when loading from script folder
+        List<File> luaFiles = findLuaFiles(scriptsDir, false);
 
-        // load each lua file as a prescript
         for (File file : luaFiles) {
             try {
                 LuaModuleMetadata metadata = loadModule(file);
                 if (metadata != null) {
-                    // Add to prescripts list (not regular modules map)
-                    prescripts.add(metadata);
+                    targetList.add(metadata);
                     loadedCount++;
-                    Logger.info("Loaded prescript: " + metadata.getName());
+                    Logger.info("Loaded " + scriptType + ": " + metadata.getName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                addError("Error loading prescript from " + file.getPath() + ": " + e.getMessage());
+                addError("Error loading " + scriptType + " from " + file.getPath() + ": "
+                        + e.getMessage());
             }
         }
 
         return loadedCount;
     }
 
+    public int loadPreScriptsFromDirectory(String directoryPath) {
+        return loadScriptsFromSubfolder(directoryPath, "prescripts", prescripts, "prescript");
+    }
+
     public int loadPostScriptsFromDirectory(String directoryPath) {
-        if (directoryPath == null || directoryPath.trim().isEmpty()) {
-            return 0;
-        }
-
-        // Look for /postscripts subfolder
-        File postscriptsDir = new File(directoryPath, "postscripts");
-        if (!postscriptsDir.exists() || !postscriptsDir.isDirectory()) {
-            // No postscripts folder, which is fine
-            return 0;
-        }
-
-        int loadedCount = 0;
-        List<File> luaFiles = findLuaFiles(postscriptsDir, false); // Don't exclude script folders
-                                                                   // when loading from script
-                                                                   // folder
-
-        // load each lua file as a postscript
-        for (File file : luaFiles) {
-            try {
-                LuaModuleMetadata metadata = loadModule(file);
-                if (metadata != null) {
-                    // Add to postscripts list (not regular modules map)
-                    postscripts.add(metadata);
-                    loadedCount++;
-                    Logger.info("Loaded postscript: " + metadata.getName());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                addError("Error loading postscript from " + file.getPath() + ": " + e.getMessage());
-            }
-        }
-
-        return loadedCount;
+        return loadScriptsFromSubfolder(directoryPath, "postscripts", postscripts, "postscript");
     }
 
     private LuaModuleMetadata loadModule(File file) {
@@ -410,8 +377,7 @@ public class LuaModuleLoader {
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    // Skip prescripts and postscripts folders if requested (they're loaded
-                    // separately)
+                    // Skip script folders if requested (they're loaded separately)
                     String folderName = file.getName().toLowerCase();
                     if (excludeScriptFolders && (folderName.equals("prescripts")
                             || folderName.equals("postscripts"))) {

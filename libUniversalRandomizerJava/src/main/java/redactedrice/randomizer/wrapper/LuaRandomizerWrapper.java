@@ -18,7 +18,6 @@ public class LuaRandomizerWrapper {
     ModuleExecutor moduleExecutor;
     PseudoEnumRegistry pseudoEnumRegistry;
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
-    Map<String, Object> config;
 
     public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
         this.randomizerPath = RandomizerResourceExtractor.getPath();
@@ -29,7 +28,6 @@ public class LuaRandomizerWrapper {
         this.pseudoEnumRegistry =
                 pseudoEnumRegistry != null ? pseudoEnumRegistry : new PseudoEnumRegistry();
         this.sharedEnumContext = new JavaContext(); // Shared enum context
-        this.config = new HashMap<>();
     }
 
     public LuaRandomizerWrapper(List<String> searchPaths) {
@@ -128,16 +126,6 @@ public class LuaRandomizerWrapper {
         return moduleLoader.getModule(name);
     }
 
-    public void setConfigValue(String key, Object value) {
-        if (key != null && !key.trim().isEmpty()) {
-            config.put(key, value);
-        }
-    }
-
-    public Map<String, Object> getConfig() {
-        return new HashMap<>(config);
-    }
-
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
             Map<String, Map<String, Object>> argumentsPerModule,
             Map<String, Integer> seedsPerModule) {
@@ -152,9 +140,6 @@ public class LuaRandomizerWrapper {
 
         // add the shared enum context from onLoad to the execution context
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
-
-        // add config to context
-        context.setConfig(config);
 
         // use empty args map if none given
         if (argumentsPerModule == null) {
@@ -205,9 +190,6 @@ public class LuaRandomizerWrapper {
 
         // add the shared enum context from onLoad to the execution context
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
-
-        // add config to context
-        context.setConfig(config);
 
         // use empty args if none given
         if (arguments == null) {
