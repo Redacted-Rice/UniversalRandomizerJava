@@ -16,11 +16,9 @@ public class LuaRandomizerWrapper {
     LuaSandbox sandbox;
     LuaModuleLoader moduleLoader;
     ModuleExecutor moduleExecutor;
-    ChangeDetector changeDetector;
     PseudoEnumRegistry pseudoEnumRegistry;
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
-    List<Object> monitoredObjects;
-    ObjectIdentifier objectIdentifier;
+    Map<String, Object> config;
 
     public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
         this.randomizerPath = RandomizerResourceExtractor.getPath();
@@ -28,11 +26,10 @@ public class LuaRandomizerWrapper {
         this.sandbox = new LuaSandbox(randomizerPath);
         this.moduleLoader = new LuaModuleLoader(sandbox);
         this.moduleExecutor = new ModuleExecutor(sandbox);
-        this.changeDetector = new ChangeDetector();
         this.pseudoEnumRegistry =
                 pseudoEnumRegistry != null ? pseudoEnumRegistry : new PseudoEnumRegistry();
         this.sharedEnumContext = new JavaContext(); // Shared enum context
-        this.monitoredObjects = new ArrayList<>();
+        this.config = new HashMap<>();
     }
 
     public LuaRandomizerWrapper(List<String> searchPaths) {
@@ -131,28 +128,14 @@ public class LuaRandomizerWrapper {
         return moduleLoader.getModule(name);
     }
 
-    public void setMonitoredObjects(List<Object> objects) {
-        this.monitoredObjects = objects != null ? new ArrayList<>(objects) : new ArrayList<>();
-        this.objectIdentifier = null;
+    public void setConfigValue(String key, Object value) {
+        if (key != null && !key.trim().isEmpty()) {
+            config.put(key, value);
+        }
     }
 
-    public void setMonitoredObjects(Object... objects) {
-        this.monitoredObjects = objects != null ? Arrays.asList(objects) : new ArrayList<>();
-        this.objectIdentifier = null;
-    }
-
-    public <T> void setMonitoredObjectsFromCollection(Collection<T> objects,
-            ObjectIdentifier identifier) {
-        this.monitoredObjects = objects != null ? new ArrayList<>(objects) : new ArrayList<>();
-        this.objectIdentifier = identifier;
-    }
-
-    public void setChangeDetectionEnabled(boolean enabled) {
-        changeDetector.setEnabled(enabled);
-    }
-
-    public boolean isChangeDetectionEnabled() {
-        return changeDetector.isEnabled();
+    public Map<String, Object> getConfig() {
+        return new HashMap<>(config);
     }
 
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
@@ -170,6 +153,9 @@ public class LuaRandomizerWrapper {
         // add the shared enum context from onLoad to the execution context
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
+        // add config to context
+        context.setConfig(config);
+
         // use empty args map if none given
         if (argumentsPerModule == null) {
             argumentsPerModule = new HashMap<>();
@@ -185,10 +171,14 @@ public class LuaRandomizerWrapper {
             modulesToExecute.add(module);
         }
 
-        // run the modules
+        // get prescripts and postscripts from loader
+        List<LuaModuleMetadata> prescripts = moduleLoader.getPreScripts();
+        List<LuaModuleMetadata> postscripts = moduleLoader.getPostScripts();
+
+        // run the modules (scripts will be executed at appropriate times)
         moduleExecutor.clear();
         return moduleExecutor.executeModules(modulesToExecute, context, argumentsPerModule,
-                seedsPerModule, changeDetector, monitoredObjects, objectIdentifier);
+                seedsPerModule, prescripts, postscripts);
     }
 
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
@@ -216,14 +206,16 @@ public class LuaRandomizerWrapper {
         // add the shared enum context from onLoad to the execution context
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
+        // add config to context
+        context.setConfig(config);
+
         // use empty args if none given
         if (arguments == null) {
             arguments = new HashMap<>();
         }
 
         moduleExecutor.clear();
-        return moduleExecutor.executeModule(module, context, arguments, seed, changeDetector,
-                monitoredObjects, objectIdentifier);
+        return moduleExecutor.executeModule(module, context, arguments, seed);
     }
 
     public ExecutionResult executeModule(String moduleName, JavaContext context,

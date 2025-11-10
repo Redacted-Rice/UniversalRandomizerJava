@@ -17,10 +17,14 @@ public class LuaModuleMetadata {
     LuaFunction onLoadFunction; // Optional onLoad function
     String filePath;
     int defaultSeedOffset;
+    // When to execute: "pre-randomize", "pre-module", "post-module", "post-randomize",
+    // or null for regular modules
+    // TODO: I think I want to move this to a seraprate class in the future
+    String when;
 
     public LuaModuleMetadata(String name, String description, String group, List<String> modifies,
             List<ArgumentDefinition> arguments, LuaFunction executeFunction,
-            LuaFunction onLoadFunction, String filePath, int defaultSeedOffset) {
+            LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when) {
         // validate required fields
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
@@ -39,6 +43,7 @@ public class LuaModuleMetadata {
         this.onLoadFunction = onLoadFunction; // can be null
         this.filePath = filePath;
         this.defaultSeedOffset = defaultSeedOffset;
+        this.when = when;
 
         // note: pseudo-enum registration is now handled by lau randomization wrapper after loading
     }
@@ -84,10 +89,19 @@ public class LuaModuleMetadata {
         return defaultSeedOffset;
     }
 
+    public String getWhen() {
+        return when;
+    }
+
+    public boolean isScript() {
+        return when != null && !when.isEmpty();
+    }
+
     @Override
     public String toString() {
         return String.format(
-                "LuaModuleMetadata{name='%s', group='%s', modifies=%s, description='%s', arguments=%d, seedOffset=%d, filePath='%s'}",
-                name, group, modifies, description, arguments.size(), defaultSeedOffset, filePath);
+                "LuaModuleMetadata{name='%s', group='%s', modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s'}",
+                name, group, modifies, description, arguments.size(), defaultSeedOffset, when,
+                filePath);
     }
 }

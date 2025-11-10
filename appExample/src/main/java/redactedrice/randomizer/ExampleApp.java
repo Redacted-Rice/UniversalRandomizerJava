@@ -27,7 +27,8 @@ public class ExampleApp {
             runExample(logFileStream, warnErrFileStream, logFile, warnErrFile);
 
             System.out.println("\n=== Logs written to: ===");
-            System.out.println("  All logs: " + logFile.getAbsolutePath());
+            System.out.println(
+                    "  All logs (including change detection): " + logFile.getAbsolutePath());
             System.out.println("  Warnings & Errors: " + warnErrFile.getAbsolutePath());
         } catch (Exception e) {
             System.err.println("Error setting up logging: " + e.getMessage());
@@ -67,7 +68,8 @@ public class ExampleApp {
 
         // Extract bundled randomizer file
         try {
-            // Overwrite existing files. Normally I would probably not do this so the files can be modified
+            // Overwrite existing files. Normally I would probably not do this so the files can be
+            // modified
             // if desired but for the example I do this to ensure it picks up any updates from the
             // universal randomizer core
             RandomizerResourceExtractor.extract(true);
@@ -102,7 +104,13 @@ public class ExampleApp {
         int loaded = wrapper.loadModules();
         System.out.println("Loaded " + loaded + " modules\n");
         wrapper.printModuleSummary();
-        wrapper.setChangeDetectionEnabled(true);
+
+        // Configure change detection via config (prescripts will set it up)
+        // Change detection now logs through the logger system to configured log files
+        wrapper.setConfigValue("outputToConsole", true);
+        System.out.println(
+                "\nChange detection configured - changes will be logged via logger.info()");
+        System.out.println("  Console output enabled - changes will also print() to console");
 
         // Create test entities with varied stats
         // Warriors: High health/defense, moderate damage, low speed
@@ -159,8 +167,6 @@ public class ExampleApp {
         // Register enums with custom names to be used in Lua context
         context.registerEnum("EE_EntityTypes", ExampleEntity.EntityType.class);
         context.registerEnum("ItemRarity", ExampleItem.ItemRarity.class);
-
-        wrapper.setMonitoredObjects(entitiesModified.toArray(), itemsModified.toArray());
 
         // Print original state
         System.out.println("\n=== ORIGINAL STATE ===");
@@ -245,12 +251,22 @@ public class ExampleApp {
         module6Args.put("weightedRarityPool", weightedPool);
         moduleArguments.add(module6Args);
 
-        // Execute all modules with their respective arguments
+        // Prepare arguments and seeds maps for executeModules (plural)
+        Map<String, Map<String, Object>> argumentsPerModule = new HashMap<>();
+        Map<String, Integer> seedsPerModule = new HashMap<>();
         for (int i = 0; i < scriptNames.length; i++) {
-            System.out.println((i + 1) + ". Executing: " + scriptNames[i]);
+            argumentsPerModule.put(scriptNames[i], moduleArguments.get(i));
+            seedsPerModule.put(scriptNames[i], 12345 + i);
+        }
 
-            ExecutionResult result = wrapper.executeModule(scriptNames[i], context,
-                    moduleArguments.get(i), 12345 + i);
+        // Execute all modules with their respective arguments (prescripts run automatically first)
+        List<ExecutionResult> results = wrapper.executeModules(Arrays.asList(scriptNames), context,
+                argumentsPerModule, seedsPerModule);
+
+        // Print execution results
+        for (int i = 0; i < results.size(); i++) {
+            ExecutionResult result = results.get(i);
+            System.out.println((i + 1) + ". Executing: " + result.getModuleName());
             if (!result.isSuccess()) {
                 System.err.println("   Failed: " + result.getErrorMessage());
             }
@@ -266,5 +282,13 @@ public class ExampleApp {
         for (ExampleItem i : itemsModified) {
             System.out.println("  " + i);
         }
+
+        // Note about change detection
+        System.out.println("\n=== CHANGE DETECTION ===");
+        System.out.println(
+                "Changes have been logged via logger.info() by the Lua change detector scripts.");
+        System.out.println(
+                "The logs show field-level changes for each modified entity/item, organized by monitoring set.");
+        System.out.println("Check randomizer.log for the detailed change detection output.");
     }
 }

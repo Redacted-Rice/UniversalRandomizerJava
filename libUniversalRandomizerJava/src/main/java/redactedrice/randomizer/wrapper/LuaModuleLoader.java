@@ -14,6 +14,8 @@ import java.util.*;
 public class LuaModuleLoader {
     LuaSandbox sandbox;
     Map<String, LuaModuleMetadata> modules;
+    List<LuaModuleMetadata> prescripts;
+    List<LuaModuleMetadata> postscripts;
     List<String> errors;
 
     public LuaModuleLoader(LuaSandbox sandbox) {
@@ -22,6 +24,8 @@ public class LuaModuleLoader {
         }
         this.sandbox = sandbox;
         this.modules = new HashMap<>();
+        this.prescripts = new ArrayList<>();
+        this.postscripts = new ArrayList<>();
         this.errors = new ArrayList<>();
     }
 
@@ -58,6 +62,83 @@ public class LuaModuleLoader {
             } catch (Exception e) {
                 e.printStackTrace();
                 addError("Error loading module from " + file.getPath() + ": " + e.getMessage());
+            }
+        }
+
+        // Also load prescripts from /prescripts subfolder
+        loadPreScriptsFromDirectory(directoryPath);
+
+        // Also load postscripts from /postscripts subfolder
+        loadPostScriptsFromDirectory(directoryPath);
+
+        return loadedCount;
+    }
+
+    public int loadPreScriptsFromDirectory(String directoryPath) {
+        if (directoryPath == null || directoryPath.trim().isEmpty()) {
+            return 0;
+        }
+
+        // Look for /prescripts subfolder
+        File prescriptsDir = new File(directoryPath, "prescripts");
+        if (!prescriptsDir.exists() || !prescriptsDir.isDirectory()) {
+            // No prescripts folder, which is fine
+            return 0;
+        }
+
+        int loadedCount = 0;
+        List<File> luaFiles = findLuaFiles(prescriptsDir, false); // Don't exclude script folders
+                                                                  // when loading from script folder
+
+        // load each lua file as a prescript
+        for (File file : luaFiles) {
+            try {
+                LuaModuleMetadata metadata = loadModule(file);
+                if (metadata != null) {
+                    // Add to prescripts list (not regular modules map)
+                    prescripts.add(metadata);
+                    loadedCount++;
+                    Logger.info("Loaded prescript: " + metadata.getName());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                addError("Error loading prescript from " + file.getPath() + ": " + e.getMessage());
+            }
+        }
+
+        return loadedCount;
+    }
+
+    public int loadPostScriptsFromDirectory(String directoryPath) {
+        if (directoryPath == null || directoryPath.trim().isEmpty()) {
+            return 0;
+        }
+
+        // Look for /postscripts subfolder
+        File postscriptsDir = new File(directoryPath, "postscripts");
+        if (!postscriptsDir.exists() || !postscriptsDir.isDirectory()) {
+            // No postscripts folder, which is fine
+            return 0;
+        }
+
+        int loadedCount = 0;
+        List<File> luaFiles = findLuaFiles(postscriptsDir, false); // Don't exclude script folders
+                                                                   // when loading from script
+                                                                   // folder
+
+        // load each lua file as a postscript
+        for (File file : luaFiles) {
+            try {
+                LuaModuleMetadata metadata = loadModule(file);
+                if (metadata != null) {
+                    // Add to postscripts list (not regular modules map)
+                    postscripts.add(metadata);
+                    loadedCount++;
+                    Logger.info("Loaded postscript: " + metadata.getName());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                addError("Error loading postscript from " + file.getPath() + ": " + e.getMessage());
             }
         }
 
@@ -147,8 +228,13 @@ public class LuaModuleLoader {
                 arguments = parseArguments(argsTable, file.getName());
             }
 
+            // get optional 'when' field for scripts (pre-randomize, pre-module, post-module,
+            // post-randomize)
+            String when = getStringField(moduleTable, "when", null);
+
             LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, group, modifies,
-                    arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset);
+                    arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset,
+                    when);
 
             Logger.info("Finished loading module: " + name);
 
@@ -314,14 +400,25 @@ public class LuaModuleLoader {
     }
 
     private List<File> findLuaFiles(File directory) {
+        return findLuaFiles(directory, true);
+    }
+
+    private List<File> findLuaFiles(File directory, boolean excludeScriptFolders) {
         List<File> luaFiles = new ArrayList<>();
         File[] files = directory.listFiles();
 
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
+                    // Skip prescripts and postscripts folders if requested (they're loaded
+                    // separately)
+                    String folderName = file.getName().toLowerCase();
+                    if (excludeScriptFolders && (folderName.equals("prescripts")
+                            || folderName.equals("postscripts"))) {
+                        continue;
+                    }
                     // recurse into subdirectories
-                    luaFiles.addAll(findLuaFiles(file));
+                    luaFiles.addAll(findLuaFiles(file, excludeScriptFolders));
                 } else if (file.isFile() && file.getName().toLowerCase().endsWith(".lua")) {
                     luaFiles.add(file);
                 }
@@ -356,8 +453,18 @@ public class LuaModuleLoader {
         return !errors.isEmpty();
     }
 
+    public List<LuaModuleMetadata> getPreScripts() {
+        return new ArrayList<>(prescripts);
+    }
+
+    public List<LuaModuleMetadata> getPostScripts() {
+        return new ArrayList<>(postscripts);
+    }
+
     public void clear() {
         modules.clear();
+        prescripts.clear();
+        postscripts.clear();
         errors.clear();
     }
 }

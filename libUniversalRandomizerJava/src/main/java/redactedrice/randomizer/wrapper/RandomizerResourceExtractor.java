@@ -12,7 +12,7 @@ public class RandomizerResourceExtractor {
     // TODO: Look into this more. It seems like there should be a way to just copy
     // the whole directory but it doesn't seem to be for a JAR
     private static final String[] RANDOMIZER_FILES =
-            {"init.lua", "list.lua", "group.lua", "utils.lua"};
+            {"init.lua", "list.lua", "group.lua", "utils.lua", "changedetector.lua"};
     private static String extractionPath = "randomizer";
 
     public static void setPath(String path) {

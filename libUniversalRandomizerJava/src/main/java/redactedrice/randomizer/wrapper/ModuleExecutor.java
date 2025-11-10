@@ -30,8 +30,7 @@ public class ModuleExecutor {
     }
 
     public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
-            Map<String, Object> arguments, Integer seed, ChangeDetector changeDetector,
-            List<Object> monitoredObjects, ObjectIdentifier objectIdentifier) {
+            Map<String, Object> arguments, Integer seed) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
         }
@@ -56,11 +55,6 @@ public class ModuleExecutor {
                 // set seed before running the lua code
                 setSeedInLua(effectiveSeed);
 
-                // snapshot the monitored objects so we can detect changes later
-                if (changeDetector != null && changeDetector.isEnabled()) {
-                    changeDetector.takeSnapshots(monitoredObjects, objectIdentifier);
-                }
-
                 // convert context to lua table
                 LuaTable contextTable = context != null ? context.toLuaTable() : new LuaTable();
 
@@ -70,14 +64,8 @@ public class ModuleExecutor {
                 // execute the lua function with xpcall wrapper for better error messages
                 LuaValue result = executeWithTraceback(metadata, contextTable, argsTable);
 
-                // check if anything changed
-                Map<String, Map<String, String>> changes = null;
-                if (changeDetector != null && changeDetector.isEnabled()) {
-                    changes = changeDetector.detectChanges();
-                }
-
                 ExecutionResult execResult =
-                        new ExecutionResult(moduleName, true, null, result, changes, effectiveSeed);
+                        new ExecutionResult(moduleName, true, null, result, null, effectiveSeed);
                 results.add(execResult);
 
                 Logger.info("Finished execution");
@@ -184,12 +172,70 @@ public class ModuleExecutor {
 
     public List<ExecutionResult> executeModules(List<LuaModuleMetadata> modules,
             JavaContext context, Map<String, Map<String, Object>> argumentsPerModule,
-            Map<String, Integer> seedsPerModule, ChangeDetector changeDetector,
-            List<Object> monitoredObjects, ObjectIdentifier objectIdentifier) {
+            Map<String, Integer> seedsPerModule, List<LuaModuleMetadata> prescripts,
+            List<LuaModuleMetadata> postscripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
+
+        // Separate scripts by their timing
+        List<LuaModuleMetadata> preRandomizeScripts = new ArrayList<>();
+        List<LuaModuleMetadata> preModuleScripts = new ArrayList<>();
+        List<LuaModuleMetadata> postModuleScripts = new ArrayList<>();
+        List<LuaModuleMetadata> postRandomizeScripts = new ArrayList<>();
+
+        // Sort prescripts by timing
+        if (prescripts != null) {
+            for (LuaModuleMetadata script : prescripts) {
+                String when = script.getWhen();
+                if (when == null || when.isEmpty() || when.equals("pre-randomize")) {
+                    preRandomizeScripts.add(script);
+                } else if (when.equals("pre-module")) {
+                    preModuleScripts.add(script);
+                } else if (when.equals("post-module")) {
+                    postModuleScripts.add(script);
+                } else if (when.equals("post-randomize")) {
+                    postRandomizeScripts.add(script);
+                }
+            }
+        }
+
+        // Sort postscripts by timing
+        if (postscripts != null) {
+            for (LuaModuleMetadata script : postscripts) {
+                String when = script.getWhen();
+                if (when == null || when.isEmpty() || when.equals("post-randomize")) {
+                    postRandomizeScripts.add(script);
+                } else if (when.equals("pre-module")) {
+                    preModuleScripts.add(script);
+                } else if (when.equals("post-module")) {
+                    postModuleScripts.add(script);
+                } else if (when.equals("pre-randomize")) {
+                    preRandomizeScripts.add(script);
+                }
+            }
+        }
+
+        // Execute pre-randomize scripts
+        for (LuaModuleMetadata script : preRandomizeScripts) {
+            try {
+                executeModule(script, context, new HashMap<>(), null);
+            } catch (Exception e) {
+                Logger.error("Error executing pre-randomize script '" + script.getName() + "': "
+                        + e.getMessage());
+            }
+        }
 
         // run each module one by one
         for (LuaModuleMetadata module : modules) {
+            // Execute pre-module scripts
+            for (LuaModuleMetadata script : preModuleScripts) {
+                try {
+                    executeModule(script, context, new HashMap<>(), null);
+                } catch (Exception e) {
+                    Logger.error("Error executing pre-module script '" + script.getName() + "': "
+                            + e.getMessage());
+                }
+            }
+
             // get args for this module
             Map<String, Object> args =
                     argumentsPerModule != null ? argumentsPerModule.get(module.getName())
@@ -202,16 +248,36 @@ public class ModuleExecutor {
             // get seed for this module
             Integer seed = seedsPerModule != null ? seedsPerModule.get(module.getName()) : null;
 
-            ExecutionResult result = executeModule(module, context, args, seed, changeDetector,
-                    monitoredObjects, objectIdentifier);
+            ExecutionResult result = executeModule(module, context, args, seed);
             execResults.add(result);
+
+            // Execute post-module scripts
+            for (LuaModuleMetadata script : postModuleScripts) {
+                try {
+                    executeModule(script, context, new HashMap<>(), null);
+                } catch (Exception e) {
+                    Logger.error("Error executing post-module script '" + script.getName() + "': "
+                            + e.getMessage());
+                }
+            }
 
             // TODO later add option to stop if module fails
             // right now we keep going even if one fails
         }
 
+        // Execute post-randomize scripts
+        for (LuaModuleMetadata script : postRandomizeScripts) {
+            try {
+                executeModule(script, context, new HashMap<>(), null);
+            } catch (Exception e) {
+                Logger.error("Error executing post-randomize script '" + script.getName() + "': "
+                        + e.getMessage());
+            }
+        }
+
         return execResults;
     }
+
 
     private Map<String, Object> validateArguments(LuaModuleMetadata metadata,
             Map<String, Object> arguments, redactedrice.randomizer.context.JavaContext context) {

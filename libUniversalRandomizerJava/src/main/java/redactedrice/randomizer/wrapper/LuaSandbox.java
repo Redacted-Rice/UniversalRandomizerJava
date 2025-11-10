@@ -52,12 +52,15 @@ public class LuaSandbox {
         // add logger functions
         setupLoggerFunctions(globals);
 
+        // add getFieldNames function for change detection
+        setupFieldNamesFunction(globals);
+
         return globals;
     }
 
     private void blockDangerousFunctions(Globals globals) {
-        // remove io os and luajava completely
-        globals.set("io", LuaValue.NIL);
+        // keep io for file writing (needed for change detection logs)
+        // but os and luajava are still blocked
         globals.set("os", LuaValue.NIL);
         globals.set("luajava", LuaValue.NIL);
 
@@ -171,5 +174,47 @@ public class LuaSandbox {
         loggerTable.set("tableToString", LuaLogFunctions.createTableToStringFunction());
 
         globals.set("logger", loggerTable);
+    }
+
+    private void setupFieldNamesFunction(Globals globals) {
+        // add global getFieldNames function for introspecting Java objects
+        globals.set("getFieldNames", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue arg) {
+                try {
+                    // Get the Java object from userdata
+                    if (arg.isuserdata()) {
+                        Object obj = arg.touserdata();
+                        java.util.List<String> fieldNames = ObjectFieldHelper.getFieldNames(obj);
+
+                        // Convert to Lua table (1-indexed)
+                        LuaTable table = new LuaTable();
+                        for (int i = 0; i < fieldNames.size(); i++) {
+                            table.set(i + 1, LuaValue.valueOf(fieldNames.get(i)));
+                        }
+                        return table;
+                    } else if (arg.istable()) {
+                        // For tables with __userdata, unwrap it
+                        LuaValue userdata = arg.get("__userdata");
+                        if (!userdata.isnil() && userdata.isuserdata()) {
+                            Object obj = userdata.touserdata();
+                            java.util.List<String> fieldNames = ObjectFieldHelper.getFieldNames(obj);
+
+                            LuaTable table = new LuaTable();
+                            for (int i = 0; i < fieldNames.size(); i++) {
+                                table.set(i + 1, LuaValue.valueOf(fieldNames.get(i)));
+                            }
+                            return table;
+                        }
+                    }
+
+                    // Return empty table if not userdata
+                    return new LuaTable();
+                } catch (Exception e) {
+                    // Return empty table on error
+                    return new LuaTable();
+                }
+            }
+        });
     }
 }
