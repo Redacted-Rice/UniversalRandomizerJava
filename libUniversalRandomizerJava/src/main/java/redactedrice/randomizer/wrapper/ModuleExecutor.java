@@ -176,40 +176,32 @@ public class ModuleExecutor {
             List<LuaModuleMetadata> postscripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
-        // Separate scripts by their timing
+        // Categorize our pre/post scripts
+        // Scripts in prescripts/ folder run before, postscripts/ folder run after
+        // when="randomize" runs at randomize boundaries, when="module" runs at module boundaries
         List<LuaModuleMetadata> preRandomizeScripts = new ArrayList<>();
         List<LuaModuleMetadata> preModuleScripts = new ArrayList<>();
         List<LuaModuleMetadata> postModuleScripts = new ArrayList<>();
         List<LuaModuleMetadata> postRandomizeScripts = new ArrayList<>();
 
-        // Sort prescripts by timing
         if (prescripts != null) {
             for (LuaModuleMetadata script : prescripts) {
                 String when = script.getWhen();
-                if (when == null || when.isEmpty() || when.equals("pre-randomize")) {
+                if (when == null || when.isEmpty() || when.equals("randomize")) {
                     preRandomizeScripts.add(script);
-                } else if (when.equals("pre-module")) {
+                } else if (when.equals("module")) {
                     preModuleScripts.add(script);
-                } else if (when.equals("post-module")) {
-                    postModuleScripts.add(script);
-                } else if (when.equals("post-randomize")) {
-                    postRandomizeScripts.add(script);
                 }
             }
         }
 
-        // Sort postscripts by timing
         if (postscripts != null) {
             for (LuaModuleMetadata script : postscripts) {
                 String when = script.getWhen();
-                if (when == null || when.isEmpty() || when.equals("post-randomize")) {
+                if (when == null || when.isEmpty() || when.equals("randomize")) {
                     postRandomizeScripts.add(script);
-                } else if (when.equals("pre-module")) {
-                    preModuleScripts.add(script);
-                } else if (when.equals("post-module")) {
+                } else if (when.equals("module")) {
                     postModuleScripts.add(script);
-                } else if (when.equals("pre-randomize")) {
-                    preRandomizeScripts.add(script);
                 }
             }
         }
@@ -237,13 +229,9 @@ public class ModuleExecutor {
             }
 
             // get args for this module
-            Map<String, Object> args =
-                    argumentsPerModule != null ? argumentsPerModule.get(module.getName())
-                            : new HashMap<>();
-
-            if (args == null) {
-                args = new HashMap<>();
-            }
+            Map<String, Object> args = argumentsPerModule != null
+                    ? argumentsPerModule.getOrDefault(module.getName(), new HashMap<>())
+                    : new HashMap<>();
 
             // get seed for this module
             Integer seed = seedsPerModule != null ? seedsPerModule.get(module.getName()) : null;

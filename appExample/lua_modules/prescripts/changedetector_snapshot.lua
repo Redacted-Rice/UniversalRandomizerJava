@@ -1,15 +1,11 @@
--- PRE-MODULE script: Take snapshot before each module runs
--- Timing: Runs before each randomization module executes
--- Purpose: Captures current state to detect changes after module completes
-
+-- Takes a snapshot for change detection before each module
 return {
 	name = "changedetector_snapshot",
 	description = "Take snapshot before each module",
-	when = "pre-module",
+	when = "module",
 
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
-		-- Take snapshots of all monitored objects
 		changedetector.takeSnapshots()
 	end,
 }

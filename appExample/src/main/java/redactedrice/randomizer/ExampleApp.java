@@ -27,8 +27,7 @@ public class ExampleApp {
             runExample(logFileStream, warnErrFileStream, logFile, warnErrFile);
 
             System.out.println("\n=== Logs written to: ===");
-            System.out.println(
-                    "  All logs (including change detection): " + logFile.getAbsolutePath());
+            System.out.println("  All logs: " + logFile.getAbsolutePath());
             System.out.println("  Warnings & Errors: " + warnErrFile.getAbsolutePath());
         } catch (Exception e) {
             System.err.println("Error setting up logging: " + e.getMessage());
@@ -105,12 +104,8 @@ public class ExampleApp {
         System.out.println("Loaded " + loaded + " modules\n");
         wrapper.printModuleSummary();
 
-        // Configure change detection via config (prescripts will set it up)
-        // Change detection now logs through the logger system to configured log files
-        wrapper.setConfigValue("outputToConsole", true);
-        System.out.println(
-                "\nChange detection configured - changes will be logged via logger.info()");
-        System.out.println("  Console output enabled - changes will also print() to console");
+        // Change detection is via the pre/post scripts and doesn't need config here. Its included
+        // in the logs by these scripts
 
         // Create test entities with varied stats
         // Warriors: High health/defense, moderate damage, low speed
@@ -167,6 +162,9 @@ public class ExampleApp {
         // Register enums with custom names to be used in Lua context
         context.registerEnum("EE_EntityTypes", ExampleEntity.EntityType.class);
         context.registerEnum("ItemRarity", ExampleItem.ItemRarity.class);
+
+        // Enable change detection. The scripts will handle logging it to the logger
+        context.setConfig("changeDetectionActive", true);
 
         // Print original state
         System.out.println("\n=== ORIGINAL STATE ===");
@@ -251,7 +249,7 @@ public class ExampleApp {
         module6Args.put("weightedRarityPool", weightedPool);
         moduleArguments.add(module6Args);
 
-        // Prepare arguments and seeds maps for executeModules (plural)
+        // Create maps for the modules args and seeds
         Map<String, Map<String, Object>> argumentsPerModule = new HashMap<>();
         Map<String, Integer> seedsPerModule = new HashMap<>();
         for (int i = 0; i < scriptNames.length; i++) {
@@ -259,11 +257,15 @@ public class ExampleApp {
             seedsPerModule.put(scriptNames[i], 12345 + i);
         }
 
-        // Execute all modules with their respective arguments (prescripts run automatically first)
+        // Execute all modules with their respective arguments. Pre and post scripts will run
+        // automatically for these.
+        // Note we do it in batch right now so the change detector setup is run once at the start.
+        // Probably in the future I'll split this out from the sinlge moudles so it can still be run
+        // piecemeal
         List<ExecutionResult> results = wrapper.executeModules(Arrays.asList(scriptNames), context,
                 argumentsPerModule, seedsPerModule);
 
-        // Print execution results
+        // Print the results (logs and errors)
         for (int i = 0; i < results.size(); i++) {
             ExecutionResult result = results.get(i);
             System.out.println((i + 1) + ". Executing: " + result.getModuleName());
@@ -282,13 +284,5 @@ public class ExampleApp {
         for (ExampleItem i : itemsModified) {
             System.out.println("  " + i);
         }
-
-        // Note about change detection
-        System.out.println("\n=== CHANGE DETECTION ===");
-        System.out.println(
-                "Changes have been logged via logger.info() by the Lua change detector scripts.");
-        System.out.println(
-                "The logs show field-level changes for each modified entity/item, organized by monitoring set.");
-        System.out.println("Check randomizer.log for the detailed change detection output.");
     }
 }
