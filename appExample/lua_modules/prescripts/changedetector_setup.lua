@@ -12,8 +12,17 @@ return {
 		changedetector.configure(isActive)
 
         -- Setup monitoring for entities and items
-        -- TODO It would be nice if we could autodetect these in the wrapper
-		local entityFields = {"name", "health", "damage", "speed", "defense", "type", "startingItem"}
+        -- Entities have private fields so we use getters
+		local entityFields = {
+			{name = "name", getter = function(obj) return obj:getName() end},
+			{name = "health", getter = function(obj) return obj:getHealth() end},
+			{name = "damage", getter = function(obj) return obj:getDamage() end},
+			{name = "speed", getter = function(obj) return obj:getSpeed() end},
+			{name = "defense", getter = function(obj) return obj:getDefense() end},
+			{name = "type", getter = function(obj) return obj:getType() end},
+			{name = "startingItem", getter = function(obj) return obj:getStartingItem() end}
+		}
+		-- Items have public fields so we use direct field access
 		local itemFields = {"name", "rarity", "attackBonus", "defenseBonus", "healthBonus", "speedBonus"}
 
 		changedetector.monitor("Entities", context.entitiesModified, entityFields, function(obj)
