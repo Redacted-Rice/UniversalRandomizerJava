@@ -20,10 +20,12 @@ import java.util.Map;
 public class JavaContext {
     Map<String, Object> objects;
     EnumContext enumContext;
+    Map<String, Object> config;
 
     public JavaContext() {
         this.objects = new HashMap<>();
         this.enumContext = new EnumContext();
+        this.config = new HashMap<>();
     }
 
     public void register(String name, Object object) {
@@ -90,6 +92,18 @@ public class JavaContext {
         return objects.keySet().toArray(new String[0]);
     }
 
+    public void setConfig(Map<String, Object> config) {
+        if (config != null) {
+            this.config = new HashMap<>(config);
+        } else {
+            this.config = new HashMap<>();
+        }
+    }
+
+    public Map<String, Object> getConfig() {
+        return new HashMap<>(config);
+    }
+
     public LuaTable toLuaTable() {
         LuaTable table = new LuaTable();
 
@@ -97,6 +111,16 @@ public class JavaContext {
         for (Map.Entry<String, Object> entry : objects.entrySet()) {
             LuaValue luaValue = javaToLuaValue(entry.getValue());
             table.set(entry.getKey(), luaValue);
+        }
+
+        // Add config as a table
+        if (!config.isEmpty()) {
+            LuaTable configTable = new LuaTable();
+            for (Map.Entry<String, Object> entry : config.entrySet()) {
+                LuaValue luaValue = javaToLuaValue(entry.getValue());
+                configTable.set(entry.getKey(), luaValue);
+            }
+            table.set("config", configTable);
         }
 
         // Add enums directly to root (not nested)
