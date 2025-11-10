@@ -46,24 +46,8 @@ public class LuaModuleLoader {
             return 0;
         }
 
-        int loadedCount = 0;
-        // recursively find all lua files
-        List<File> luaFiles = findLuaFiles(directory);
-
-        // load each lua file as a module
-        for (File file : luaFiles) {
-            try {
-                LuaModuleMetadata metadata = loadModule(file);
-                if (metadata != null) {
-                    // store by module name so we can look it up later
-                    modules.put(metadata.getName(), metadata);
-                    loadedCount++;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                addError("Error loading module from " + file.getPath() + ": " + e.getMessage());
-            }
-        }
+        // Load modules from actions subfolder
+        int loadedCount = loadModulesFromSubfolder(directoryPath);
 
         // Load the pre & post scripts as well
         loadPreScriptsFromDirectory(directoryPath);
@@ -72,25 +56,50 @@ public class LuaModuleLoader {
         return loadedCount;
     }
 
+
+    private List<File> getScriptsFromSubdirectory(String directoryPath, String subfolder) {
+        if (directoryPath == null || directoryPath.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        File targetDir;
+        if (subfolder == null || subfolder.trim().isEmpty()) {
+            targetDir = new File(directoryPath);
+        } else {
+            targetDir = new File(directoryPath, subfolder);
+        }
+
+        if (!targetDir.exists() || !targetDir.isDirectory()) {
+            return new ArrayList<>();
+        }
+
+        return findLuaFiles(targetDir, false);
+    }
+
+    private int loadModulesFromSubfolder(String directoryPath) {
+        List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, "actions");
+        return loadModulesFromScripts(luaFiles, modules, "module", (metadata) -> {
+            modules.put(metadata.getName(), metadata);
+        });
+    }
+
     private int loadScriptsFromSubfolder(String directoryPath, String subfolder,
             List<LuaModuleMetadata> targetList, String scriptType) {
-        if (directoryPath == null || directoryPath.trim().isEmpty()) {
-            return 0;
-        }
+        List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, subfolder);
+        return loadModulesFromScripts(luaFiles, targetList, scriptType, (metadata) -> {
+            targetList.add(metadata);
+        });
+    }
 
-        File scriptsDir = new File(directoryPath, subfolder);
-        if (!scriptsDir.exists() || !scriptsDir.isDirectory()) {
-            return 0;
-        }
-
+    private int loadModulesFromScripts(List<File> luaFiles, Object targetCollection,
+            String scriptType, java.util.function.Consumer<LuaModuleMetadata> onSuccess) {
         int loadedCount = 0;
-        List<File> luaFiles = findLuaFiles(scriptsDir, false);
 
         for (File file : luaFiles) {
             try {
                 LuaModuleMetadata metadata = loadModule(file);
                 if (metadata != null) {
-                    targetList.add(metadata);
+                    onSuccess.accept(metadata);
                     loadedCount++;
                     Logger.info("Loaded " + scriptType + ": " + metadata.getName());
                 }
@@ -364,10 +373,6 @@ public class LuaModuleLoader {
             return value.todouble();
         }
         return defaultValue;
-    }
-
-    private List<File> findLuaFiles(File directory) {
-        return findLuaFiles(directory, true);
     }
 
     private List<File> findLuaFiles(File directory, boolean excludeScriptFolders) {
