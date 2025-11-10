@@ -2,9 +2,14 @@ package redactedrice.randomizer.context;
 
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
+import org.luaj.vm2.lib.ThreeArgFunction;
+import org.luaj.vm2.lib.TwoArgFunction;
+import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
-
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,7 +57,7 @@ public class JavaContext {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("Enum values cannot be null or empty");
         }
-        enumContext.registerEnum(name, java.util.Arrays.asList(values));
+        enumContext.registerEnum(name, Arrays.asList(values));
     }
 
     public EnumContext getEnumContext() {
@@ -219,22 +224,23 @@ public class JavaContext {
         return table;
     }
 
+    // This only runs when adding to context
     private LuaValue javaToLuaValue(Object value) {
         if (value == null) {
             return LuaValue.NIL;
-        } else if (value instanceof java.util.List) {
+        } else if (value instanceof List) {
             // Convert List to Lua table (1-indexed)
-            java.util.List<?> list = (java.util.List<?>) value;
+            List<?> list = (List<?>) value;
             LuaTable luaTable = new LuaTable();
             for (int i = 0; i < list.size(); i++) {
                 luaTable.set(i + 1, javaToLuaValue(list.get(i)));
             }
             return luaTable;
-        } else if (value instanceof java.util.Map) {
+        } else if (value instanceof Map) {
             // Convert Map to Lua table
-            java.util.Map<?, ?> map = (java.util.Map<?, ?>) value;
+            Map<?, ?> map = (Map<?, ?>) value;
             LuaTable luaTable = new LuaTable();
-            for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
                 LuaValue key = javaToLuaValue(entry.getKey());
                 LuaValue val = javaToLuaValue(entry.getValue());
                 luaTable.set(key, val);
@@ -268,7 +274,7 @@ public class JavaContext {
         LuaTable metatable = new LuaTable();
 
         // __index: Try wrapper first, then userdata
-        metatable.set(LuaValue.INDEX, new org.luaj.vm2.lib.TwoArgFunction() {
+        metatable.set(LuaValue.INDEX, new TwoArgFunction() {
             @Override
             public LuaValue call(LuaValue table, LuaValue key) {
                 // First check the wrapper table itself
@@ -295,7 +301,7 @@ public class JavaContext {
         });
 
         // __newindex: Always store in wrapper table for extensibility
-        metatable.set(LuaValue.NEWINDEX, new org.luaj.vm2.lib.ThreeArgFunction() {
+        metatable.set(LuaValue.NEWINDEX, new ThreeArgFunction() {
             @Override
             public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
                 // Try to set on userdata first (for actual Java fields)
@@ -320,11 +326,11 @@ public class JavaContext {
 
     private LuaValue wrapMethodForEnumConversion(Object javaObject, String methodName,
             LuaValue originalMethod, LuaValue userdata) {
-        return new org.luaj.vm2.lib.VarArgFunction() {
+        return new VarArgFunction() {
             @Override
-            public org.luaj.vm2.Varargs invoke(org.luaj.vm2.Varargs args) {
+            public Varargs invoke(Varargs args) {
                 // Try to find the Java method using reflection
-                java.lang.reflect.Method javaMethod =
+                Method javaMethod =
                         findJavaMethod(javaObject.getClass(), methodName, args.narg() - 1);
 
                 // Always use userdata as 'self' (first argument)
@@ -381,7 +387,9 @@ public class JavaContext {
                         }
                     }
 
-                    return originalMethod.invoke(org.luaj.vm2.LuaValue.varargsOf(newArgs));
+                    Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
+                    // Convert return value if it's a Java object
+                    return convertReturnValue(result);
                 } else {
                     // Method not found via reflection, call original method as-is
                     LuaValue[] newArgs = new LuaValue[args.narg()];
@@ -389,25 +397,45 @@ public class JavaContext {
                     for (int i = 1; i < args.narg(); i++) {
                         newArgs[i] = args.arg(i + 1);
                     }
-                    return originalMethod.invoke(org.luaj.vm2.LuaValue.varargsOf(newArgs));
+                    Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
+                    // convert return value if it's a Java object
+                    return convertReturnValue(result);
                 }
             }
         };
     }
 
-    // Cache for method lookups to avoid repeated reflection
-    private static final Map<String, java.lang.reflect.Method> methodCache = new HashMap<>();
+    // Converts from java map or list to lua table
+    private Varargs convertReturnValue(Varargs result) {
+        if (result.narg() == 0) {
+            return result;
+        }
 
-    private java.lang.reflect.Method findJavaMethod(Class<?> clazz, String methodName,
-            int paramCount) {
+        LuaValue firstValue = result.arg1();
+
+        // convert java maps and lists to lua tables
+        if (firstValue.isuserdata()) {
+            Object javaObject = firstValue.touserdata();
+            if (javaObject instanceof List || javaObject instanceof Map) {
+                return javaToLuaValue(javaObject);
+            }
+        }
+
+        return result;
+    }
+
+    // Cache for method lookups to avoid repeated reflection
+    private static final Map<String, Method> methodCache = new HashMap<>();
+
+    private Method findJavaMethod(Class<?> clazz, String methodName, int paramCount) {
         String cacheKey = clazz.getName() + "#" + methodName + "#" + paramCount;
-        java.lang.reflect.Method cached = methodCache.get(cacheKey);
+        Method cached = methodCache.get(cacheKey);
         if (cached != null) {
             return cached;
         }
 
         // Search for method
-        for (java.lang.reflect.Method method : clazz.getMethods()) {
+        for (Method method : clazz.getMethods()) {
             if (method.getName().equals(methodName) && method.getParameterCount() == paramCount) {
                 methodCache.put(cacheKey, method);
                 return method;
