@@ -73,7 +73,7 @@ public class LuaModuleLoader {
             return new ArrayList<>();
         }
 
-        return findLuaFiles(targetDir, false);
+        return findLuaFiles(targetDir);
     }
 
     private int loadModulesFromSubfolder(String directoryPath) {
@@ -204,8 +204,7 @@ public class LuaModuleLoader {
                 arguments = parseArguments(argsTable, file.getName());
             }
 
-            // get optional 'when' field for scripts (pre-randomize, pre-module, post-module,
-            // post-randomize)
+            // get optional 'when' field for scripts (randomize & module)
             String when = getStringField(moduleTable, "when", null);
 
             LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, group, modifies,
@@ -375,21 +374,15 @@ public class LuaModuleLoader {
         return defaultValue;
     }
 
-    private List<File> findLuaFiles(File directory, boolean excludeScriptFolders) {
+    private List<File> findLuaFiles(File directory) {
         List<File> luaFiles = new ArrayList<>();
         File[] files = directory.listFiles();
 
         if (files != null) {
             for (File file : files) {
                 if (file.isDirectory()) {
-                    // Skip script folders if requested (they're loaded separately)
-                    String folderName = file.getName().toLowerCase();
-                    if (excludeScriptFolders && (folderName.equals("prescripts")
-                            || folderName.equals("postscripts"))) {
-                        continue;
-                    }
                     // recurse into subdirectories
-                    luaFiles.addAll(findLuaFiles(file, excludeScriptFolders));
+                    luaFiles.addAll(findLuaFiles(file));
                 } else if (file.isFile() && file.getName().toLowerCase().endsWith(".lua")) {
                     luaFiles.add(file);
                 }

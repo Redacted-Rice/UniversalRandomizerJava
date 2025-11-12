@@ -1,15 +1,22 @@
 A list of things to do in no particular order:
 - Begin integrating with PTCGR and ensure use cases are covered
-- get gradle sonarlint working. I know some functions are too complex ATM and I'm sure there are other issues
 - Make it so it can abort if a module fails or have some dependcies structure to say what requires what or what needs to be run before hand?
 - Revisit sandbox. Maybe add resource limits. Check for holes and see if I can relax the includes some
 - Add some metadata to modules about who created it and maybe a link or something like that to allow giving credit where its due
-- Maybe allow some file based configuration? Probably not because I want to encourage using the args
-- Consider adding grouping/filtering logic in here instead of PTCGR
-- Look into null annotations
+- Consider adding grouping/filtering logic of modules in here instead of PTCGR
 - Add a way to allow testing/validating modules without a full run?
+- Consolidate resource copying scripts and make it auto extract whole folder instead of specifying each file
+
+Coding cleanliness tasks
+- Separate out pre/post scripts to a separate class other than module
+- Look into null annotations
+- get gradle sonarlint working. I know some functions are too complex ATM and I'm sure there are other issues
 
 Some finalizing things once I'm confident things won't change much:
 - Add more ut & functional test coverage
 - Comment code and functions now that things seem more stable and get gradle doxygen working
 - Work on readme and make it more comprehesive
+
+current work before merging
+- Incremental execution while keeping randomize/module scripts executing as appropriate so they don't have to be batched
+- Clean up execution results. I think some fields at least are obe now

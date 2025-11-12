@@ -104,9 +104,6 @@ public class ExampleApp {
         System.out.println("Loaded " + loaded + " modules\n");
         wrapper.printModuleSummary();
 
-        // Change detection is via the pre/post scripts and doesn't need config here. Its included
-        // in the logs by these scripts
-
         // Create test entities with varied stats
         // Warriors: High health/defense, moderate damage, low speed
         // Mages: Low health/defense, high damage, moderate speed
