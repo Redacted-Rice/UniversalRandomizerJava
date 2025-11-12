@@ -28,7 +28,7 @@ public class LuaModuleMetadataTest {
             "TestModule", "Test description", "gameplay", 
             Arrays.asList("stats", "appearance"), 
             Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
-            executeFunc, null, "/path/to/module.lua", 0
+            executeFunc, null, "/path/to/module.lua", 0, null
         );
         
         assertEquals("TestModule", metadata.getName());
@@ -49,7 +49,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorNullNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata(null, null, null, null, null, executeFunc, null, null, 0);
+            new LuaModuleMetadata(null, null, null, null, null, executeFunc, null, null, 0, null);
         });
     }
 
@@ -57,7 +57,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorEmptyNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata("", null, null, null, null, executeFunc, null, null, 0);
+            new LuaModuleMetadata("", null, null, null, null, executeFunc, null, null, 0, null);
         });
     }
 
@@ -65,14 +65,14 @@ public class LuaModuleMetadataTest {
     public void testConstructorWhitespaceNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata("   ", null, null, null, null, executeFunc, null, null, 0);
+            new LuaModuleMetadata("   ", null, null, null, null, executeFunc, null, null, 0, null);
         });
     }
 
     @Test
     public void testConstructorNullExecuteFunctionThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata("TestModule", null, null, null, null, null, null, null, 0);
+            new LuaModuleMetadata("TestModule", null, null, null, null, null, null, null, 0, null);
         });
     }
 
@@ -80,7 +80,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorNullDescription() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, null, 0
+            "TestModule", null, null, null, null, executeFunc, null, null, 0, null
         );
         
         assertEquals("", metadata.getDescription());
@@ -90,7 +90,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorNullGroup() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, null, 0
+            "TestModule", null, null, null, null, executeFunc, null, null, 0, null
         );
         
         assertEquals("utility", metadata.getGroup()); // Default group
@@ -100,7 +100,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorGroupCaseInsensitive() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, "GAMEPLAY", null, null, executeFunc, null, null, 0
+            "TestModule", null, "GAMEPLAY", null, null, executeFunc, null, null, 0, null
         );
         
         assertEquals("gameplay", metadata.getGroup()); // Lowercased
@@ -110,7 +110,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorNullModifies() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, null, 0
+            "TestModule", null, null, null, null, executeFunc, null, null, 0, null
         );
         
         assertTrue(metadata.getModifies().isEmpty());
@@ -120,7 +120,7 @@ public class LuaModuleMetadataTest {
     public void testConstructorNullArguments() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, null, 0
+            "TestModule", null, null, null, null, executeFunc, null, null, 0, null
         );
         
         assertTrue(metadata.getArguments().isEmpty());
@@ -131,7 +131,7 @@ public class LuaModuleMetadataTest {
         LuaFunction executeFunc = createMockFunction();
         LuaFunction onLoadFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, onLoadFunc, null, 0
+            "TestModule", null, null, null, null, executeFunc, onLoadFunc, null, 0, null
         );
         
         assertEquals(onLoadFunc, metadata.getOnLoadFunction());
@@ -143,7 +143,7 @@ public class LuaModuleMetadataTest {
         LuaFunction executeFunc = createMockFunction();
         List<String> modifies = Arrays.asList("stats", "appearance");
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, modifies, null, executeFunc, null, null, 0
+            "TestModule", null, null, modifies, null, executeFunc, null, null, 0, null
         );
         
         List<String> retrieved = metadata.getModifies();
@@ -158,7 +158,7 @@ public class LuaModuleMetadataTest {
         ArgumentDefinition arg1 = new ArgumentDefinition("arg1", TypeDefinition.string(), null);
         List<ArgumentDefinition> arguments = Arrays.asList(arg1);
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, arguments, executeFunc, null, null, 0
+            "TestModule", null, null, null, arguments, executeFunc, null, null, 0, null
         );
         
         List<ArgumentDefinition> retrieved = metadata.getArguments();
@@ -174,7 +174,7 @@ public class LuaModuleMetadataTest {
             "TestModule", "Description", "gameplay", 
             Arrays.asList("stats"), 
             Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
-            executeFunc, null, "/path/to/module.lua", 5
+            executeFunc, null, "/path/to/module.lua", 5, null
         );
         
         String str = metadata.toString();
@@ -191,7 +191,7 @@ public class LuaModuleMetadataTest {
     public void testWithSeedOffset() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, null, 42
+            "TestModule", null, null, null, null, executeFunc, null, null, 42, null
         );
         
         assertEquals(42, metadata.getDefaultSeedOffset());
@@ -201,7 +201,7 @@ public class LuaModuleMetadataTest {
     public void testWithFilePath() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata = new LuaModuleMetadata(
-            "TestModule", null, null, null, null, executeFunc, null, "/custom/path.lua", 0
+            "TestModule", null, null, null, null, executeFunc, null, "/custom/path.lua", 0, null
         );
         
         assertEquals("/custom/path.lua", metadata.getFilePath());

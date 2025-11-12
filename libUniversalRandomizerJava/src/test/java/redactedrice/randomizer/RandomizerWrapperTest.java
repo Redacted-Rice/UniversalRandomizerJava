@@ -43,10 +43,8 @@ public class RandomizerWrapperTest {
     @Test
     public void testExecuteModuleWithArguments() {
         wrapper.loadModules();
-        wrapper.setChangeDetectionEnabled(true);
 
         TestEntity entity = new TestEntity("Original", 100, 10.0, true);
-        wrapper.setMonitoredObjects(entity);
 
         JavaContext context = new JavaContext();
         context.register("entity", entity);
@@ -63,16 +61,13 @@ public class RandomizerWrapperTest {
         assertNotEquals("Original", entity.getName());
         assertTrue(entity.getHealth() >= 50 && entity.getHealth() <= 200);
         assertEquals(15.0, entity.getDamage(), 0.01);
-        assertTrue(result.hasChanges());
     }
 
     @Test
     public void testExecuteModuleWithComplexArguments() {
         wrapper.loadModules();
-        wrapper.setChangeDetectionEnabled(true);
 
         TestEntity entity = new TestEntity("Original", 100, 10.0, true);
-        wrapper.setMonitoredObjects(entity);
 
         JavaContext context = new JavaContext();
         context.register("entity", entity);
@@ -89,7 +84,6 @@ public class RandomizerWrapperTest {
         assertNotEquals("Original", entity.getName());
         assertTrue(entity.getHealth() > 100);
         assertTrue(entity.getDamage() > 10.0);
-        assertTrue(result.hasChanges());
     }
 
     @Test

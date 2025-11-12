@@ -51,9 +51,6 @@ public class EnhancedFeaturesTest {
                 context.register("entity", entity);
                 context.registerEnum("EntityType", EntityType.class);
 
-                wrapper.setChangeDetectionEnabled(true);
-                wrapper.setMonitoredObjects(entity);
-
                 Map<String, Object> args = new HashMap<>();
                 args.put("entityType", "WARRIOR");
                 args.put("statBonuses", Arrays.asList(20, 5, 0));
@@ -70,7 +67,6 @@ public class EnhancedFeaturesTest {
 
                 assertTrue(result.isSuccess(),
                                 "Execution should succeed: " + result.getErrorMessage());
-                assertTrue(result.hasChanges(), "Should detect changes");
                 assertNotEquals("Test", entity.getName());
                 assertTrue(entity.getHealth() > 100);
                 assertTrue(entity.getDamage() > 10.0);
