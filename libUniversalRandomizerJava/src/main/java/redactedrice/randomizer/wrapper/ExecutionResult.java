@@ -14,6 +14,7 @@ public class ExecutionResult {
     Map<String, Map<String, String>> changes; // objectName -> {field -> change}
     int seedUsed;
 
+    // TODO: Clean this up - think we don't need changes at least now that we are doing it in lua
     public ExecutionResult(String moduleName, boolean success, String errorMessage, LuaValue result,
             Map<String, Map<String, String>> changes, int seedUsed) {
         this.moduleName = moduleName;

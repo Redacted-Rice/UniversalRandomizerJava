@@ -266,7 +266,6 @@ public class ModuleExecutor {
         return execResults;
     }
 
-
     private Map<String, Object> validateArguments(LuaModuleMetadata metadata,
             Map<String, Object> arguments, redactedrice.randomizer.context.JavaContext context) {
         Map<String, Object> validated = new HashMap<>();
