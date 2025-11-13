@@ -29,7 +29,7 @@ public class ModuleExecutor {
         this.results = new ArrayList<>();
     }
 
-    public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
+    private ExecutionResult executeLua(LuaModuleMetadata metadata, JavaContext context,
             Map<String, Object> arguments, Integer seed) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
@@ -105,6 +105,40 @@ public class ModuleExecutor {
         }
     }
 
+    public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
+            Map<String, Object> arguments, Integer seed, List<LuaModuleMetadata> preModuleScripts,
+            List<LuaModuleMetadata> postModuleScripts) {
+
+        // Execute pre module script(s)
+        if (preModuleScripts != null) {
+            for (LuaModuleMetadata script : preModuleScripts) {
+                try {
+                    executeLua(script, context, new HashMap<>(), null);
+                } catch (Exception e) {
+                    Logger.error("Error executing pre module script '" + script.getName() + "': "
+                            + e.getMessage());
+                }
+            }
+        }
+
+        // Execute the module
+        ExecutionResult result = executeLua(metadata, context, arguments, seed);
+
+        // Execute post module script(s)
+        if (postModuleScripts != null) {
+            for (LuaModuleMetadata script : postModuleScripts) {
+                try {
+                    executeLua(script, context, new HashMap<>(), null);
+                } catch (Exception e) {
+                    Logger.error("Error executing post module script '" + script.getName() + "': "
+                            + e.getMessage());
+                }
+            }
+        }
+
+        return result;
+    }
+
     private LuaValue executeWithTraceback(LuaModuleMetadata metadata, LuaTable contextTable,
             LuaTable argsTable) {
         try {
@@ -168,64 +202,28 @@ public class ModuleExecutor {
         }
     }
 
+    public void executeRandomizeScripts(List<LuaModuleMetadata> scripts, JavaContext context) {
+        if (scripts != null) {
+            for (LuaModuleMetadata script : scripts) {
+                try {
+                    executeLua(script, context, new HashMap<>(), null);
+                } catch (Exception e) {
+                    Logger.error(
+                            "Error executing script '" + script.getName() + "': " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    // Execute multiple modules with pre/post module scripts for each
     public List<ExecutionResult> executeModules(List<LuaModuleMetadata> modules,
             JavaContext context, Map<String, Map<String, Object>> argumentsPerModule,
-            Map<String, Integer> seedsPerModule, List<LuaModuleMetadata> prescripts,
-            List<LuaModuleMetadata> postscripts) {
+            Map<String, Integer> seedsPerModule, List<LuaModuleMetadata> preModuleScripts,
+            List<LuaModuleMetadata> postModuleScripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
-        // Categorize our pre/post scripts
-        // Scripts in prescripts/ folder run before, postscripts/ folder run after
-        // when="randomize" runs at randomize boundaries, when="module" runs at module boundaries
-        List<LuaModuleMetadata> preRandomizeScripts = new ArrayList<>();
-        List<LuaModuleMetadata> preModuleScripts = new ArrayList<>();
-        List<LuaModuleMetadata> postModuleScripts = new ArrayList<>();
-        List<LuaModuleMetadata> postRandomizeScripts = new ArrayList<>();
-
-        if (prescripts != null) {
-            for (LuaModuleMetadata script : prescripts) {
-                String when = script.getWhen();
-                if (when == null || when.isEmpty() || when.equals("randomize")) {
-                    preRandomizeScripts.add(script);
-                } else if (when.equals("module")) {
-                    preModuleScripts.add(script);
-                }
-            }
-        }
-
-        if (postscripts != null) {
-            for (LuaModuleMetadata script : postscripts) {
-                String when = script.getWhen();
-                if (when == null || when.isEmpty() || when.equals("randomize")) {
-                    postRandomizeScripts.add(script);
-                } else if (when.equals("module")) {
-                    postModuleScripts.add(script);
-                }
-            }
-        }
-
-        // Execute pre-randomize scripts
-        for (LuaModuleMetadata script : preRandomizeScripts) {
-            try {
-                executeModule(script, context, new HashMap<>(), null);
-            } catch (Exception e) {
-                Logger.error("Error executing pre-randomize script '" + script.getName() + "': "
-                        + e.getMessage());
-            }
-        }
-
-        // run each module one by one
+        // run each module get the args and see and execute it with the pre/post scripts
         for (LuaModuleMetadata module : modules) {
-            // Execute pre-module scripts
-            for (LuaModuleMetadata script : preModuleScripts) {
-                try {
-                    executeModule(script, context, new HashMap<>(), null);
-                } catch (Exception e) {
-                    Logger.error("Error executing pre-module script '" + script.getName() + "': "
-                            + e.getMessage());
-                }
-            }
-
             // get args for this module
             Map<String, Object> args = argumentsPerModule != null
                     ? argumentsPerModule.getOrDefault(module.getName(), new HashMap<>())
@@ -234,31 +232,13 @@ public class ModuleExecutor {
             // get seed for this module
             Integer seed = seedsPerModule != null ? seedsPerModule.get(module.getName()) : null;
 
-            ExecutionResult result = executeModule(module, context, args, seed);
+            // Execute the module & pre/post scripts
+            ExecutionResult result =
+                    executeModule(module, context, args, seed, preModuleScripts, postModuleScripts);
             execResults.add(result);
-
-            // Execute post-module scripts
-            for (LuaModuleMetadata script : postModuleScripts) {
-                try {
-                    executeModule(script, context, new HashMap<>(), null);
-                } catch (Exception e) {
-                    Logger.error("Error executing post-module script '" + script.getName() + "': "
-                            + e.getMessage());
-                }
-            }
 
             // TODO later add option to stop if module fails
             // right now we keep going even if one fails
-        }
-
-        // Execute post-randomize scripts
-        for (LuaModuleMetadata script : postRandomizeScripts) {
-            try {
-                executeModule(script, context, new HashMap<>(), null);
-            } catch (Exception e) {
-                Logger.error("Error executing post-randomize script '" + script.getName() + "': "
-                        + e.getMessage());
-            }
         }
 
         return execResults;
@@ -407,7 +387,7 @@ public class ModuleExecutor {
         return !errors.isEmpty();
     }
 
-    public void clear() {
+    public void clearResults() {
         errors.clear();
         results.clear();
     }

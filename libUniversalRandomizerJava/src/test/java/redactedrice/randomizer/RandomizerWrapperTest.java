@@ -195,5 +195,132 @@ public class RandomizerWrapperTest {
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
     }
+
+    // Helper class to hold common test data
+    private static class BatchTestData {
+        TestEntity entity1;
+        TestEntity entity2;
+        JavaContext context;
+        Map<String, Map<String, Object>> argumentsPerModule;
+        Map<String, Integer> seedsPerModule;
+        List<String> moduleNames;
+
+        BatchTestData() {
+            int seed = 12345;
+            this.entity1 = new TestEntity("Entity1", 100, 10.0, true);
+            this.entity2 = new TestEntity("Entity2", 150, 15.0, true);
+            this.context = new JavaContext();
+            this.context.register("entity", entity1);
+
+            // Setup arguments for multiple modules
+            this.argumentsPerModule = new HashMap<>();
+
+            Map<String, Object> args1 = new HashMap<>();
+            args1.put("healthMin", 80);
+            args1.put("healthMax", 120);
+            args1.put("damageMultiplier", 1.2);
+            argumentsPerModule.put("Simple Entity Randomizer", args1);
+
+            Map<String, Object> args2 = new HashMap<>();
+            args2.put("entityType", "warrior");
+            args2.put("level", 11);
+            args2.put("applyBonus", true);
+            argumentsPerModule.put("Advanced Entity Randomizer", args2);
+
+            // Setup seeds for modules
+            this.seedsPerModule = new HashMap<>();
+            seedsPerModule.put("Simple Entity Randomizer", seed);
+            seedsPerModule.put("Advanced Entity Randomizer", seed + 1);
+
+            this.moduleNames =
+                    Arrays.asList("Simple Entity Randomizer", "Advanced Entity Randomizer");
+        }
+    }
+
+    // Common verification for BatchTestData tests
+    private void verifyBatchTestDataExecution() {
+        List<ExecutionResult> results = wrapper.getExecutionResults();
+
+        // Should have 8 total results: 2 modules + 6 scripts
+        assertEquals(8, results.size(), "Should have 2 modules and 6 script executions");
+
+        // Count module and script executions
+        int simpleModuleCount = 0;
+        int advancedModuleCount = 0;
+        int preRandomizeScriptCount = 0;
+        int preModuleScriptCount = 0;
+        int postModuleScriptCount = 0;
+        int postRandomizeScriptCount = 0;
+
+        for (ExecutionResult result : results) {
+            String moduleName = result.getModuleName();
+            if (moduleName.equals("Simple Entity Randomizer")) {
+                simpleModuleCount++;
+                assertTrue(result.isSuccess());
+            } else if (moduleName.equals("Advanced Entity Randomizer")) {
+                advancedModuleCount++;
+                assertTrue(result.isSuccess());
+            } else if (moduleName.equals("Test Pre Randomize Script")) {
+                preRandomizeScriptCount++;
+                assertTrue(result.isSuccess());
+            } else if (moduleName.equals("Test Pre Module Script")) {
+                preModuleScriptCount++;
+                assertTrue(result.isSuccess());
+            } else if (moduleName.equals("Test Post Module Script")) {
+                postModuleScriptCount++;
+                assertTrue(result.isSuccess());
+            } else if (moduleName.equals("Test Post Randomize Script")) {
+                postRandomizeScriptCount++;
+                assertTrue(result.isSuccess());
+            }
+        }
+
+        // Verify module counts
+        assertEquals(1, simpleModuleCount);
+        assertEquals(1, advancedModuleCount);
+
+        // Verify script counts
+        assertEquals(1, preRandomizeScriptCount);
+        assertEquals(2, preModuleScriptCount);
+        assertEquals(2, postModuleScriptCount);
+        assertEquals(1, postRandomizeScriptCount);
+
+        assertFalse(wrapper.hasErrors());
+    }
+
+    @Test
+    public void testBatchProcessingWithPrePostRandomizeScripts() {
+        wrapper.loadModules();
+        BatchTestData data = new BatchTestData();
+
+        // Execute in batch. This automatically runs all the scripts
+        List<ExecutionResult> results = wrapper.executeModules(data.moduleNames, data.context,
+                data.argumentsPerModule, data.seedsPerModule);
+        assertEquals(2, results.size());
+
+        verifyBatchTestDataExecution();
+    }
+
+    @Test
+    public void testIndividualProcessingWithPrePostRandomizeScripts() {
+        wrapper.loadModules();
+        BatchTestData data = new BatchTestData();
+
+        // Manually execute pre randomize scripts
+        wrapper.executePreRandomizeScripts(data.context);
+
+        // Execute each module individually
+        wrapper.executeModule("Simple Entity Randomizer", data.context,
+                data.argumentsPerModule.get("Simple Entity Randomizer"),
+                data.seedsPerModule.get("Simple Entity Randomizer"));
+        wrapper.executeModule("Advanced Entity Randomizer", data.context,
+                data.argumentsPerModule.get("Advanced Entity Randomizer"),
+                data.seedsPerModule.get("Advanced Entity Randomizer"));
+
+        // Manually execute post randomize scripts
+        wrapper.executePostRandomizeScripts(data.context);
+
+        verifyBatchTestDataExecution();
+    }
 }
 

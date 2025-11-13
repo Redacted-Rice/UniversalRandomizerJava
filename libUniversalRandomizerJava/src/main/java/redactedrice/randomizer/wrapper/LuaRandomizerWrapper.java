@@ -126,6 +126,29 @@ public class LuaRandomizerWrapper {
         return moduleLoader.getModule(name);
     }
 
+    public void executePreRandomizeScripts(JavaContext context) {
+
+        // Ensure enums are up to date
+        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+
+        // Clear previous results
+        moduleExecutor.clearResults();
+        // get the pre randomize scripts and run them
+        List<LuaModuleMetadata> preRandomizeScripts = moduleLoader.getScripts(
+                LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
+        moduleExecutor.executeRandomizeScripts(preRandomizeScripts, context);
+    }
+
+    public void executePostRandomizeScripts(JavaContext context) {
+        // Ensure enums are up to date
+        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+
+        // get the post randomize scripts and run them
+        List<LuaModuleMetadata> postRandomizeScripts = moduleLoader.getScripts(
+                LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
+        moduleExecutor.executeRandomizeScripts(postRandomizeScripts, context);
+    }
+
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
             Map<String, Map<String, Object>> argumentsPerModule,
             Map<String, Integer> seedsPerModule) {
@@ -156,14 +179,28 @@ public class LuaRandomizerWrapper {
             modulesToExecute.add(module);
         }
 
-        // get prescripts and postscripts from loader
-        List<LuaModuleMetadata> prescripts = moduleLoader.getPreScripts();
-        List<LuaModuleMetadata> postscripts = moduleLoader.getPostScripts();
+        // get scripts by timing and when
+        List<LuaModuleMetadata> preRandomizeScripts = moduleLoader.getScripts(
+                LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
+        List<LuaModuleMetadata> preModuleScripts = moduleLoader
+                .getScripts(LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+        List<LuaModuleMetadata> postModuleScripts = moduleLoader
+                .getScripts(LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+        List<LuaModuleMetadata> postRandomizeScripts = moduleLoader.getScripts(
+                LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
 
-        // run the modules (scripts will be executed at appropriate times)
-        moduleExecutor.clear();
-        return moduleExecutor.executeModules(modulesToExecute, context, argumentsPerModule,
-                seedsPerModule, prescripts, postscripts);
+        // Clear results and execute pre randomize scripts
+        moduleExecutor.clearResults();
+        moduleExecutor.executeRandomizeScripts(preRandomizeScripts, context);
+
+        // Execute the modules running the pre/post scripts for each one
+        List<ExecutionResult> results = moduleExecutor.executeModules(modulesToExecute, context,
+                argumentsPerModule, seedsPerModule, preModuleScripts, postModuleScripts);
+
+        // Execute post randomize scripts
+        moduleExecutor.executeRandomizeScripts(postRandomizeScripts, context);
+
+        return results;
     }
 
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
@@ -183,12 +220,7 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Module not found: " + moduleName);
         }
 
-        // use empty context if none given
-        if (context == null) {
-            context = new JavaContext();
-        }
-
-        // add the shared enum context from onLoad to the execution context
+        // Ensure enums are up to date
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
         // use empty args if none given
@@ -196,8 +228,13 @@ public class LuaRandomizerWrapper {
             arguments = new HashMap<>();
         }
 
-        moduleExecutor.clear();
-        return moduleExecutor.executeModule(module, context, arguments, seed);
+        // Get the pre/post module scripts only and then run the module with them
+        List<LuaModuleMetadata> preModuleScripts = moduleLoader
+                .getScripts(LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+        List<LuaModuleMetadata> postModuleScripts = moduleLoader
+                .getScripts(LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+        return moduleExecutor.executeModule(module, context, arguments, seed, preModuleScripts,
+                postModuleScripts);
     }
 
     public ExecutionResult executeModule(String moduleName, JavaContext context,
@@ -211,6 +248,14 @@ public class LuaRandomizerWrapper {
 
     public List<String> getExecutionErrors() {
         return moduleExecutor.getErrors();
+    }
+
+    public List<ExecutionResult> getExecutionResults() {
+        return moduleExecutor.getResults();
+    }
+
+    public void clearExecutionResults() {
+        moduleExecutor.clearResults();
     }
 
     public List<String> getAllErrors() {
