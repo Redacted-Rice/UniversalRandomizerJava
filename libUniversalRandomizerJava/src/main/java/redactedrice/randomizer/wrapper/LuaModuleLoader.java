@@ -14,9 +14,14 @@ import java.util.*;
 public class LuaModuleLoader {
     LuaSandbox sandbox;
     Map<String, LuaModuleMetadata> modules;
-    List<LuaModuleMetadata> prescripts;
-    List<LuaModuleMetadata> postscripts;
+    Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
     List<String> errors;
+
+    public static final String SCRIPT_TIMING_PRE = "pre";
+    public static final String SCRIPT_TIMING_POST = "post";
+
+    public static final String SCRIPT_WHEN_RANDOMIZE = "randomize";
+    public static final String SCRIPT_WHEN_MODULE = "module";
 
     public LuaModuleLoader(LuaSandbox sandbox) {
         if (sandbox == null) {
@@ -24,9 +29,19 @@ public class LuaModuleLoader {
         }
         this.sandbox = sandbox;
         this.modules = new HashMap<>();
-        this.prescripts = new ArrayList<>();
-        this.postscripts = new ArrayList<>();
+        this.scriptsByType = new HashMap<>();
         this.errors = new ArrayList<>();
+
+        // Initialize the scripts maps
+        Map<String, List<LuaModuleMetadata>> preScripts = new HashMap<>();
+        preScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
+        preScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
+        scriptsByType.put(SCRIPT_TIMING_PRE, preScripts);
+
+        Map<String, List<LuaModuleMetadata>> postScripts = new HashMap<>();
+        postScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
+        postScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
+        scriptsByType.put(SCRIPT_TIMING_POST, postScripts);
     }
 
     public int loadModulesFromDirectory(String directoryPath) {
@@ -83,11 +98,22 @@ public class LuaModuleLoader {
         });
     }
 
-    private int loadScriptsFromSubfolder(String directoryPath, String subfolder,
-            List<LuaModuleMetadata> targetList, String scriptType) {
+    private int loadScriptsFromSubfolder(String directoryPath, String subfolder, String timing) {
         List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, subfolder);
-        return loadModulesFromScripts(luaFiles, targetList, scriptType, (metadata) -> {
-            targetList.add(metadata);
+        return loadModulesFromScripts(luaFiles, null, directoryPath, (metadata) -> {
+            // Determine the when it should be run
+            String when = metadata.getWhen();
+            String whenKey;
+
+            if (when != null && when.equals(SCRIPT_WHEN_MODULE)) {
+                whenKey = SCRIPT_WHEN_MODULE;
+            } else {
+                // Default to randomize
+                whenKey = SCRIPT_WHEN_RANDOMIZE;
+            }
+
+            // Add to the appropriate list in the nested map
+            scriptsByType.get(timing).get(whenKey).add(metadata);
         });
     }
 
@@ -101,12 +127,11 @@ public class LuaModuleLoader {
                 if (metadata != null) {
                     onSuccess.accept(metadata);
                     loadedCount++;
-                    Logger.info("Loaded " + scriptType + ": " + metadata.getName());
+                    Logger.info("Loaded from " + scriptType + ": " + metadata.getName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                addError("Error loading " + scriptType + " from " + file.getPath() + ": "
-                        + e.getMessage());
+                addError("Error loading script from " + file.getPath() + ": " + e.getMessage());
             }
         }
 
@@ -114,11 +139,11 @@ public class LuaModuleLoader {
     }
 
     public int loadPreScriptsFromDirectory(String directoryPath) {
-        return loadScriptsFromSubfolder(directoryPath, "prescripts", prescripts, "prescript");
+        return loadScriptsFromSubfolder(directoryPath, "prescripts", SCRIPT_TIMING_PRE);
     }
 
     public int loadPostScriptsFromDirectory(String directoryPath) {
-        return loadScriptsFromSubfolder(directoryPath, "postscripts", postscripts, "postscript");
+        return loadScriptsFromSubfolder(directoryPath, "postscripts", SCRIPT_TIMING_POST);
     }
 
     private LuaModuleMetadata loadModule(File file) {
@@ -417,18 +442,23 @@ public class LuaModuleLoader {
         return !errors.isEmpty();
     }
 
-    public List<LuaModuleMetadata> getPreScripts() {
-        return new ArrayList<>(prescripts);
-    }
+    public List<LuaModuleMetadata> getScripts(String timing, String when) {
+        Map<String, List<LuaModuleMetadata>> timingMap = scriptsByType.get(timing);
+        if (timingMap == null) {
+            return new ArrayList<>();
+        }
 
-    public List<LuaModuleMetadata> getPostScripts() {
-        return new ArrayList<>(postscripts);
+        List<LuaModuleMetadata> scripts = timingMap.get(when);
+        return scripts != null ? new ArrayList<>(scripts) : new ArrayList<>();
     }
 
     public void clear() {
         modules.clear();
-        prescripts.clear();
-        postscripts.clear();
+        for (Map<String, List<LuaModuleMetadata>> timingMap : scriptsByType.values()) {
+            for (List<LuaModuleMetadata> scripts : timingMap.values()) {
+                scripts.clear();
+            }
+        }
         errors.clear();
     }
 }
