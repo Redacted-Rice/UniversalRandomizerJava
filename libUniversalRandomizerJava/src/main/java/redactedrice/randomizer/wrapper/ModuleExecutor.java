@@ -65,7 +65,7 @@ public class ModuleExecutor {
                 LuaValue result = executeWithTraceback(metadata, contextTable, argsTable);
 
                 ExecutionResult execResult =
-                        new ExecutionResult(moduleName, true, null, result, null, effectiveSeed);
+                        ExecutionResult.success(moduleName, result, effectiveSeed);
                 results.add(execResult);
 
                 Logger.info("Finished execution");
@@ -86,8 +86,7 @@ public class ModuleExecutor {
             Logger.error("Lua execution error: " + e.getMessage());
             // restore previous module name after logging
             Logger.setCurrentModuleName(previousModuleName);
-            ExecutionResult execResult =
-                    new ExecutionResult(moduleName, false, errorMsg, LuaValue.NIL, null, 0);
+            ExecutionResult execResult = ExecutionResult.failure(moduleName, errorMsg);
             results.add(execResult);
             return execResult;
         } catch (Exception e) {
@@ -100,8 +99,7 @@ public class ModuleExecutor {
             Logger.error("Java exception: " + e.getMessage());
             // Restore previous module name after logging
             Logger.setCurrentModuleName(previousModuleName);
-            ExecutionResult execResult =
-                    new ExecutionResult(moduleName, false, errorMsg, LuaValue.NIL, null, 0);
+            ExecutionResult execResult = ExecutionResult.failure(moduleName, errorMsg);
             results.add(execResult);
             return execResult;
         }
