@@ -202,7 +202,7 @@ public class ModuleExecutor {
         }
     }
 
-    public void executeRandomizeScripts(List<LuaModuleMetadata> scripts, JavaContext context) {
+    public void executeScripts(List<LuaModuleMetadata> scripts, JavaContext context) {
         if (scripts != null) {
             for (LuaModuleMetadata script : scripts) {
                 try {

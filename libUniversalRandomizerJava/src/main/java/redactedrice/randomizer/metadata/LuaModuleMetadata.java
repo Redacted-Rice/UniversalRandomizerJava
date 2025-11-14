@@ -17,8 +17,9 @@ public class LuaModuleMetadata {
     LuaFunction onLoadFunction; // Optional onLoad function
     String filePath;
     int defaultSeedOffset;
-    // When to execute: "pre-randomize", "pre-module", "post-module", "post-randomize",
-    // or null for regular modules
+    // When to execute: each randomization or for each module or null for regular modules
+    // Currently I call these "scripts" (run automatically before & after triggers) vs "modules"
+    // (run only when manual specified)
     // TODO: I think I want to move this to a seraprate class in the future
     String when;
 

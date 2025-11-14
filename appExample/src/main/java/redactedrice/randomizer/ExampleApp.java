@@ -256,9 +256,8 @@ public class ExampleApp {
 
         // Execute all modules with their respective arguments. Pre and post scripts will run
         // automatically for these.
-        // Note we do it in batch right now so the change detector setup is run once at the start.
-        // Probably in the future I'll split this out from the sinlge moudles so it can still be run
-        // piecemeal
+        // This does it in batch but you can also run one by one if preferred. See functional
+        // tests for an example of that
         List<ExecutionResult> results = wrapper.executeModules(Arrays.asList(scriptNames), context,
                 argumentsPerModule, seedsPerModule);
 

@@ -13,7 +13,9 @@ import java.util.*;
 // loads lua modules from directories and parses their metadata
 public class LuaModuleLoader {
     LuaSandbox sandbox;
+    // Modules are the core randomization that are manually specified and run
     Map<String, LuaModuleMetadata> modules;
+    // Scripts are automatically run before and after triggers. Name may change
     Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
     List<String> errors;
 
