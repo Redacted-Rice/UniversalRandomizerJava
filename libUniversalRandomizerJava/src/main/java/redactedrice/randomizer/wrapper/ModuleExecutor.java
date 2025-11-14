@@ -448,11 +448,6 @@ public class ModuleExecutor {
         return sb.toString();
     }
 
-    private void logModuleExecutionInfo(String moduleName, int seed,
-            Map<String, Object> arguments) {
-        logExecutionInfo(moduleName, seed, arguments, null, null);
-    }
-
     private void logExecutionInfo(String moduleName, int seed, Map<String, Object> arguments,
             String scriptTiming, String scriptWhen) {
         // Build script type information
