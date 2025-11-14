@@ -127,6 +127,9 @@ public class LuaRandomizerWrapper {
     }
 
     public void executePreRandomizeScripts(JavaContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
 
         // Ensure enums are up to date
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
@@ -136,29 +139,32 @@ public class LuaRandomizerWrapper {
         // get the pre randomize scripts and run them
         List<LuaModuleMetadata> preRandomizeScripts = moduleLoader.getScripts(
                 LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeRandomizeScripts(preRandomizeScripts, context);
+        moduleExecutor.executeScripts(preRandomizeScripts, context);
     }
 
     public void executePostRandomizeScripts(JavaContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+
         // Ensure enums are up to date
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
         // get the post randomize scripts and run them
         List<LuaModuleMetadata> postRandomizeScripts = moduleLoader.getScripts(
                 LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeRandomizeScripts(postRandomizeScripts, context);
+        moduleExecutor.executeScripts(postRandomizeScripts, context);
     }
 
+    // Will return only the module results, not the script results
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
             Map<String, Map<String, Object>> argumentsPerModule,
             Map<String, Integer> seedsPerModule) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
         if (moduleNames == null || moduleNames.isEmpty()) {
             throw new IllegalArgumentException("Module names list cannot be null or empty");
-        }
-
-        // use empty context if none given
-        if (context == null) {
-            context = new JavaContext();
         }
 
         // add the shared enum context from onLoad to the execution context
@@ -191,25 +197,30 @@ public class LuaRandomizerWrapper {
 
         // Clear results and execute pre randomize scripts
         moduleExecutor.clearResults();
-        moduleExecutor.executeRandomizeScripts(preRandomizeScripts, context);
+        moduleExecutor.executeScripts(preRandomizeScripts, context);
 
         // Execute the modules running the pre/post scripts for each one
         List<ExecutionResult> results = moduleExecutor.executeModules(modulesToExecute, context,
                 argumentsPerModule, seedsPerModule, preModuleScripts, postModuleScripts);
 
         // Execute post randomize scripts
-        moduleExecutor.executeRandomizeScripts(postRandomizeScripts, context);
+        moduleExecutor.executeScripts(postRandomizeScripts, context);
 
         return results;
     }
 
+    // Will return only the module results, not the script results
     public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
             Map<String, Map<String, Object>> argumentsPerModule) {
         return executeModules(moduleNames, context, argumentsPerModule, null);
     }
 
+    // Will return only the module results, not the script results
     public ExecutionResult executeModule(String moduleName, JavaContext context,
             Map<String, Object> arguments, Integer seed) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
         if (moduleName == null || moduleName.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
         }
@@ -237,19 +248,23 @@ public class LuaRandomizerWrapper {
                 postModuleScripts);
     }
 
+    // Will return only the module results, not the script results
     public ExecutionResult executeModule(String moduleName, JavaContext context,
             Map<String, Object> arguments) {
         return executeModule(moduleName, context, arguments, null);
     }
 
+    // Will return module and scrupt results
     public List<String> getLoadErrors() {
         return moduleLoader.getErrors();
     }
 
+    // Will return module and scrupt results
     public List<String> getExecutionErrors() {
         return moduleExecutor.getErrors();
     }
 
+    // Will return module and scrupt results
     public List<ExecutionResult> getExecutionResults() {
         return moduleExecutor.getResults();
     }
@@ -258,6 +273,7 @@ public class LuaRandomizerWrapper {
         moduleExecutor.clearResults();
     }
 
+    // Will return module and scrupt results
     public List<String> getAllErrors() {
         List<String> allErrors = new ArrayList<>();
         allErrors.addAll(moduleLoader.getErrors());
@@ -265,6 +281,7 @@ public class LuaRandomizerWrapper {
         return allErrors;
     }
 
+    // For module and scrupt results
     public boolean hasErrors() {
         return moduleLoader.hasErrors() || moduleExecutor.hasErrors();
     }
