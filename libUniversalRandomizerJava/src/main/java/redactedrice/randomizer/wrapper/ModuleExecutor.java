@@ -29,8 +29,13 @@ public class ModuleExecutor {
         this.results = new ArrayList<>();
     }
 
-    private ExecutionResult executeLua(LuaModuleMetadata metadata, JavaContext context,
+    private ExecutionResult executeLuaModule(LuaModuleMetadata metadata, JavaContext context,
             Map<String, Object> arguments, Integer seed) {
+        return executeLua(metadata, context, arguments, seed, null, null);
+    }
+
+    private ExecutionResult executeLua(LuaModuleMetadata metadata, JavaContext context,
+            Map<String, Object> arguments, Integer seed, String scriptTiming, String scriptWhen) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
         }
@@ -50,7 +55,8 @@ public class ModuleExecutor {
                 // figure out what seed to use
                 int effectiveSeed = seed != null ? seed : metadata.getDefaultSeedOffset();
 
-                logExecutionInfo(moduleName, effectiveSeed, validatedArgs);
+                logExecutionInfo(moduleName, effectiveSeed, validatedArgs, scriptTiming,
+                        scriptWhen);
 
                 // set seed before running the lua code
                 setSeedInLua(effectiveSeed);
@@ -67,8 +73,6 @@ public class ModuleExecutor {
                 ExecutionResult execResult =
                         ExecutionResult.success(moduleName, result, effectiveSeed);
                 results.add(execResult);
-
-                Logger.info("Finished execution");
 
                 Logger.setCurrentModuleName(previousModuleName);
 
@@ -113,7 +117,8 @@ public class ModuleExecutor {
         if (preModuleScripts != null) {
             for (LuaModuleMetadata script : preModuleScripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null);
+                    executeLua(script, context, new HashMap<>(), null,
+                            LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing pre module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -122,13 +127,14 @@ public class ModuleExecutor {
         }
 
         // Execute the module
-        ExecutionResult result = executeLua(metadata, context, arguments, seed);
+        ExecutionResult result = executeLuaModule(metadata, context, arguments, seed);
 
         // Execute post module script(s)
         if (postModuleScripts != null) {
             for (LuaModuleMetadata script : postModuleScripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null);
+                    executeLua(script, context, new HashMap<>(), null,
+                            LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing post module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -202,11 +208,12 @@ public class ModuleExecutor {
         }
     }
 
-    public void executeScripts(List<LuaModuleMetadata> scripts, JavaContext context) {
+    public void executeScripts(List<LuaModuleMetadata> scripts, JavaContext context,
+            String scriptTiming, String scriptWhen) {
         if (scripts != null) {
             for (LuaModuleMetadata script : scripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null);
+                    executeLua(script, context, new HashMap<>(), null, scriptTiming, scriptWhen);
                 } catch (Exception e) {
                     Logger.error(
                             "Error executing script '" + script.getName() + "': " + e.getMessage());
@@ -441,10 +448,33 @@ public class ModuleExecutor {
         return sb.toString();
     }
 
-    private void logExecutionInfo(String moduleName, int seed, Map<String, Object> arguments) {
+    private void logModuleExecutionInfo(String moduleName, int seed,
+            Map<String, Object> arguments) {
+        logExecutionInfo(moduleName, seed, arguments, null, null);
+    }
+
+    private void logExecutionInfo(String moduleName, int seed, Map<String, Object> arguments,
+            String scriptTiming, String scriptWhen) {
+        // Build script type information
+        StringBuilder scriptInfo = new StringBuilder();
+        if (scriptTiming != null && scriptWhen != null) {
+            // It's a script (pre/post)
+            scriptInfo.append(" [Script]");
+            if (LuaModuleLoader.SCRIPT_WHEN_MODULE.equals(scriptWhen)) {
+                scriptInfo.append("[per module]");
+            } else if (LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE.equals(scriptWhen)) {
+                scriptInfo.append("[per randomize]");
+            }
+            scriptInfo.append("[").append(scriptTiming).append("]");
+        } else {
+            // It's a regular module
+            scriptInfo.append(" [Module]");
+        }
+
         // if no arguments just log seed
         if (arguments == null || arguments.isEmpty()) {
-            Logger.info("Starting execution with seed: " + seed);
+            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo.toString()
+                    + " with seed: " + seed);
         } else {
             // format arguements for logging with nice formatting
             StringBuilder argsStr = new StringBuilder();
@@ -487,8 +517,8 @@ public class ModuleExecutor {
                 }
                 first = false;
             }
-            Logger.info(
-                    "Starting execution with seed: " + seed + " and args: " + argsStr.toString());
+            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo.toString()
+                    + " with seed: " + seed + " and args: " + argsStr.toString());
         }
     }
 

@@ -18,3 +18,5 @@ Some finalizing things once I'm confident things won't change much:
 - Comment code and functions now that things seem more stable and get gradle doxygen working
 - Work on readme and make it more comprehesive
 
+Next changes:
+- Make it so you can actually run modules twice with different args. Right now its keyed on name which won't work

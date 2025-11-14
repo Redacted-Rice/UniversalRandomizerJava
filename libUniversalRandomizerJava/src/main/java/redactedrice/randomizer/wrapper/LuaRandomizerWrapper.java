@@ -139,7 +139,8 @@ public class LuaRandomizerWrapper {
         // get the pre randomize scripts and run them
         List<LuaModuleMetadata> preRandomizeScripts = moduleLoader.getScripts(
                 LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeScripts(preRandomizeScripts, context);
+        moduleExecutor.executeScripts(preRandomizeScripts, context,
+                LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
     }
 
     public void executePostRandomizeScripts(JavaContext context) {
@@ -153,7 +154,8 @@ public class LuaRandomizerWrapper {
         // get the post randomize scripts and run them
         List<LuaModuleMetadata> postRandomizeScripts = moduleLoader.getScripts(
                 LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeScripts(postRandomizeScripts, context);
+        moduleExecutor.executeScripts(postRandomizeScripts, context,
+                LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
     }
 
     // Will return only the module results, not the script results
@@ -197,14 +199,16 @@ public class LuaRandomizerWrapper {
 
         // Clear results and execute pre randomize scripts
         moduleExecutor.clearResults();
-        moduleExecutor.executeScripts(preRandomizeScripts, context);
+        moduleExecutor.executeScripts(preRandomizeScripts, context,
+                LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
 
         // Execute the modules running the pre/post scripts for each one
         List<ExecutionResult> results = moduleExecutor.executeModules(modulesToExecute, context,
                 argumentsPerModule, seedsPerModule, preModuleScripts, postModuleScripts);
 
         // Execute post randomize scripts
-        moduleExecutor.executeScripts(postRandomizeScripts, context);
+        moduleExecutor.executeScripts(postRandomizeScripts, context,
+                LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
 
         return results;
     }
