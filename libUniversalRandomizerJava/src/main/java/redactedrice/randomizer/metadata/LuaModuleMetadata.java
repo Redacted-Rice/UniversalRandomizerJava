@@ -19,8 +19,10 @@ public class LuaModuleMetadata {
     LuaFunction onLoadFunction; // Optional onLoad function
     String filePath;
     int defaultSeedOffset;
-    // When to execute: each randomization or for each module or null for regular modules
-    // Currently I call these "scripts" (run automatically before & after triggers) vs "modules"
+    // When to execute: each randomization or for each module or null for regular
+    // modules
+    // Currently I call these "scripts" (run automatically before & after triggers)
+    // vs "modules"
     // (run only when manual specified)
     // TODO: I think I want to move this to a seraprate class in the future
     String when;
@@ -28,11 +30,16 @@ public class LuaModuleMetadata {
     String author;
     String version;
     Map<String, String> requires;
+    // Optional info fields
+    String source;
+    String license;
+    String about;
 
     public LuaModuleMetadata(String name, String description, String group, List<String> modifies,
             List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when,
-            String author, String version, Map<String, String> requires) {
+            String author, String version, Map<String, String> requires, String source,
+            String license, String about) {
         // validate required fields
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
@@ -68,8 +75,12 @@ public class LuaModuleMetadata {
         this.author = author;
         this.version = version;
         this.requires = requires != null ? new HashMap<>(requires) : new HashMap<>();
+        this.source = source;
+        this.license = license;
+        this.about = about;
 
-        // note: pseudo-enum registration is now handled by lau randomization wrapper after loading
+        // note: pseudo-enum registration is now handled by lua randomization wrapper
+        // after loading
     }
 
     // Getters
@@ -131,6 +142,18 @@ public class LuaModuleMetadata {
 
     public Map<String, String> getRequires() {
         return Collections.unmodifiableMap(requires);
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public String getAbout() {
+        return about;
     }
 
     @Override
