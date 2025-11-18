@@ -12,6 +12,9 @@ return {
 	requires = {
 		UniversalRandomizerJava = "0.5.0",
 	},
+	source = "https://github.com/not/a/real/url",
+	license = "MIT",
+	about = "Just a module designed for use in testing the randomizer wrapper.",
 
 	arguments = {
 		{
