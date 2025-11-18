@@ -8,6 +8,11 @@ return {
 	description = "Pulls HP values from original entities and randomly assigns them using an exhausting pool",
 	group = "players",
 	modifies = { "health" },
+	author = "Example Author",
+	version = "1.0.0",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	execute = function(context)
 		local entitiesOriginal = context.entitiesOriginal

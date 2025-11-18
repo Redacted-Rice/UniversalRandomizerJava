@@ -8,6 +8,11 @@ return {
 	description = "Randomizes speed values based on entity type using min/max ranges",
 	group = "players",
 	modifies = { "speed" },
+	author = "Example Author",
+	version = "1.0.0",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	arguments = {
 		{
