@@ -5,6 +5,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
+import redactedrice.randomizer.wrapper.ExecutionRequest;
 import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
 
 import java.io.File;
@@ -196,11 +197,13 @@ public class ExampleApp {
         String SPEED_CLASS_AVERAGE = speedClassValues.get(1);
         String SPEED_CLASS_FAST = speedClassValues.get(2);
 
-        // Prepare arguments for each module upfront
-        List<Map<String, Object>> moduleArguments = new ArrayList<>();
+        // Create execution requests for each module. This allows running the same module
+        // more than once with different args if desired
+        List<ExecutionRequest> executionRequests = new ArrayList<>();
+
         // 1 & 2 have no args
-        moduleArguments.add(new HashMap<>());
-        moduleArguments.add(new HashMap<>());
+        executionRequests.add(new ExecutionRequest(scriptNames[0], null, 12345));
+        executionRequests.add(new ExecutionRequest(scriptNames[1], null, 12346));
 
         // 3 requires speedByType and speedClassPools
         Map<String, Object> module3Args = new HashMap<>();
@@ -222,11 +225,11 @@ public class ExampleApp {
         speedClassPools.put(SPEED_CLASS_AVERAGE, Arrays.asList(9, 10, 11, 12));
         speedClassPools.put(SPEED_CLASS_FAST, Arrays.asList(13, 14, 15, 16));
         module3Args.put("speedClassPools", speedClassPools);
-        moduleArguments.add(module3Args);
+        executionRequests.add(new ExecutionRequest(scriptNames[2], module3Args, 12347));
 
         // 4 & 5 have no args
-        moduleArguments.add(new HashMap<>());
-        moduleArguments.add(new HashMap<>());
+        executionRequests.add(new ExecutionRequest(scriptNames[3], null, 12348));
+        executionRequests.add(new ExecutionRequest(scriptNames[4], null, 12349));
 
         // 6 requires weightedRarityPool
         Map<String, Object> module6Args = new HashMap<>();
@@ -244,22 +247,13 @@ public class ExampleApp {
             weightedPool.add(ExampleItem.ItemRarity.RARE);
         weightedPool.add(ExampleItem.ItemRarity.LEGENDARY);
         module6Args.put("weightedRarityPool", weightedPool);
-        moduleArguments.add(module6Args);
-
-        // Create maps for the modules args and seeds
-        Map<String, Map<String, Object>> argumentsPerModule = new HashMap<>();
-        Map<String, Integer> seedsPerModule = new HashMap<>();
-        for (int i = 0; i < scriptNames.length; i++) {
-            argumentsPerModule.put(scriptNames[i], moduleArguments.get(i));
-            seedsPerModule.put(scriptNames[i], 12345 + i);
-        }
+        executionRequests.add(new ExecutionRequest(scriptNames[5], module6Args, 12350));
 
         // Execute all modules with their respective arguments. Pre and post scripts will run
         // automatically for these.
         // This does it in batch but you can also run one by one if preferred. See functional
         // tests for an example of that
-        List<ExecutionResult> results = wrapper.executeModules(Arrays.asList(scriptNames), context,
-                argumentsPerModule, seedsPerModule);
+        List<ExecutionResult> results = wrapper.executeModules(executionRequests, context);
 
         // Print the results (logs and errors)
         for (int i = 0; i < results.size(); i++) {

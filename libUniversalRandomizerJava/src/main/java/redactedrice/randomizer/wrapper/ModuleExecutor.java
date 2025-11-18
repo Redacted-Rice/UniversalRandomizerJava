@@ -223,29 +223,27 @@ public class ModuleExecutor {
     }
 
     // Execute multiple modules with pre/post module scripts for each
-    public List<ExecutionResult> executeModules(List<LuaModuleMetadata> modules,
-            JavaContext context, Map<String, Map<String, Object>> argumentsPerModule,
-            Map<String, Integer> seedsPerModule, List<LuaModuleMetadata> preModuleScripts,
-            List<LuaModuleMetadata> postModuleScripts) {
+    public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
+            Map<String, LuaModuleMetadata> moduleMetadataMap, JavaContext context,
+            List<LuaModuleMetadata> preModuleScripts, List<LuaModuleMetadata> postModuleScripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
-        // run each module get the args and see and execute it with the pre/post scripts
-        for (LuaModuleMetadata module : modules) {
-            // get args for this module
-            Map<String, Object> args = argumentsPerModule != null
-                    ? argumentsPerModule.getOrDefault(module.getName(), new HashMap<>())
-                    : new HashMap<>();
+        for (ExecutionRequest request : requests) {
+            // Look up the module metadata
+            LuaModuleMetadata module = moduleMetadataMap.get(request.getModuleName());
+            if (module == null) {
+                String errorMsg = "Module not found: " + request.getModuleName();
+                addError(errorMsg);
+                ExecutionResult errorResult =
+                        ExecutionResult.failure(request.getModuleName(), errorMsg);
+                execResults.add(errorResult);
+                continue;
+            }
 
-            // get seed for this module
-            Integer seed = seedsPerModule != null ? seedsPerModule.get(module.getName()) : null;
-
-            // Execute the module & pre/post scripts
-            ExecutionResult result =
-                    executeModule(module, context, args, seed, preModuleScripts, postModuleScripts);
+            // Execute the module with the associated arguments and seed
+            ExecutionResult result = executeModule(module, context, request.getArguments(),
+                    request.getSeed(), preModuleScripts, postModuleScripts);
             execResults.add(result);
-
-            // TODO later add option to stop if module fails
-            // right now we keep going even if one fails
         }
 
         return execResults;
