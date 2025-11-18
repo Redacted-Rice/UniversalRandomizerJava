@@ -8,6 +8,8 @@ return {
 	description = "Uses enums registered by another module in onLoad",
 	group = "utils",
 	modifies = {},
+	author = "Test Author",
+	version = "0.1",
 
 	execute = function(context, args)
 		-- Test TestPriority (case 1: array with explicit values subtable)

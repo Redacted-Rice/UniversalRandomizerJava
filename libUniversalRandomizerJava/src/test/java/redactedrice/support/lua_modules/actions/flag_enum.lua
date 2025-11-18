@@ -8,6 +8,8 @@ return {
 	description = "Tests flag enum usage with non-sequential values",
 	group = "utils",
 	modifies = {},
+	author = "Test Author",
+	version = "0.1",
 
 	execute = function(context, args)
 		-- The FlagEnum should be available here because it was registered from Java

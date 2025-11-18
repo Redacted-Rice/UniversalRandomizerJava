@@ -14,6 +14,8 @@ return {
 	group = "gameplay",
 	modifies = { "stats", "appearance", "loot" },
 	seedOffset = 77777,
+	author = "Test Author",
+	version = "0.1",
 
 	arguments = {
 		-- Enum parameter (references context enum)
