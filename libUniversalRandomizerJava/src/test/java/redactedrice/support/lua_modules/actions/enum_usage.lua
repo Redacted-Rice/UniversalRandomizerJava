@@ -10,6 +10,9 @@ return {
 	modifies = {},
 	author = "Test Author",
 	version = "0.1",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	execute = function(context, args)
 		-- Test TestPriority (case 1: array with explicit values subtable)

@@ -9,6 +9,9 @@ return {
 	seedOffset = 12345, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	arguments = {
 		{

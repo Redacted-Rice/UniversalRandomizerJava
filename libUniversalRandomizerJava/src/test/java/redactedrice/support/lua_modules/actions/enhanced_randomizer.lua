@@ -16,6 +16,9 @@ return {
 	seedOffset = 77777,
 	author = "Test Author",
 	version = "0.1",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	arguments = {
 		-- Enum parameter (references context enum)
