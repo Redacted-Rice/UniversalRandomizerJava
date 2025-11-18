@@ -8,6 +8,11 @@ return {
 	description = "Randomizes defense and attack tuple values based on entity type using grouped pools",
 	group = "players",
 	modifies = { "defense", "damage" },
+	author = "Example Author",
+	version = "1.0.0",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	execute = function(context)
 		local entitiesOriginal = context.entitiesOriginal

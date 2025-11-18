@@ -3,6 +3,11 @@ return {
 	name = "changedetector_setup",
 	description = "Setup change detection on objects being randomized",
 	when = "randomize",
+	author = "Example Author",
+	version = "1.0.0",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector

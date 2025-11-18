@@ -8,6 +8,11 @@ return {
 	description = "Shuffles all item stat tuples within the same rarity using grouped consumable pools",
 	group = "utils",
 	modifies = { "attackBonus", "defenseBonus", "healthBonus", "speedBonus" },
+	author = "Example Author",
+	version = "1.0.0",
+	requires = {
+		UniversalRandomizerJava = "0.5.0",
+	},
 
 	execute = function(context)
 		local itemsOriginal = context.itemsOriginal
