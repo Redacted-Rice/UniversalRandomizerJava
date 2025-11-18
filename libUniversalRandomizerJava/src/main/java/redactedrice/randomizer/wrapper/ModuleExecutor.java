@@ -118,7 +118,7 @@ public class ModuleExecutor {
             for (LuaModuleMetadata script : preModuleScripts) {
                 try {
                     executeLua(script, context, new HashMap<>(), null,
-                            LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+                            ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing pre module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -134,7 +134,7 @@ public class ModuleExecutor {
             for (LuaModuleMetadata script : postModuleScripts) {
                 try {
                     executeLua(script, context, new HashMap<>(), null,
-                            LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_MODULE);
+                            ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing post module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -224,13 +224,13 @@ public class ModuleExecutor {
 
     // Execute multiple modules with pre/post module scripts for each
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
-            Map<String, LuaModuleMetadata> moduleMetadataMap, JavaContext context,
+            ModuleRegistry moduleRegistry, JavaContext context,
             List<LuaModuleMetadata> preModuleScripts, List<LuaModuleMetadata> postModuleScripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
         for (ExecutionRequest request : requests) {
-            // Look up the module metadata
-            LuaModuleMetadata module = moduleMetadataMap.get(request.getModuleName());
+            // Look up the module metadata from the registry
+            LuaModuleMetadata module = moduleRegistry.getModule(request.getModuleName());
             if (module == null) {
                 String errorMsg = "Module not found: " + request.getModuleName();
                 addError(errorMsg);
@@ -453,9 +453,9 @@ public class ModuleExecutor {
         if (scriptTiming != null && scriptWhen != null) {
             // It's a script (pre/post)
             scriptInfo.append(" [Script]");
-            if (LuaModuleLoader.SCRIPT_WHEN_MODULE.equals(scriptWhen)) {
+            if (ModuleRegistry.SCRIPT_WHEN_MODULE.equals(scriptWhen)) {
                 scriptInfo.append("[per module]");
-            } else if (LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE.equals(scriptWhen)) {
+            } else if (ModuleRegistry.SCRIPT_WHEN_RANDOMIZE.equals(scriptWhen)) {
                 scriptInfo.append("[per randomize]");
             }
             scriptInfo.append("[").append(scriptTiming).append("]");
