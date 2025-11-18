@@ -5,6 +5,7 @@ import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
 import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
+import redactedrice.randomizer.metadata.LuaModuleMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +39,39 @@ public class RandomizerWrapperTest {
 
         Set<String> moduleNames = wrapper.getModuleNames();
         assertTrue(moduleNames.contains("Simple Entity Randomizer"));
+    }
+
+    @Test
+    public void testOptionalMetadataFieldsParsed() {
+        wrapper.loadModules();
+
+        LuaModuleMetadata module = wrapper.getModule("Simple Entity Randomizer");
+        assertNotNull(module, "Simple Entity Randomizer module should be loaded");
+
+        // Verify optional fields are parsed correctly
+        assertEquals("https://github.com/not/a/real/url", module.getSource(),
+                "Source field should be parsed correctly");
+        assertEquals("MIT", module.getLicense(), "License field should be parsed correctly");
+        assertEquals(
+                "Just a module designed for use in testing the randomizer wrapper.",
+                module.getAbout(), "About field should be parsed correctly");
+    }
+
+    @Test
+    public void testOptionalMetadataFieldsCanBeNull() {
+        wrapper.loadModules();
+
+        // Find a module that doesn't have optional fields (e.g., Advanced Entity Randomizer)
+        LuaModuleMetadata module = wrapper.getModule("Advanced Entity Randomizer");
+        if (module != null) {
+            // Optional fields should be null if not specified in the module
+            assertNull(module.getSource(),
+                    "Source field should be null when not specified in module");
+            assertNull(module.getLicense(),
+                    "License field should be null when not specified in module");
+            assertNull(module.getAbout(),
+                    "About field should be null when not specified in module");
+        }
     }
 
     @Test
