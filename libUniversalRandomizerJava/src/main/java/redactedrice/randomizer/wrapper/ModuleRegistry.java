@@ -10,8 +10,9 @@ import org.luaj.vm2.LuaValue;
 import java.io.File;
 import java.util.*;
 
-// loads lua modules from directories and parses their metadata
-public class LuaModuleLoader {
+// loads lua modules from directories, parses their metadata, and stores them providing lookup
+// mechanisms for them/their metadata
+public class ModuleRegistry {
     LuaSandbox sandbox;
     // Modules are the core randomization that are manually specified and run
     Map<String, LuaModuleMetadata> modules;
@@ -25,7 +26,7 @@ public class LuaModuleLoader {
     public static final String SCRIPT_WHEN_RANDOMIZE = "randomize";
     public static final String SCRIPT_WHEN_MODULE = "module";
 
-    public LuaModuleLoader(LuaSandbox sandbox) {
+    public ModuleRegistry(LuaSandbox sandbox) {
         if (sandbox == null) {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
@@ -485,7 +486,7 @@ public class LuaModuleLoader {
 
     private void addError(String error) {
         errors.add(error);
-        System.err.println("[LuaModuleLoader] " + error);
+        System.err.println("[ModuleRegistry] " + error);
     }
 
     public LuaModuleMetadata getModule(String name) {
