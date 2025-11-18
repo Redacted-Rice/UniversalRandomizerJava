@@ -8,7 +8,7 @@ return {
 	description = "Pulls HP values from original entities and randomly assigns them using an exhausting pool",
 	group = "players",
 	modifies = { "health" },
-	author = "Example Author",
+	author = "Redacted Rice",
 	version = "1.0.0",
 	requires = {
 		UniversalRandomizerJava = "0.5.0",

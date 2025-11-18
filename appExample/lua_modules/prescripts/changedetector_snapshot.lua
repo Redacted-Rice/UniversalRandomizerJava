@@ -3,7 +3,7 @@ return {
 	name = "changedetector_snapshot",
 	description = "Take snapshot before each module",
 	when = "module",
-	author = "Example Author",
+	author = "Redacted Rice",
 	version = "1.0.0",
 	requires = {
 		UniversalRandomizerJava = "0.5.0",

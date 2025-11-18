@@ -9,7 +9,7 @@ return {
 	description = "Two-phase assignment: weighted rarity, then grouped item selection",
 	group = "players",
 	modifies = { "startingItem", "startingItemRarity" },
-	author = "Example Author",
+	author = "Redacted Rice",
 	version = "1.0.0",
 	requires = {
 		UniversalRandomizerJava = "0.5.0",
