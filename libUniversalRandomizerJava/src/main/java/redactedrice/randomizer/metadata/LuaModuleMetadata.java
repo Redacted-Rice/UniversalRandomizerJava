@@ -4,7 +4,9 @@ import org.luaj.vm2.LuaFunction;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // holds metadata and execution function for a lua randomizer module
 public class LuaModuleMetadata {
@@ -25,11 +27,12 @@ public class LuaModuleMetadata {
 
     String author;
     String version;
+    Map<String, String> requires;
 
     public LuaModuleMetadata(String name, String description, String group, List<String> modifies,
             List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when,
-            String author, String version) {
+            String author, String version, Map<String, String> requires) {
         // validate required fields
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
@@ -42,6 +45,13 @@ public class LuaModuleMetadata {
         }
         if (version == null || version.trim().isEmpty()) {
             throw new IllegalArgumentException("Version cannot be null or empty");
+        }
+        if (requires == null || requires.isEmpty()) {
+            throw new IllegalArgumentException("Requires cannot be null or empty");
+        }
+        if (!requires.containsKey("UniversalRandomizerJava")) {
+            throw new IllegalArgumentException(
+                    "Requires must specify the UniversalRandomizerJava version");
         }
 
         // initialize all fields with defaults where appropriate
@@ -57,6 +67,7 @@ public class LuaModuleMetadata {
         this.when = when;
         this.author = author;
         this.version = version;
+        this.requires = requires != null ? new HashMap<>(requires) : new HashMap<>();
 
         // note: pseudo-enum registration is now handled by lau randomization wrapper after loading
     }
@@ -116,6 +127,10 @@ public class LuaModuleMetadata {
 
     public String getVersion() {
         return version;
+    }
+
+    public Map<String, String> getRequires() {
+        return Collections.unmodifiableMap(requires);
     }
 
     @Override

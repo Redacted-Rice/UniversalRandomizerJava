@@ -247,9 +247,21 @@ public class LuaModuleLoader {
                 return null;
             }
 
+            // parse requires map
+            Map<String, String> requires = parseRequiresMap(moduleTable, file.getName());
+            if (requires == null || requires.isEmpty()) {
+                addError(file.getName() + " missing required 'requires' table or it is empty");
+                return null;
+            }
+            if (!requires.containsKey("UniversalRandomizerJava")) {
+                addError(file.getName()
+                        + " 'requires' field must contain 'UniversalRandomizerJava'");
+                return null;
+            }
+
             LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, group, modifies,
                     arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset,
-                    when, author, version);
+                    when, author, version, requires);
 
             Logger.info("Finished loading module: " + name);
 
@@ -412,6 +424,40 @@ public class LuaModuleLoader {
             return value.todouble();
         }
         return defaultValue;
+    }
+
+    private Map<String, String> parseRequiresMap(LuaTable moduleTable, String fileName) {
+        LuaValue requiresValue = moduleTable.get("requires");
+        if (requiresValue.isnil()) {
+            return null;
+        }
+
+        if (!requiresValue.istable()) {
+            addError(fileName + " 'requires' field must be a table");
+            return null;
+        }
+
+        LuaTable requiresTable = requiresValue.checktable();
+        Map<String, String> requires = new HashMap<>();
+
+        // Iterate through the table
+        LuaValue key = LuaValue.NIL;
+        while (true) {
+            key = requiresTable.next(key).arg1();
+            if (key.isnil()) {
+                break;
+            }
+            LuaValue value = requiresTable.get(key);
+
+            if (key.isstring() && value.isstring()) {
+                requires.put(key.tojstring(), value.tojstring());
+            } else {
+                addError(fileName + " 'requires' table must contain string keys and string values");
+                return null;
+            }
+        }
+
+        return requires;
     }
 
     private List<File> findLuaFiles(File directory) {
