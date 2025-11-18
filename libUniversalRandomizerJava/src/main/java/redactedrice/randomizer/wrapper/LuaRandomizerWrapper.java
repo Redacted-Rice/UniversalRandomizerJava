@@ -159,33 +159,17 @@ public class LuaRandomizerWrapper {
     }
 
     // Will return only the module results, not the script results
-    public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
-            Map<String, Map<String, Object>> argumentsPerModule,
-            Map<String, Integer> seedsPerModule) {
+    public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
+            JavaContext context) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
-        if (moduleNames == null || moduleNames.isEmpty()) {
-            throw new IllegalArgumentException("Module names list cannot be null or empty");
+        if (requests == null || requests.isEmpty()) {
+            throw new IllegalArgumentException("Requests list cannot be null or empty");
         }
 
         // add the shared enum context from onLoad to the execution context
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
-
-        // use empty args map if none given
-        if (argumentsPerModule == null) {
-            argumentsPerModule = new HashMap<>();
-        }
-
-        // find all the modules by name
-        List<LuaModuleMetadata> modulesToExecute = new ArrayList<>();
-        for (String name : moduleNames) {
-            LuaModuleMetadata module = moduleLoader.getModule(name);
-            if (module == null) {
-                throw new IllegalArgumentException("Module not found: " + name);
-            }
-            modulesToExecute.add(module);
-        }
 
         // get scripts by timing and when
         List<LuaModuleMetadata> preRandomizeScripts = moduleLoader.getScripts(
@@ -202,9 +186,18 @@ public class LuaRandomizerWrapper {
         moduleExecutor.executeScripts(preRandomizeScripts, context,
                 LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_RANDOMIZE);
 
+        // Create a metadata map of the modules. This is used for passing args and logging name and
+        // such
+        // TODO: Should we build this elsewhere instead of inside execute? Or maybe only build the
+        // modules we need?
+        Map<String, LuaModuleMetadata> moduleMetadataMap = new HashMap<>();
+        for (LuaModuleMetadata module : moduleLoader.getAllModules()) {
+            moduleMetadataMap.put(module.getName(), module);
+        }
+
         // Execute the modules running the pre/post scripts for each one
-        List<ExecutionResult> results = moduleExecutor.executeModules(modulesToExecute, context,
-                argumentsPerModule, seedsPerModule, preModuleScripts, postModuleScripts);
+        List<ExecutionResult> results = moduleExecutor.executeModules(requests, moduleMetadataMap,
+                context, preModuleScripts, postModuleScripts);
 
         // Execute post randomize scripts
         moduleExecutor.executeScripts(postRandomizeScripts, context,
@@ -214,42 +207,11 @@ public class LuaRandomizerWrapper {
     }
 
     // Will return only the module results, not the script results
-    public List<ExecutionResult> executeModules(List<String> moduleNames, JavaContext context,
-            Map<String, Map<String, Object>> argumentsPerModule) {
-        return executeModules(moduleNames, context, argumentsPerModule, null);
-    }
-
-    // Will return only the module results, not the script results
     public ExecutionResult executeModule(String moduleName, JavaContext context,
             Map<String, Object> arguments, Integer seed) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
-        }
-        if (moduleName == null || moduleName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Module name cannot be null or empty");
-        }
-
-        // find the module by name
-        LuaModuleMetadata module = moduleLoader.getModule(moduleName);
-        if (module == null) {
-            throw new IllegalArgumentException("Module not found: " + moduleName);
-        }
-
-        // Ensure enums are up to date
-        context.mergeEnumContext(sharedEnumContext.getEnumContext());
-
-        // use empty args if none given
-        if (arguments == null) {
-            arguments = new HashMap<>();
-        }
-
-        // Get the pre/post module scripts only and then run the module with them
-        List<LuaModuleMetadata> preModuleScripts = moduleLoader
-                .getScripts(LuaModuleLoader.SCRIPT_TIMING_PRE, LuaModuleLoader.SCRIPT_WHEN_MODULE);
-        List<LuaModuleMetadata> postModuleScripts = moduleLoader
-                .getScripts(LuaModuleLoader.SCRIPT_TIMING_POST, LuaModuleLoader.SCRIPT_WHEN_MODULE);
-        return moduleExecutor.executeModule(module, context, arguments, seed, preModuleScripts,
-                postModuleScripts);
+        ExecutionRequest request = new ExecutionRequest(moduleName, arguments, seed);
+        List<ExecutionResult> results = executeModules(Collections.singletonList(request), context);
+        return results.get(0);
     }
 
     // Will return only the module results, not the script results
