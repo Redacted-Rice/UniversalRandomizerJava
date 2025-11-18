@@ -1,15 +1,14 @@
 A list of things to do in no particular order:
 - Begin integrating with PTCGR and ensure use cases are covered
-- Make it so it can abort if a module fails or have some dependcies structure to say what requires what or what needs to be run before hand?
 - Revisit sandbox. Maybe add resource limits. Check for holes and see if I can relax the includes some
-- Add some metadata to modules about who created it and maybe a link or something like that to allow giving credit where its due
 - Consider adding grouping/filtering logic of modules in here instead of PTCGR
-- Add a way to allow testing/validating modules without a full run?
 - Consolidate resource copying scripts and make it auto extract whole folder instead of specifying each file
-- Replace configs in context with args for scripts so they are more like modules?
+- Make it so you can actually run modules twice with different args. Right now its keyed on name which won't work
+- Figure out if I want to make scripts more or less aligned with modules
+  - Replace configs in context with args for scripts so they are more like modules?
+  - Make modules when = "user" and have explicit pre/post field or have the pre/post field include the user equvalent?
 
 Coding cleanliness tasks
-- Separate out pre/post scripts to a separate class other than module
 - Look into null annotations
 - get gradle sonarlint working. I know some functions are too complex ATM and I'm sure there are other issues
 
@@ -18,5 +17,6 @@ Some finalizing things once I'm confident things won't change much:
 - Comment code and functions now that things seem more stable and get gradle doxygen working
 - Work on readme and make it more comprehesive
 
-Next changes:
-- Make it so you can actually run modules twice with different args. Right now its keyed on name which won't work
+Potential things:
+- Make it so it can abort if a module fails or have some dependcies structure to say what requires what or what needs to be run before hand?
+- Add a way to allow testing/validating modules without a full run?

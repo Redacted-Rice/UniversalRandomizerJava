@@ -3,7 +3,7 @@ return {
 	name = "changedetector_detect",
 	description = "Detect and log changes after each module",
 	when = "module",
-	author = "Example Author",
+	author = "Redacted Rice",
 	version = "1.0.0",
 	requires = {
 		UniversalRandomizerJava = "0.5.0",
