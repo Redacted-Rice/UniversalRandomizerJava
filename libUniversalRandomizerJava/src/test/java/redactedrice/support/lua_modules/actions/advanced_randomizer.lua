@@ -7,6 +7,8 @@ return {
 	name = "Advanced Entity Randomizer",
 	description = "Advanced randomization with grouped pools and multiple constraint types",
 	seedOffset = 12345, -- Default seed offset
+	author = "Test Author",
+	version = "0.1",
 
 	arguments = {
 		{

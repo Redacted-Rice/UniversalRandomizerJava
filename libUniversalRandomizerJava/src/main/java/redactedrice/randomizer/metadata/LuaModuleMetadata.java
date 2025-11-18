@@ -23,15 +23,25 @@ public class LuaModuleMetadata {
     // TODO: I think I want to move this to a seraprate class in the future
     String when;
 
+    String author;
+    String version;
+
     public LuaModuleMetadata(String name, String description, String group, List<String> modifies,
             List<ArgumentDefinition> arguments, LuaFunction executeFunction,
-            LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when) {
+            LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when,
+            String author, String version) {
         // validate required fields
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
         }
         if (executeFunction == null) {
             throw new IllegalArgumentException("Execute function cannot be null");
+        }
+        if (author == null || author.trim().isEmpty()) {
+            throw new IllegalArgumentException("Author cannot be null or empty");
+        }
+        if (version == null || version.trim().isEmpty()) {
+            throw new IllegalArgumentException("Version cannot be null or empty");
         }
 
         // initialize all fields with defaults where appropriate
@@ -45,6 +55,8 @@ public class LuaModuleMetadata {
         this.filePath = filePath;
         this.defaultSeedOffset = defaultSeedOffset;
         this.when = when;
+        this.author = author;
+        this.version = version;
 
         // note: pseudo-enum registration is now handled by lau randomization wrapper after loading
     }
@@ -98,11 +110,19 @@ public class LuaModuleMetadata {
         return when != null && !when.isEmpty();
     }
 
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
     @Override
     public String toString() {
         return String.format(
-                "LuaModuleMetadata{name='%s', group='%s', modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s'}",
+                "LuaModuleMetadata{name='%s', group='%s', modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s', author='%s', version='%s'}",
                 name, group, modifies, description, arguments.size(), defaultSeedOffset, when,
-                filePath);
+                filePath, author, version);
     }
 }

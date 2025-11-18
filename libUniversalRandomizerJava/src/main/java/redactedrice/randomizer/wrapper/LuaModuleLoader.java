@@ -234,9 +234,22 @@ public class LuaModuleLoader {
             // get optional 'when' field for scripts (randomize & module)
             String when = getStringField(moduleTable, "when", null);
 
+            // get required details fields
+            String author = getStringField(moduleTable, "author", null);
+            if (author == null || author.trim().isEmpty()) {
+                addError(file.getName() + " missing required 'author' field");
+                return null;
+            }
+
+            String version = getStringField(moduleTable, "version", null);
+            if (version == null || version.trim().isEmpty()) {
+                addError(file.getName() + " missing required 'version' field");
+                return null;
+            }
+
             LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, group, modifies,
                     arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset,
-                    when);
+                    when, author, version);
 
             Logger.info("Finished loading module: " + name);
 

@@ -8,6 +8,8 @@ return {
 	description = "Registers test enums in onLoad for use by other modules",
 	group = "utils",
 	modifies = {},
+	author = "Test Author",
+	version = "0.1",
 
 	onLoad = function(context)
 		-- Register a custom enum with integer values

@@ -7,6 +7,8 @@ return {
 	name = "Simple Entity Randomizer",
 	description = "Randomizes entity name, health, and damage values",
 	seedOffset = 42, -- Default seed offset
+	author = "Test Author",
+	version = "0.1",
 
 	arguments = {
 		{

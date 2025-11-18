@@ -3,6 +3,8 @@ return {
 	name = "Test Pre Module Script",
 	description = "Ensures module-level prescripts are invoked",
 	when = "module",
+	author = "Test Author",
+	version = "0.1",
 
 	execute = function(context)
 		return "pre_module_ran"
