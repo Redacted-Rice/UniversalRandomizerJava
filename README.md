@@ -32,7 +32,15 @@ MIT License - Feel free to use in your projects!
 
 0.5.0
 
-## Building
+## Setup & Building
+
+First ensure that the UniversalRandomizerCore repo is initialized. If this is not done, it will error trying to run as it won't find the randomizer files
+
+```bash
+git submodule update --init
+```
+
+Then build with
 
 ```bash
 ./gradlew build
