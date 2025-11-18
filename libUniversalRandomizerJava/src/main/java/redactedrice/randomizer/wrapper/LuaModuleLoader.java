@@ -259,9 +259,14 @@ public class LuaModuleLoader {
                 return null;
             }
 
+            // Get optional info fields
+            String source = getStringField(moduleTable, "source", null);
+            String license = getStringField(moduleTable, "license", null);
+            String about = getStringField(moduleTable, "about", null);
+
             LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, group, modifies,
                     arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset,
-                    when, author, version, requires);
+                    when, author, version, requires, source, license, about);
 
             Logger.info("Finished loading module: " + name);
 
