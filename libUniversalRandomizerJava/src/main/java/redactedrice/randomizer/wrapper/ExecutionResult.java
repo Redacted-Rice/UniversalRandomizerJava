@@ -2,9 +2,10 @@ package redactedrice.randomizer.wrapper;
 
 import org.luaj.vm2.LuaValue;
 import java.util.Map;
+import java.util.Objects;
 
 // holds the result of running a lua randomizer module
-public class ExecutionResult {
+public final class ExecutionResult {
     private final String moduleName;
     // Techincally redundant currently with error message but keeping for clarity
     private final boolean success;
@@ -13,7 +14,7 @@ public class ExecutionResult {
     // TODO: How should we handle this for scripts? Right now it will be null
     private final ExecutionRequest request;
 
-    protected ExecutionResult(ExecutionRequest request, String moduleName, boolean success,
+    private ExecutionResult(ExecutionRequest request, String moduleName, boolean success,
             LuaValue result, String errorMessage) {
         this.request = request;
         this.moduleName = moduleName;
@@ -65,6 +66,24 @@ public class ExecutionResult {
 
     public Map<String, Object> getArguments() {
         return request != null ? request.getArguments() : Map.of();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        } else if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ExecutionResult that = (ExecutionResult) o;
+        return success == that.success && Objects.equals(moduleName, that.moduleName)
+                && Objects.equals(errorMessage, that.errorMessage)
+                && Objects.equals(result, that.result) && Objects.equals(request, that.request);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(moduleName, success, errorMessage, result, request);
     }
 
     @Override
