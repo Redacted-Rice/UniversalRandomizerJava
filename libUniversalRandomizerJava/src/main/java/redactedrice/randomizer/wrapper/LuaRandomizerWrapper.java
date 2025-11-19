@@ -197,18 +197,30 @@ public class LuaRandomizerWrapper {
         return results;
     }
 
-    // Will return only the module results, not the script results
-    public ExecutionResult executeModule(String moduleName, JavaContext context,
-            Map<String, Object> arguments, Integer seed) {
-        ExecutionRequest request = new ExecutionRequest(moduleName, arguments, seed);
-        List<ExecutionResult> results = executeModules(Collections.singletonList(request), context);
-        return results.get(0);
-    }
+    // Will return only the module result, not the script results
+    public ExecutionResult executeModule(ExecutionRequest request, JavaContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Request cannot be null");
+        }
 
-    // Will return only the module results, not the script results
-    public ExecutionResult executeModule(String moduleName, JavaContext context,
-            Map<String, Object> arguments) {
-        return executeModule(moduleName, context, arguments, null);
+        // add the shared enum context from onLoad to the execution context
+        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+
+        // get only module level scripts. Randomize level must be called by the caller
+        List<LuaModuleMetadata> preModuleScripts = moduleRegistry
+                .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_MODULE);
+        List<LuaModuleMetadata> postModuleScripts = moduleRegistry
+                .getScripts(ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
+
+        // Execute the module with only pre/post module scripts
+        List<ExecutionResult> results =
+                moduleExecutor.executeModules(Collections.singletonList(request), moduleRegistry,
+                        context, preModuleScripts, postModuleScripts);
+
+        return results.get(0);
     }
 
     // Will return module and scrupt results

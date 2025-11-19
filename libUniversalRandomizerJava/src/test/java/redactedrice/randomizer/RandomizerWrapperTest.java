@@ -5,6 +5,7 @@ import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
 import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
+import redactedrice.randomizer.wrapper.ExecutionRequest;
 import redactedrice.randomizer.metadata.LuaModuleMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,8 +53,7 @@ public class RandomizerWrapperTest {
         assertEquals("https://github.com/not/a/real/url", module.getSource(),
                 "Source field should be parsed correctly");
         assertEquals("MIT", module.getLicense(), "License field should be parsed correctly");
-        assertEquals(
-                "Just a module designed for use in testing the randomizer wrapper.",
+        assertEquals("Just a module designed for use in testing the randomizer wrapper.",
                 module.getAbout(), "About field should be parsed correctly");
     }
 
@@ -88,8 +88,8 @@ public class RandomizerWrapperTest {
         arguments.put("healthMax", 200);
         arguments.put("damageMultiplier", 1.5);
 
-        ExecutionResult result =
-                wrapper.executeModule("Simple Entity Randomizer", context, arguments);
+        ExecutionRequest request = new ExecutionRequest("Simple Entity Randomizer", arguments);
+        ExecutionResult result = wrapper.executeModule(request, context);
 
         assertTrue(result.isSuccess());
         assertNotEquals("Original", entity.getName());
@@ -111,8 +111,8 @@ public class RandomizerWrapperTest {
         arguments.put("level", 11);
         arguments.put("applyBonus", true);
 
-        ExecutionResult result =
-                wrapper.executeModule("Advanced Entity Randomizer", context, arguments);
+        ExecutionRequest request = new ExecutionRequest("Advanced Entity Randomizer", arguments);
+        ExecutionResult result = wrapper.executeModule(request, context);
 
         assertTrue(result.isSuccess());
         assertNotEquals("Original", entity.getName());
@@ -132,12 +132,14 @@ public class RandomizerWrapperTest {
         TestEntity entity1 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context1 = new JavaContext();
         context1.register("entity", entity1);
-        wrapper.executeModule("Simple Entity Randomizer", context1, args, 999);
+        ExecutionRequest request1 = new ExecutionRequest("Simple Entity Randomizer", args, 999);
+        wrapper.executeModule(request1, context1);
 
         TestEntity entity2 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context2 = new JavaContext();
         context2.register("entity", entity2);
-        wrapper.executeModule("Simple Entity Randomizer", context2, args, 999);
+        ExecutionRequest request2 = new ExecutionRequest("Simple Entity Randomizer", args, 999);
+        wrapper.executeModule(request2, context2);
 
         assertEquals(entity1.getName(), entity2.getName());
         assertEquals(entity1.getHealth(), entity2.getHealth());
@@ -157,7 +159,8 @@ public class RandomizerWrapperTest {
         args1.put("healthMin", 80);
         args1.put("healthMax", 120);
         args1.put("damageMultiplier", 1.2);
-        wrapper.executeModule("Simple Entity Randomizer", context1, args1);
+        ExecutionRequest request1 = new ExecutionRequest("Simple Entity Randomizer", args1);
+        wrapper.executeModule(request1, context1);
 
         JavaContext context2 = new JavaContext();
         context2.register("entity", entity2);
@@ -165,7 +168,8 @@ public class RandomizerWrapperTest {
         args2.put("entityType", "mage");
         args2.put("level", 16);
         args2.put("applyBonus", false);
-        wrapper.executeModule("Advanced Entity Randomizer", context2, args2);
+        ExecutionRequest request2 = new ExecutionRequest("Advanced Entity Randomizer", args2);
+        wrapper.executeModule(request2, context2);
 
         assertNotEquals("Entity1", entity1.getName());
         assertNotEquals("Entity2", entity2.getName());
@@ -185,8 +189,8 @@ public class RandomizerWrapperTest {
         badArgs.put("level", 1);
         badArgs.put("applyBonus", true);
 
-        ExecutionResult result =
-                wrapper.executeModule("Advanced Entity Randomizer", context, badArgs);
+        ExecutionRequest request = new ExecutionRequest("Advanced Entity Randomizer", badArgs);
+        ExecutionResult result = wrapper.executeModule(request, context);
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
     }
@@ -207,7 +211,8 @@ public class RandomizerWrapperTest {
         args.put("healthMax", 110);
         args.put("damageMultiplier", 1.0);
 
-        wrapper.executeModule("Simple Entity Randomizer", context, args);
+        ExecutionRequest request = new ExecutionRequest("Simple Entity Randomizer", args);
+        wrapper.executeModule(request, context);
 
         assertTrue(context.contains("entity"));
         assertTrue(context.contains("customNames"));
@@ -223,8 +228,8 @@ public class RandomizerWrapperTest {
         args.put("healthMax", 100);
         args.put("damageMultiplier", 1.0);
 
-        ExecutionResult result =
-                wrapper.executeModule("Simple Entity Randomizer", emptyContext, args);
+        ExecutionRequest request = new ExecutionRequest("Simple Entity Randomizer", args);
+        ExecutionResult result = wrapper.executeModule(request, emptyContext);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
@@ -238,6 +243,7 @@ public class RandomizerWrapperTest {
         Map<String, Map<String, Object>> argumentsPerModule;
         Map<String, Integer> seedsPerModule;
         List<String> moduleNames;
+        List<ExecutionRequest> requests;
 
         BatchTestData() {
             int seed = 12345;
@@ -246,6 +252,9 @@ public class RandomizerWrapperTest {
             this.context = new JavaContext();
             this.context.register("entity", entity1);
 
+            this.moduleNames =
+                    Arrays.asList("Simple Entity Randomizer", "Advanced Entity Randomizer");
+
             // Setup arguments for multiple modules
             this.argumentsPerModule = new HashMap<>();
 
@@ -253,21 +262,27 @@ public class RandomizerWrapperTest {
             args1.put("healthMin", 80);
             args1.put("healthMax", 120);
             args1.put("damageMultiplier", 1.2);
-            argumentsPerModule.put("Simple Entity Randomizer", args1);
+            argumentsPerModule.put(moduleNames.get(0), args1);
 
             Map<String, Object> args2 = new HashMap<>();
             args2.put("entityType", "warrior");
             args2.put("level", 11);
             args2.put("applyBonus", true);
-            argumentsPerModule.put("Advanced Entity Randomizer", args2);
+            argumentsPerModule.put(moduleNames.get(1), args2);
 
             // Setup seeds for modules
             this.seedsPerModule = new HashMap<>();
-            seedsPerModule.put("Simple Entity Randomizer", seed);
-            seedsPerModule.put("Advanced Entity Randomizer", seed + 1);
+            seedsPerModule.put(moduleNames.get(0), seed);
+            seedsPerModule.put(moduleNames.get(1), seed + 1);
 
-            this.moduleNames =
-                    Arrays.asList("Simple Entity Randomizer", "Advanced Entity Randomizer");
+            // Initialize requests list
+            this.requests = new ArrayList<>();
+            requests.add(new ExecutionRequest(moduleNames.get(0),
+                    argumentsPerModule.get(moduleNames.get(0)),
+                    seedsPerModule.get(moduleNames.get(0))));
+            requests.add(new ExecutionRequest(moduleNames.get(1),
+                    argumentsPerModule.get(moduleNames.get(1)),
+                    seedsPerModule.get(moduleNames.get(1))));
         }
     }
 
@@ -328,8 +343,7 @@ public class RandomizerWrapperTest {
         BatchTestData data = new BatchTestData();
 
         // Execute in batch. This automatically runs all the scripts
-        List<ExecutionResult> results = wrapper.executeModules(data.moduleNames, data.context,
-                data.argumentsPerModule, data.seedsPerModule);
+        List<ExecutionResult> results = wrapper.executeModules(data.requests, data.context);
         assertEquals(2, results.size());
 
         verifyBatchTestDataExecution();
@@ -343,13 +357,10 @@ public class RandomizerWrapperTest {
         // Manually execute pre randomize scripts
         wrapper.executePreRandomizeScripts(data.context);
 
-        // Execute each module individually
-        wrapper.executeModule("Simple Entity Randomizer", data.context,
-                data.argumentsPerModule.get("Simple Entity Randomizer"),
-                data.seedsPerModule.get("Simple Entity Randomizer"));
-        wrapper.executeModule("Advanced Entity Randomizer", data.context,
-                data.argumentsPerModule.get("Advanced Entity Randomizer"),
-                data.seedsPerModule.get("Advanced Entity Randomizer"));
+        // Execute modules individually. This will run the pre/post module scripts but not the
+        // pre/post randomize scripts
+        wrapper.executeModule(data.requests.get(0), data.context);
+        wrapper.executeModule(data.requests.get(1), data.context);
 
         // Manually execute post randomize scripts
         wrapper.executePostRandomizeScripts(data.context);
