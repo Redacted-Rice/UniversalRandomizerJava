@@ -14,6 +14,7 @@ import org.luaj.vm2.LuaValue;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
 import redactedrice.randomizer.wrapper.ExecutionResult;
+import redactedrice.randomizer.wrapper.ExecutionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -62,8 +63,8 @@ public class EnhancedFeaturesTest {
                 args.put("applyRandomness", true);
                 args.put("powerLevel", 75);
 
-                ExecutionResult result = wrapper.executeModule("Enhanced Entity Randomizer",
-                                context, args, 12345);
+                ExecutionRequest request = new ExecutionRequest("Enhanced Entity Randomizer", args, 12345);
+                ExecutionResult result = wrapper.executeModule(request, context);
 
                 assertTrue(result.isSuccess(),
                                 "Execution should succeed: " + result.getErrorMessage());
@@ -132,8 +133,8 @@ public class EnhancedFeaturesTest {
                 JavaContext context = new JavaContext();
 
                 // Execute the usage module - it should be able to access TestPriority enum
-                ExecutionResult result = wrapper.executeModule("Enum Usage", context,
-                                new HashMap<>(), 12345);
+                ExecutionRequest request = new ExecutionRequest("Enum Usage", new HashMap<>(), 12345);
+                ExecutionResult result = wrapper.executeModule(request, context);
 
                 assertTrue(result.isSuccess(),
                                 "Module execution should succeed: " + result.getErrorMessage());
@@ -188,8 +189,8 @@ public class EnhancedFeaturesTest {
                 // Execute the Flag Enum module
                 // The wrapper will merge the shared enum context (from onLoad) into execContext,
                 // and FlagEnum will already be in execContext
-                ExecutionResult result = wrapper.executeModule("Flag Enum", execContext,
-                                new HashMap<>(), 12345);
+                ExecutionRequest request = new ExecutionRequest("Flag Enum", new HashMap<>(), 12345);
+                ExecutionResult result = wrapper.executeModule(request, execContext);
 
                 assertTrue(result.isSuccess(),
                                 "Module execution should succeed: " + result.getErrorMessage());
@@ -231,8 +232,8 @@ public class EnhancedFeaturesTest {
                 JavaContext context = new JavaContext();
                 context.register("testEntity", testEntity);
 
-                ExecutionResult result = wrapper.executeModule("Enum Usage", context,
-                                new HashMap<>(), 12345);
+                ExecutionRequest request = new ExecutionRequest("Enum Usage", new HashMap<>(), 12345);
+                ExecutionResult result = wrapper.executeModule(request, context);
 
                 assertTrue(result.isSuccess(),
                                 "Module execution should succeed: " + result.getErrorMessage());
