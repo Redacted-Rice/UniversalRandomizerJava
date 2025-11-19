@@ -126,6 +126,10 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModule(name);
     }
 
+    public ModuleRegistry getModuleRegistry() {
+        return moduleRegistry;
+    }
+
     public void executePreRandomizeScripts(JavaContext context) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");

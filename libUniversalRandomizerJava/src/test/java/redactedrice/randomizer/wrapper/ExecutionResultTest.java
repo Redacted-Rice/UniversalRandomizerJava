@@ -15,8 +15,9 @@ public class ExecutionResultTest {
     @Test
     public void testSuccessfulExecutionStoresResult() {
         LuaValue luaValue = LuaString.valueOf("success");
+        ExecutionRequest request = ExecutionRequest.withSeed("TestModule", null, 12345);
 
-        ExecutionResult execResult = ExecutionResult.success("TestModule", luaValue, 12345);
+        ExecutionResult execResult = ExecutionResult.success(request, luaValue);
 
         assertEquals("TestModule", execResult.getModuleName());
         assertTrue(execResult.isSuccess());
@@ -27,7 +28,8 @@ public class ExecutionResultTest {
 
     @Test
     public void testSuccessfulExecutionWithNullResult() {
-        ExecutionResult execResult = ExecutionResult.success("TestModule", null, 9876);
+        ExecutionRequest request = ExecutionRequest.withSeed("TestModule", null, 9876);
+        ExecutionResult execResult = ExecutionResult.success(request, null);
 
         assertNull(execResult.getResult());
         assertEquals(9876, execResult.getSeedUsed());
@@ -35,7 +37,7 @@ public class ExecutionResultTest {
 
     @Test
     public void testFailedExecutionPopulatesError() {
-        ExecutionResult execResult = ExecutionResult.failure("TestModule", "Error message");
+        ExecutionResult execResult = ExecutionResult.scriptFailure("TestModule", "Error message");
 
         assertEquals("TestModule", execResult.getModuleName());
         assertFalse(execResult.isSuccess());
@@ -46,7 +48,8 @@ public class ExecutionResultTest {
 
     @Test
     public void testToStringSuccessful() {
-        ExecutionResult execResult = ExecutionResult.success("TestModule", null, 555);
+        ExecutionRequest request = ExecutionRequest.withSeed("TestModule", null, 555);
+        ExecutionResult execResult = ExecutionResult.success(request, null);
 
         String text = execResult.toString();
         assertTrue(text.contains("TestModule"));
@@ -56,7 +59,7 @@ public class ExecutionResultTest {
 
     @Test
     public void testToStringFailed() {
-        ExecutionResult execResult = ExecutionResult.failure("BrokenModule", "Test error");
+        ExecutionResult execResult = ExecutionResult.scriptFailure("BrokenModule", "Test error");
 
         String text = execResult.toString();
         assertTrue(text.contains("BrokenModule"));
@@ -67,7 +70,8 @@ public class ExecutionResultTest {
     @Test
     public void testLuaResultValueIsPreserved() {
         LuaInteger luaInt = LuaInteger.valueOf(42);
-        ExecutionResult execResult = ExecutionResult.success("TestModule", luaInt, 999);
+        ExecutionRequest request = ExecutionRequest.withSeed("TestModule", null, 999);
+        ExecutionResult execResult = ExecutionResult.success(request, luaInt);
 
         assertEquals(luaInt, execResult.getResult());
         assertEquals(42, execResult.getResult().toint());

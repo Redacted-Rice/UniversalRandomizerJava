@@ -29,96 +29,97 @@ public class ModuleExecutor {
         this.results = new ArrayList<>();
     }
 
-    private ExecutionResult executeLuaModule(LuaModuleMetadata metadata, JavaContext context,
-            Map<String, Object> arguments, Integer seed) {
-        return executeLua(metadata, context, arguments, seed, null, null);
-    }
-
-    private ExecutionResult executeLua(LuaModuleMetadata metadata, JavaContext context,
-            Map<String, Object> arguments, Integer seed, String scriptTiming, String scriptWhen) {
+    private ExecutionResult executeLuaModule(ExecutionRequest request, LuaModuleMetadata metadata,
+            JavaContext context) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
         }
+        if (request == null) {
+            throw new IllegalArgumentException("ExecutionRequest cannot be null");
+        }
 
         String moduleName = metadata.getName();
-
-        // store previous module name for restoration
         String previousModuleName = Logger.getCurrentModuleName();
+        ExecutionResult execResult = null;
 
+        Logger.setCurrentModuleName(moduleName);
         try {
-            Logger.setCurrentModuleName(moduleName);
+            // validate and convert arguements using enum context from javacontext
+            Map<String, Object> validatedArgs =
+                    validateArguments(metadata, request.getArguments(), context);
 
-            try {
-                // validate and convert arguements using enum context from javacontext
-                Map<String, Object> validatedArgs = validateArguments(metadata, arguments, context);
+            logExecutionInfo(moduleName, request.getSeed(), validatedArgs, null, null);
 
-                // figure out what seed to use
-                int effectiveSeed = seed != null ? seed : metadata.getDefaultSeedOffset();
+            // set seed and get the args
+            setSeedInLua(request.getSeed());
+            LuaTable argsTable = convertArgumentsToLuaTable(metadata, validatedArgs);
 
-                logExecutionInfo(moduleName, effectiveSeed, validatedArgs, scriptTiming,
-                        scriptWhen);
-
-                // set seed before running the lua code
-                setSeedInLua(effectiveSeed);
-
-                // convert context to lua table
-                LuaTable contextTable = context != null ? context.toLuaTable() : new LuaTable();
-
-                // convert arguements to lua table
-                LuaTable argsTable = convertArgumentsToLuaTable(metadata, validatedArgs);
-
-                // execute the lua function with xpcall wrapper for better error messages
-                LuaValue result = executeWithTraceback(metadata, contextTable, argsTable);
-
-                ExecutionResult execResult =
-                        ExecutionResult.success(moduleName, result, effectiveSeed);
-                results.add(execResult);
-
-                Logger.setCurrentModuleName(previousModuleName);
-
-                return execResult;
-            } finally {
-                // always restore module name even if theres an error
-                Logger.setCurrentModuleName(previousModuleName);
-            }
-
+            // Execute and return the results
+            LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);
+            execResult = ExecutionResult.success(request, result);
         } catch (LuaError e) {
-            Logger.setCurrentModuleName(moduleName);
             String errorMsg = formatLuaError(metadata, e);
-            addError(errorMsg);
-            // log Lua errors automatically
-            Logger.error("Lua execution error: " + e.getMessage());
-            // restore previous module name after logging
-            Logger.setCurrentModuleName(previousModuleName);
-            ExecutionResult execResult = ExecutionResult.failure(moduleName, errorMsg);
-            results.add(execResult);
-            return execResult;
+            addError(errorMsg, "Lua execution error: " + e.getMessage());
+            execResult = ExecutionResult.failure(request, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
-            // ensure module name is set for error logging
-            Logger.setCurrentModuleName(moduleName);
             String errorMsg = formatJavaError(metadata, e);
-            addError(errorMsg);
-            // Log Java exceptions automatically
-            Logger.error("Java exception: " + e.getMessage());
-            // Restore previous module name after logging
+            addError(errorMsg, "Java exception: " + e.getMessage());
+            execResult = ExecutionResult.failure(request, errorMsg);
+        } finally {
+            // Always set the module name back to support recursive calls
             Logger.setCurrentModuleName(previousModuleName);
-            ExecutionResult execResult = ExecutionResult.failure(moduleName, errorMsg);
-            results.add(execResult);
-            return execResult;
         }
+        results.add(execResult);
+        return execResult;
+    }
+
+    private ExecutionResult executeLuaScript(LuaModuleMetadata script, JavaContext context,
+            String scriptTiming, String scriptWhen) {
+        if (script == null) {
+            throw new IllegalArgumentException("Script metadata cannot be null");
+        }
+        if (scriptTiming == null || scriptWhen == null) {
+            throw new IllegalArgumentException("Script timing and when cannot be null");
+        }
+
+        String moduleName = script.getName();
+        String previousModuleName = Logger.getCurrentModuleName();
+        ExecutionResult execResult = null;
+
+        Logger.setCurrentModuleName(moduleName);
+        try {
+            // Scripts are much simpler. No args and no seed. Just log and execute
+            logExecutionInfo(moduleName, 0, null, scriptTiming, scriptWhen);
+            LuaValue result = executeWithTraceback(script, context.toLuaTable(), new LuaTable());
+            execResult = ExecutionResult.scriptSuccess(moduleName, result);
+        } catch (LuaError e) {
+            String errorMsg = formatLuaError(script, e);
+            addError(errorMsg, "Lua execution error: " + e.getMessage());
+            execResult = ExecutionResult.scriptFailure(moduleName, errorMsg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            String errorMsg = formatJavaError(script, e);
+            addError(errorMsg, "Java exception: " + e.getMessage());
+            execResult = ExecutionResult.scriptFailure(moduleName, errorMsg);
+        } finally {
+            // Always set the module name back to support recursive calls
+            Logger.setCurrentModuleName(previousModuleName);
+        }
+        results.add(execResult);
+        return execResult;
     }
 
     public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
-            Map<String, Object> arguments, Integer seed, List<LuaModuleMetadata> preModuleScripts,
-            List<LuaModuleMetadata> postModuleScripts) {
+            List<LuaModuleMetadata> preModuleScripts, List<LuaModuleMetadata> postModuleScripts,
+            ExecutionRequest request) {
 
         // Execute pre module script(s)
         if (preModuleScripts != null) {
             for (LuaModuleMetadata script : preModuleScripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null,
-                            ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_MODULE);
+                    executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_PRE,
+                            ModuleRegistry.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing pre module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -127,14 +128,14 @@ public class ModuleExecutor {
         }
 
         // Execute the module
-        ExecutionResult result = executeLuaModule(metadata, context, arguments, seed);
+        ExecutionResult result = executeLuaModule(request, metadata, context);
 
         // Execute post module script(s)
         if (postModuleScripts != null) {
             for (LuaModuleMetadata script : postModuleScripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null,
-                            ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
+                    executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_POST,
+                            ModuleRegistry.SCRIPT_WHEN_MODULE);
                 } catch (Exception e) {
                     Logger.error("Error executing post module script '" + script.getName() + "': "
                             + e.getMessage());
@@ -213,7 +214,7 @@ public class ModuleExecutor {
         if (scripts != null) {
             for (LuaModuleMetadata script : scripts) {
                 try {
-                    executeLua(script, context, new HashMap<>(), null, scriptTiming, scriptWhen);
+                    executeLuaScript(script, context, scriptTiming, scriptWhen);
                 } catch (Exception e) {
                     Logger.error(
                             "Error executing script '" + script.getName() + "': " + e.getMessage());
@@ -233,16 +234,15 @@ public class ModuleExecutor {
             LuaModuleMetadata module = moduleRegistry.getModule(request.getModuleName());
             if (module == null) {
                 String errorMsg = "Module not found: " + request.getModuleName();
-                addError(errorMsg);
-                ExecutionResult errorResult =
-                        ExecutionResult.failure(request.getModuleName(), errorMsg);
+                addError(errorMsg, errorMsg);
+                ExecutionResult errorResult = ExecutionResult.failure(request, errorMsg);
                 execResults.add(errorResult);
                 continue;
             }
 
-            // Execute the module with the associated arguments and seed
-            ExecutionResult result = executeModule(module, context, request.getArguments(),
-                    request.getSeed(), preModuleScripts, postModuleScripts);
+            // Execute the module with the request (seed is already set in the request)
+            ExecutionResult result =
+                    executeModule(module, context, preModuleScripts, postModuleScripts, request);
             execResults.add(result);
         }
 
@@ -375,9 +375,9 @@ public class ModuleExecutor {
         }
     }
 
-    private void addError(String error) {
+    private void addError(String error, String loggerErrorMsg) {
         errors.add(error);
-        System.err.println("[ModuleExecutor] " + error);
+        Logger.error(loggerErrorMsg);
     }
 
     public List<String> getErrors() {

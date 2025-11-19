@@ -29,239 +29,268 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class EnhancedFeaturesTest {
 
-        private LuaRandomizerWrapper wrapper;
-        private String testModulesPath;
+    private LuaRandomizerWrapper wrapper;
+    private String testModulesPath;
 
-        @BeforeEach
-        public void setup() {
-                String randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
-                RandomizerResourceExtractor.setPath(randomizerPath);
-                testModulesPath = new File("src/test/java/redactedrice/support/lua_modules")
-                                .getAbsolutePath();
+    @BeforeEach
+    public void setup() {
+        String randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
+        RandomizerResourceExtractor.setPath(randomizerPath);
+        testModulesPath =
+                new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
 
-                wrapper = new LuaRandomizerWrapper(Collections.singletonList(testModulesPath));
+        wrapper = new LuaRandomizerWrapper(Collections.singletonList(testModulesPath));
 
-                wrapper.loadModules();
+        wrapper.loadModules();
+    }
+
+    @Test
+    public void testExecuteModuleWithEnumArguments() {
+        TestEntity entity = new TestEntity("Test", 100, 10.0, true);
+
+        JavaContext context = new JavaContext();
+        context.register("entity", entity);
+        context.registerEnum("EntityType", EntityType.class);
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("entityType", "WARRIOR");
+        args.put("statBonuses", Arrays.asList(20, 5, 0));
+
+        Map<String, Integer> modifiers = new HashMap<>();
+        modifiers.put("health", 30);
+        modifiers.put("damage", 10);
+        args.put("attributeModifiers", modifiers);
+        args.put("applyRandomness", true);
+        args.put("powerLevel", 75);
+
+        ExecutionRequest request =
+                ExecutionRequest.withSeed("Enhanced Entity Randomizer", args, 12345);
+        ExecutionResult result = wrapper.executeModule(request, context);
+
+        assertTrue(result.isSuccess(), "Execution should succeed: " + result.getErrorMessage());
+        assertNotEquals("Test", entity.getName());
+        assertTrue(entity.getHealth() > 100);
+        assertTrue(entity.getDamage() > 10.0);
+    }
+
+    @Test
+    public void testModuleGrouping() {
+        List<redactedrice.randomizer.metadata.LuaModuleMetadata> modules =
+                wrapper.getAvailableModules();
+        Map<String, List<String>> modulesByGroup = new HashMap<>();
+        for (redactedrice.randomizer.metadata.LuaModuleMetadata module : modules) {
+            String group = module.getGroup();
+            modulesByGroup.putIfAbsent(group, new ArrayList<>());
+            modulesByGroup.get(group).add(module.getName());
         }
 
-        @Test
-        public void testExecuteModuleWithEnumArguments() {
-                TestEntity entity = new TestEntity("Test", 100, 10.0, true);
+        assertTrue(modulesByGroup.containsKey("gameplay"));
+        assertTrue(modulesByGroup.get("gameplay").contains("Enhanced Entity Randomizer"));
+    }
 
-                JavaContext context = new JavaContext();
-                context.register("entity", entity);
-                context.registerEnum("EntityType", EntityType.class);
 
-                Map<String, Object> args = new HashMap<>();
-                args.put("entityType", "WARRIOR");
-                args.put("statBonuses", Arrays.asList(20, 5, 0));
+    private static class TestEntityWithFlagEnum {
+        private FlagEnum flag;
 
-                Map<String, Integer> modifiers = new HashMap<>();
-                modifiers.put("health", 30);
-                modifiers.put("damage", 10);
-                args.put("attributeModifiers", modifiers);
-                args.put("applyRandomness", true);
-                args.put("powerLevel", 75);
-
-                ExecutionRequest request = new ExecutionRequest("Enhanced Entity Randomizer", args, 12345);
-                ExecutionResult result = wrapper.executeModule(request, context);
-
-                assertTrue(result.isSuccess(),
-                                "Execution should succeed: " + result.getErrorMessage());
-                assertNotEquals("Test", entity.getName());
-                assertTrue(entity.getHealth() > 100);
-                assertTrue(entity.getDamage() > 10.0);
+        public FlagEnum getFlag() {
+            return flag;
         }
 
-        @Test
-        public void testModuleGrouping() {
-                List<redactedrice.randomizer.metadata.LuaModuleMetadata> modules =
-                                wrapper.getAvailableModules();
-                Map<String, List<String>> modulesByGroup = new HashMap<>();
-                for (redactedrice.randomizer.metadata.LuaModuleMetadata module : modules) {
-                        String group = module.getGroup();
-                        modulesByGroup.putIfAbsent(group, new ArrayList<>());
-                        modulesByGroup.get(group).add(module.getName());
-                }
+        public void setFlag(FlagEnum flag) {
+            this.flag = flag;
+        }
+    }
 
-                assertTrue(modulesByGroup.containsKey("gameplay"));
-                assertTrue(modulesByGroup.get("gameplay").contains("Enhanced Entity Randomizer"));
+    private static class TestEntityWithCustomEnum {
+        private String priority;
+
+        public String getPriority() {
+            return priority;
         }
 
-
-        private static class TestEntityWithFlagEnum {
-                private FlagEnum flag;
-
-                public FlagEnum getFlag() {
-                        return flag;
-                }
-
-                public void setFlag(FlagEnum flag) {
-                        this.flag = flag;
-                }
+        public void setPriority(String priority) {
+            this.priority = priority;
         }
+    }
 
-        private static class TestEntityWithCustomEnum {
-                private String priority;
+    @Test
+    public void testEnumRegistrationInOnLoad() {
+        // Load modules (this will call onLoad functions)
+        wrapper.loadModules();
 
-                public String getPriority() {
-                        return priority;
-                }
+        // Check that the Enum OnLoad module was loaded
+        LuaModuleMetadata onLoadModule = wrapper.getModule("Enum OnLoad");
+        assertNotNull(onLoadModule, "Enum OnLoad module should be loaded");
+        assertTrue(onLoadModule.hasOnLoad(), "Enum OnLoad module should have onLoad function");
 
-                public void setPriority(String priority) {
-                        this.priority = priority;
-                }
-        }
+        // Check that the Enum Usage module was loaded
+        LuaModuleMetadata usageModule = wrapper.getModule("Enum Usage");
+        assertNotNull(usageModule, "Enum Usage module should be loaded");
 
-        @Test
-        public void testEnumRegistrationInOnLoad() {
-                // Load modules (this will call onLoad functions)
-                wrapper.loadModules();
+        // Create a context and execute the usage module
+        // The enum registered in onLoad should be available
+        JavaContext context = new JavaContext();
 
-                // Check that the Enum OnLoad module was loaded
-                LuaModuleMetadata onLoadModule = wrapper.getModule("Enum OnLoad");
-                assertNotNull(onLoadModule, "Enum OnLoad module should be loaded");
-                assertTrue(onLoadModule.hasOnLoad(),
-                                "Enum OnLoad module should have onLoad function");
+        // Execute the usage module - it should be able to access TestPriority enum
+        ExecutionRequest request = ExecutionRequest.withSeed("Enum Usage", new HashMap<>(), 12345);
+        ExecutionResult result = wrapper.executeModule(request, context);
 
-                // Check that the Enum Usage module was loaded
-                LuaModuleMetadata usageModule = wrapper.getModule("Enum Usage");
-                assertNotNull(usageModule, "Enum Usage module should be loaded");
+        assertTrue(result.isSuccess(),
+                "Module execution should succeed: " + result.getErrorMessage());
 
-                // Create a context and execute the usage module
-                // The enum registered in onLoad should be available
-                JavaContext context = new JavaContext();
+        // Verify all three enum types are available in the context after execution
+        EnumContext enumContext = context.getEnumContext();
 
-                // Execute the usage module - it should be able to access TestPriority enum
-                ExecutionRequest request = new ExecutionRequest("Enum Usage", new HashMap<>(), 12345);
-                ExecutionResult result = wrapper.executeModule(request, context);
+        // Test TestPriority (case 1: array with explicit values subtable)
+        assertTrue(enumContext.hasEnum("TestPriority"), "TestPriority enum should be registered");
+        EnumDefinition testPriorityDef = enumContext.getEnum("TestPriority");
+        assertNotNull(testPriorityDef);
+        assertEquals(1, testPriorityDef.getValue("LOW").intValue());
+        assertEquals(50, testPriorityDef.getValue("MEDIUM").intValue());
+        assertEquals(100, testPriorityDef.getValue("HIGH").intValue());
 
-                assertTrue(result.isSuccess(),
-                                "Module execution should succeed: " + result.getErrorMessage());
+        // Test TestPriority2 (case 2: array with implicit values 0, 1, 2)
+        assertTrue(enumContext.hasEnum("TestPriority2"), "TestPriority2 enum should be registered");
+        EnumDefinition testPriority2Def = enumContext.getEnum("TestPriority2");
+        assertNotNull(testPriority2Def);
+        assertEquals(0, testPriority2Def.getValue("LOW").intValue());
+        assertEquals(1, testPriority2Def.getValue("MEDIUM").intValue());
+        assertEquals(2, testPriority2Def.getValue("HIGH").intValue());
 
-                // Verify all three enum types are available in the context after execution
-                EnumContext enumContext = context.getEnumContext();
+        // Test TestPriority3 (case 3: map-based enum)
+        assertTrue(enumContext.hasEnum("TestPriority3"), "TestPriority3 enum should be registered");
+        EnumDefinition testPriority3Def = enumContext.getEnum("TestPriority3");
+        assertNotNull(testPriority3Def);
+        assertEquals(1, testPriority3Def.getValue("LOW").intValue());
+        assertEquals(50, testPriority3Def.getValue("MEDIUM").intValue());
+        assertEquals(100, testPriority3Def.getValue("HIGH").intValue());
+    }
 
-                // Test TestPriority (case 1: array with explicit values subtable)
-                assertTrue(enumContext.hasEnum("TestPriority"),
-                                "TestPriority enum should be registered");
-                EnumDefinition testPriorityDef = enumContext.getEnum("TestPriority");
-                assertNotNull(testPriorityDef);
-                assertEquals(1, testPriorityDef.getValue("LOW").intValue());
-                assertEquals(50, testPriorityDef.getValue("MEDIUM").intValue());
-                assertEquals(100, testPriorityDef.getValue("HIGH").intValue());
+    @Test
+    public void testFlagEnumInModules() {
+        // Load modules
+        wrapper.loadModules();
 
-                // Test TestPriority2 (case 2: array with implicit values 0, 1, 2)
-                assertTrue(enumContext.hasEnum("TestPriority2"),
-                                "TestPriority2 enum should be registered");
-                EnumDefinition testPriority2Def = enumContext.getEnum("TestPriority2");
-                assertNotNull(testPriority2Def);
-                assertEquals(0, testPriority2Def.getValue("LOW").intValue());
-                assertEquals(1, testPriority2Def.getValue("MEDIUM").intValue());
-                assertEquals(2, testPriority2Def.getValue("HIGH").intValue());
+        // Create a test entity with FlagEnum field
+        TestEntityWithFlagEnum testEntity = new TestEntityWithFlagEnum();
 
-                // Test TestPriority3 (case 3: map-based enum)
-                assertTrue(enumContext.hasEnum("TestPriority3"),
-                                "TestPriority3 enum should be registered");
-                EnumDefinition testPriority3Def = enumContext.getEnum("TestPriority3");
-                assertNotNull(testPriority3Def);
-                assertEquals(1, testPriority3Def.getValue("LOW").intValue());
-                assertEquals(50, testPriority3Def.getValue("MEDIUM").intValue());
-                assertEquals(100, testPriority3Def.getValue("HIGH").intValue());
+        // Create a context for execution and register FlagEnum in it
+        JavaContext execContext = new JavaContext();
+        execContext.registerEnum("FlagEnum", FlagEnum.class);
+        execContext.register("testEntity", testEntity);
 
-                System.out.println(
-                                "All three enum types registered in onLoad are available to other modules");
-        }
+        // Execute the Flag Enum module
+        // The wrapper will merge the shared enum context (from onLoad) into execContext,
+        // and FlagEnum will already be in execContext
+        ExecutionRequest request = ExecutionRequest.withSeed("Flag Enum", new HashMap<>(), 12345);
+        ExecutionResult result = wrapper.executeModule(request, execContext);
 
-        @Test
-        public void testFlagEnumInModules() {
-                // Load modules
-                wrapper.loadModules();
+        assertTrue(result.isSuccess(),
+                "Module execution should succeed: " + result.getErrorMessage());
 
-                // Create a test entity with FlagEnum field
-                TestEntityWithFlagEnum testEntity = new TestEntityWithFlagEnum();
+        // Verify FlagEnum is available in the context
+        EnumContext enumContext = execContext.getEnumContext();
+        assertTrue(enumContext.hasEnum("FlagEnum"), "FlagEnum should be registered");
 
-                // Create a context for execution and register FlagEnum in it
-                JavaContext execContext = new JavaContext();
-                execContext.registerEnum("FlagEnum", FlagEnum.class);
-                execContext.register("testEntity", testEntity);
+        EnumDefinition flagEnumDef = enumContext.getEnum("FlagEnum");
+        assertNotNull(flagEnumDef);
 
-                // Execute the Flag Enum module
-                // The wrapper will merge the shared enum context (from onLoad) into execContext,
-                // and FlagEnum will already be in execContext
-                ExecutionRequest request = new ExecutionRequest("Flag Enum", new HashMap<>(), 12345);
-                ExecutionResult result = wrapper.executeModule(request, execContext);
+        // Verify flag values were extracted correctly (from getValue() method, not
+        // ordinals)
+        assertEquals(0, flagEnumDef.getValue("FLAG_NONE").intValue());
+        assertEquals(1, flagEnumDef.getValue("FLAG_ONE").intValue());
+        assertEquals(2, flagEnumDef.getValue("FLAG_TWO").intValue());
+        assertEquals(4, flagEnumDef.getValue("FLAG_FOUR").intValue()); // Non-sequential!
+        assertEquals(8, flagEnumDef.getValue("FLAG_EIGHT").intValue()); // Non-sequential!
 
-                assertTrue(result.isSuccess(),
-                                "Module execution should succeed: " + result.getErrorMessage());
+        // Verify that the enum value was correctly converted from Lua string to Java enum
+        assertNotNull(testEntity.getFlag(), "FlagEnum value should have been set by Lua module");
+        assertEquals(FlagEnum.FLAG_FOUR, testEntity.getFlag(),
+                "FlagEnum should be FLAG_FOUR (converted from string 'FLAG_FOUR' in Lua)");
+    }
 
-                // Verify FlagEnum is available in the context
-                EnumContext enumContext = execContext.getEnumContext();
-                assertTrue(enumContext.hasEnum("FlagEnum"), "FlagEnum should be registered");
+    @Test
+    public void testEnumFromOnLoadAvailableInJava() {
+        // Load modules (this will call onLoad functions)
+        wrapper.loadModules();
 
-                EnumDefinition flagEnumDef = enumContext.getEnum("FlagEnum");
-                assertNotNull(flagEnumDef);
+        // Create a test entity with TestPriority field
+        TestEntityWithCustomEnum testEntity = new TestEntityWithCustomEnum();
 
-                // Verify flag values were extracted correctly (from getValue() method, not
-                // ordinals)
-                assertEquals(0, flagEnumDef.getValue("FLAG_NONE").intValue());
-                assertEquals(1, flagEnumDef.getValue("FLAG_ONE").intValue());
-                assertEquals(2, flagEnumDef.getValue("FLAG_TWO").intValue());
-                assertEquals(4, flagEnumDef.getValue("FLAG_FOUR").intValue()); // Non-sequential!
-                assertEquals(8, flagEnumDef.getValue("FLAG_EIGHT").intValue()); // Non-sequential!
+        // Create a context and execute a module that uses the enum
+        JavaContext context = new JavaContext();
+        context.register("testEntity", testEntity);
 
-                // Verify that the enum value was correctly converted from Lua string to Java enum
-                assertNotNull(testEntity.getFlag(),
-                                "FlagEnum value should have been set by Lua module");
-                assertEquals(FlagEnum.FLAG_FOUR, testEntity.getFlag(),
-                                "FlagEnum should be FLAG_FOUR (converted from string 'FLAG_FOUR' in Lua)");
+        ExecutionRequest request = ExecutionRequest.withSeed("Enum Usage", new HashMap<>(), 12345);
+        ExecutionResult result = wrapper.executeModule(request, context);
 
-                System.out.println("FlagEnum is available to Lua modules with correct flag values");
-                System.out.println("FlagEnum value set by Lua: " + testEntity.getFlag());
-        }
+        assertTrue(result.isSuccess(),
+                "Module execution should succeed: " + result.getErrorMessage());
 
-        @Test
-        public void testEnumFromOnLoadAvailableInJava() {
-                // Load modules (this will call onLoad functions)
-                wrapper.loadModules();
+        // Verify the enum is available in Java after execution
+        EnumContext enumContext = context.getEnumContext();
+        assertTrue(enumContext.hasEnum("TestPriority"),
+                "TestPriority enum should be available in Java");
 
-                // Create a test entity with TestPriority field
-                TestEntityWithCustomEnum testEntity = new TestEntityWithCustomEnum();
+        EnumDefinition testPriorityDef = enumContext.getEnum("TestPriority");
+        assertNotNull(testPriorityDef);
 
-                // Create a context and execute a module that uses the enum
-                JavaContext context = new JavaContext();
-                context.register("testEntity", testEntity);
+        // Verify the enum values match what was registered in onLoad
+        assertTrue(testPriorityDef.hasValue("LOW"));
+        assertTrue(testPriorityDef.hasValue("MEDIUM"));
+        assertTrue(testPriorityDef.hasValue("HIGH"));
+        assertEquals(1, testPriorityDef.getValue("LOW").intValue());
+        assertEquals(50, testPriorityDef.getValue("MEDIUM").intValue());
+        assertEquals(100, testPriorityDef.getValue("HIGH").intValue());
 
-                ExecutionRequest request = new ExecutionRequest("Enum Usage", new HashMap<>(), 12345);
-                ExecutionResult result = wrapper.executeModule(request, context);
+        // Verify that the enum value was correctly passed from Lua to Java
+        assertNotNull(testEntity.getPriority(),
+                "TestPriority value should have been set by Lua module");
+        assertEquals("MEDIUM", testEntity.getPriority(),
+                "TestPriority should be 'MEDIUM' (passed as string from Lua)");
+    }
 
-                assertTrue(result.isSuccess(),
-                                "Module execution should succeed: " + result.getErrorMessage());
+    @Test
+    public void testExecuteSameModuleTwiceWithDifferentSeedsAndArgs() {
+        // Create two requests for the same module with different args and seeds
+        Map<String, Object> args1 = new HashMap<>();
+        args1.put("healthMin", 50);
+        args1.put("healthMax", 100);
+        args1.put("damageMultiplier", 1.5);
+        ExecutionRequest request1 =
+                ExecutionRequest.withSeed("Simple Entity Randomizer", args1, 11111);
 
-                // Verify the enum is available in Java after execution
-                EnumContext enumContext = context.getEnumContext();
-                assertTrue(enumContext.hasEnum("TestPriority"),
-                                "TestPriority enum should be available in Java");
+        Map<String, Object> args2 = new HashMap<>();
+        args2.put("healthMin", 80);
+        args2.put("healthMax", 120);
+        args2.put("damageMultiplier", 2.0);
+        ExecutionRequest request2 =
+                ExecutionRequest.withSeed("Simple Entity Randomizer", args2, 22222);
 
-                EnumDefinition testPriorityDef = enumContext.getEnum("TestPriority");
-                assertNotNull(testPriorityDef);
+        // Execute the modules in batch
+        TestEntity entity1 = new TestEntity("Hero", 100, 10.0, true);
+        JavaContext context = new JavaContext();
+        context.register("entity", entity1);
+        List<ExecutionRequest> requests = Arrays.asList(request1, request2);
+        List<ExecutionResult> batchResults = wrapper.executeModules(requests, context);
 
-                // Verify the enum values match what was registered in onLoad
-                assertTrue(testPriorityDef.hasValue("LOW"));
-                assertTrue(testPriorityDef.hasValue("MEDIUM"));
-                assertTrue(testPriorityDef.hasValue("HIGH"));
-                assertEquals(1, testPriorityDef.getValue("LOW").intValue());
-                assertEquals(50, testPriorityDef.getValue("MEDIUM").intValue());
-                assertEquals(100, testPriorityDef.getValue("HIGH").intValue());
+        // Verify batch execution results
+        assertEquals(2, batchResults.size());
+        assertTrue(batchResults.get(0).isSuccess());
+        assertTrue(batchResults.get(1).isSuccess());
 
-                // Verify that the enum value was correctly passed from Lua to Java
-                assertNotNull(testEntity.getPriority(),
-                                "TestPriority value should have been set by Lua module");
-                assertEquals("MEDIUM", testEntity.getPriority(),
-                                "TestPriority should be 'MEDIUM' (passed as string from Lua)");
+        // Verify that the seeds used match what we requested
+        assertEquals(11111, batchResults.get(0).getSeedUsed(),
+                "First execution should use seed 11111");
+        assertEquals(22222, batchResults.get(1).getSeedUsed(),
+                "Second execution should use seed 22222");
 
-                System.out.println("Enum registered in onLoad is accessible from Java side");
-                System.out.println("TestPriority value set by Lua: " + testEntity.getPriority());
-        }
+        // Verify that the arguments match what we requested via getRequest()
+        ExecutionRequest resultRequest1 = batchResults.get(0).getRequest();
+        ExecutionRequest resultRequest2 = batchResults.get(1).getRequest();
+
+        assertEquals(request1, resultRequest1);
+        assertEquals(request2, resultRequest2);
+    }
 }
 
