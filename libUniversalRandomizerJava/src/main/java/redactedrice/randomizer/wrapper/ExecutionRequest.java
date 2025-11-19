@@ -1,47 +1,42 @@
 package redactedrice.randomizer.wrapper;
 
+import redactedrice.randomizer.metadata.LuaModuleMetadata;
 import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents a request to execute a module with specific arguments and seed.
- * Allows the same module to be executed multiple times with different configurations.
+ * Represents a request to execute a module with specific arguments and seed. Allows the same module
+ * to be executed multiple times with different configurations.
  */
 public final class ExecutionRequest {
     private final String moduleName;
     private final Map<String, Object> arguments;
-    private final Integer seed;
+    private final int seed;
 
-    /**
-     * Creates a new module execution request.
-     *
-     * @param moduleName the name of the module to execute (must not be null)
-     * @param arguments  the arguments to pass to the module (null treated as empty map)
-     * @param seed       the seed to use for randomization (null uses module's default seed offset)
-     */
-    public ExecutionRequest(String moduleName, Map<String, Object> arguments, Integer seed) {
+    // private constructor. Use static factories instead
+    private ExecutionRequest(String moduleName, Map<String, Object> arguments, int seed) {
         this.moduleName = Objects.requireNonNull(moduleName, "Module name cannot be null");
         this.arguments = arguments != null ? Map.copyOf(arguments) : Map.of();
         this.seed = seed;
     }
 
-    /**
-     * Creates a new module execution request with no seed (uses module's default).
-     *
-     * @param moduleName the name of the module to execute
-     * @param arguments  the arguments to pass to the module
-     */
-    public ExecutionRequest(String moduleName, Map<String, Object> arguments) {
-        this(moduleName, arguments, null);
+    // Sets seed to the passed seed
+    public static ExecutionRequest withSeed(String moduleName, Map<String, Object> arguments,
+            int seed) {
+        return new ExecutionRequest(moduleName, arguments, seed);
     }
 
-    /**
-     * Creates a new module execution request with no arguments and no seed.
-     *
-     * @param moduleName the name of the module to execute
-     */
-    public ExecutionRequest(String moduleName) {
-        this(moduleName, null, null);
+    // Pulls the default seed offset from the module and offsets the passed seed with that
+    public static ExecutionRequest withDefaultSeedOffset(String moduleName,
+            Map<String, Object> arguments, int baseSeed, ModuleRegistry moduleRegistry) {
+        Objects.requireNonNull(moduleRegistry, "ModuleRegistry cannot be null");
+        LuaModuleMetadata module = moduleRegistry.getModule(moduleName);
+        if (module == null) {
+            throw new IllegalArgumentException("Module not found: " + moduleName);
+        }
+        int offset = module.getDefaultSeedOffset();
+        int finalSeed = baseSeed + offset;
+        return new ExecutionRequest(moduleName, arguments, finalSeed);
     }
 
     /**
@@ -54,8 +49,7 @@ public final class ExecutionRequest {
     }
 
     /**
-     * Gets the arguments to pass to the module.
-     * Returns an immutable map.
+     * Gets the arguments to pass to the module. Returns an immutable map.
      *
      * @return the arguments map (never null, may be empty)
      */
@@ -66,9 +60,9 @@ public final class ExecutionRequest {
     /**
      * Gets the seed to use for randomization.
      *
-     * @return the seed, or null if module's default seed offset should be used
+     * @return the seed
      */
-    public Integer getSeed() {
+    public int getSeed() {
         return seed;
     }
 
@@ -80,7 +74,7 @@ public final class ExecutionRequest {
             return false;
         ExecutionRequest that = (ExecutionRequest) o;
         return moduleName.equals(that.moduleName) && arguments.equals(that.arguments)
-                && Objects.equals(seed, that.seed);
+                && seed == that.seed;
     }
 
     @Override
@@ -95,9 +89,7 @@ public final class ExecutionRequest {
         if (!arguments.isEmpty()) {
             sb.append(", arguments=").append(arguments);
         }
-        if (seed != null) {
-            sb.append(", seed=").append(seed);
-        }
+        sb.append(", seed=").append(seed);
         sb.append('}');
         return sb.toString();
     }

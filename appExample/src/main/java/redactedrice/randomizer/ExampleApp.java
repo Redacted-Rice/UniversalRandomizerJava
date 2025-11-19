@@ -202,8 +202,8 @@ public class ExampleApp {
         List<ExecutionRequest> executionRequests = new ArrayList<>();
 
         // 1 & 2 have no args
-        executionRequests.add(new ExecutionRequest(scriptNames[0], null, 12345));
-        executionRequests.add(new ExecutionRequest(scriptNames[1], null, 12346));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[0], null, 12345));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[1], null, 12346));
 
         // 3 requires speedByType and speedClassPools
         Map<String, Object> module3Args = new HashMap<>();
@@ -225,11 +225,11 @@ public class ExampleApp {
         speedClassPools.put(SPEED_CLASS_AVERAGE, Arrays.asList(9, 10, 11, 12));
         speedClassPools.put(SPEED_CLASS_FAST, Arrays.asList(13, 14, 15, 16));
         module3Args.put("speedClassPools", speedClassPools);
-        executionRequests.add(new ExecutionRequest(scriptNames[2], module3Args, 12347));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[2], module3Args, 12347));
 
         // 4 & 5 have no args
-        executionRequests.add(new ExecutionRequest(scriptNames[3], null, 12348));
-        executionRequests.add(new ExecutionRequest(scriptNames[4], null, 12349));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[3], null, 12348));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[4], null, 12349));
 
         // 6 requires weightedRarityPool
         Map<String, Object> module6Args = new HashMap<>();
@@ -247,7 +247,7 @@ public class ExampleApp {
             weightedPool.add(ExampleItem.ItemRarity.RARE);
         weightedPool.add(ExampleItem.ItemRarity.LEGENDARY);
         module6Args.put("weightedRarityPool", weightedPool);
-        executionRequests.add(new ExecutionRequest(scriptNames[5], module6Args, 12350));
+        executionRequests.add(ExecutionRequest.withSeed(scriptNames[5], module6Args, 12350));
 
         // Execute all modules with their respective arguments. Pre and post scripts will run
         // automatically for these.
