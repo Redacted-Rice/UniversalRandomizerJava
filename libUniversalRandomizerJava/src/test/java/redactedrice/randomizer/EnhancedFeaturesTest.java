@@ -12,7 +12,6 @@ import redactedrice.support.test.FlagEnum;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
-import redactedrice.randomizer.wrapper.ResourceFolderExtractor;
 import redactedrice.randomizer.wrapper.ExecutionResult;
 import redactedrice.randomizer.wrapper.ExecutionRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +34,6 @@ public class EnhancedFeaturesTest {
     @BeforeEach
     public void setup() {
         String randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
-        ResourceFolderExtractor.setPath(randomizerPath);
         testModulesPath =
                 new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
 

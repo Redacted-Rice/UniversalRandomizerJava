@@ -12,26 +12,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-// Extracts resources based on the manifest file which is assumed to be generated
-// as part of the build process
 public class ResourceFolderExtractor {
-    private static final String RANDOMIZER_RESOURCE_PATH = "randomizer";
-    private static final String MANIFEST_FILE = RANDOMIZER_RESOURCE_PATH + "/.manifest";
-    private static String extractionPath = "randomizer";
 
-    public static void setPath(String path) {
-        if (path == null || path.trim().isEmpty()) {
-            throw new IllegalArgumentException("Path cannot be null or empty");
+    public static void extract(String resourcePath, String outputPath, boolean overwriteExisting)
+            throws IOException {
+        if (resourcePath == null || resourcePath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Resource path cannot be null or empty");
         }
-        extractionPath = path;
-    }
+        if (outputPath == null || outputPath.trim().isEmpty()) {
+            throw new IllegalArgumentException("Output path cannot be null or empty");
+        }
 
-    public static String getPath() {
-        return extractionPath;
-    }
-
-    public static void extract(boolean overwriteExisting) throws IOException {
-        Path targetDir = Paths.get(extractionPath);
+        Path targetDir = Paths.get(outputPath);
 
         if (overwriteExisting && Files.exists(targetDir)) {
             deleteDirectory(targetDir);
@@ -42,7 +34,7 @@ public class ResourceFolderExtractor {
         }
 
         // Read manifest to get list of files
-        java.util.List<String> files = readManifest();
+        List<String> files = readManifest(resourcePath);
 
         // Copy each file
         for (String file : files) {
@@ -54,22 +46,23 @@ public class ResourceFolderExtractor {
 
             Files.createDirectories(targetFile.getParent());
 
-            String resourcePath = RANDOMIZER_RESOURCE_PATH + "/" + file;
+            String fullResourcePath = resourcePath + "/" + file;
             try (InputStream in = ResourceFolderExtractor.class.getClassLoader()
-                    .getResourceAsStream(resourcePath)) {
+                    .getResourceAsStream(fullResourcePath)) {
                 if (in == null) {
-                    throw new IOException("Resource not found: " + resourcePath);
+                    throw new IOException("Resource not found: " + fullResourcePath);
                 }
                 Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
             }
         }
     }
 
-    private static List<String> readManifest() throws IOException {
-        try (InputStream manifestStream = ResourceFolderExtractor.class.getClassLoader()
-                .getResourceAsStream(MANIFEST_FILE)) {
+    private static List<String> readManifest(String resourcePath) throws IOException {
+        String manifestFile = resourcePath + "/.manifest";
+        try (InputStream manifestStream =
+                ResourceFolderExtractor.class.getClassLoader().getResourceAsStream(manifestFile)) {
             if (manifestStream == null) {
-                throw new IOException("Manifest file not found: " + MANIFEST_FILE);
+                throw new IOException("Manifest file not found: " + manifestFile);
             }
 
             try (BufferedReader reader =
