@@ -11,29 +11,69 @@ import redactedrice.randomizer.logger.LuaLogFunctions;
 import org.luaj.vm2.lib.DebugLib;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 // sandboxed lua environment that blocks dangerous functions and libraries
 public class LuaSandbox {
     Globals globals;
-    String randomizerPath;
+    List<Path> allowedRootDirectories;
 
-    public LuaSandbox(String randomizerPath) {
-        if (randomizerPath == null || randomizerPath.trim().isEmpty()) {
-            throw new IllegalArgumentException("Randomizer path cannot be null or empty");
-        }
-
-        File randomizerDir = new File(randomizerPath);
-        if (!randomizerDir.exists() || !randomizerDir.isDirectory()) {
+    public LuaSandbox(List<String> allowedRootDirectories) {
+        if (allowedRootDirectories == null || allowedRootDirectories.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Randomizer path does not exist or is not a directory: " + randomizerPath);
+                    "At least one allowed root directory must be provided");
         }
 
-        this.randomizerPath = new File(randomizerPath).getAbsolutePath();
+        this.allowedRootDirectories = new ArrayList<>();
+        for (String dirPath : allowedRootDirectories) {
+            if (dirPath == null || dirPath.trim().isEmpty()) {
+                continue;
+            }
+
+            File dir = new File(dirPath);
+            if (!dir.exists() || !dir.isDirectory()) {
+                throw new IllegalArgumentException(
+                        "Allowed directory does not exist or is not a directory: " + dirPath);
+            }
+
+            this.allowedRootDirectories.add(Paths.get(dir.getAbsolutePath()).normalize());
+        }
+
+        if (this.allowedRootDirectories.isEmpty()) {
+            throw new IllegalArgumentException("No valid allowed root directories provided");
+        }
+
         this.globals = createSandboxedGlobals();
     }
 
     public Globals getGlobals() {
         return globals;
+    }
+
+    private boolean isPathAllowed(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            Path requestedPath = Paths.get(filePath).toAbsolutePath().normalize();
+
+            // Check if the requested path is within any allowed root directory
+            for (Path allowedRoot : allowedRootDirectories) {
+                Path normalizedAllowed = allowedRoot.toAbsolutePath().normalize();
+                if (requestedPath.startsWith(normalizedAllowed)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            // If path resolution fails deny access
+            return false;
+        }
     }
 
     private Globals createSandboxedGlobals() {
@@ -76,7 +116,6 @@ public class LuaSandbox {
         }
 
         // remove dangerous base functions
-        // note loadfile is kept because require needs it for proper chunk names
         globals.set("dofile", LuaValue.NIL);
         globals.set("load", LuaValue.NIL);
         globals.set("loadstring", LuaValue.NIL);
@@ -84,49 +123,81 @@ public class LuaSandbox {
         // remove lua 5.1 environment manipulation
         globals.set("getfenv", LuaValue.NIL);
         globals.set("setfenv", LuaValue.NIL);
+
+        // wrap loadfile to restrict access to allowed directories only
+        final LuaValue originalLoadfile = globals.get("loadfile");
+        globals.set("loadfile", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue filePath) {
+                String path = filePath.tojstring();
+                if (!isPathAllowed(path)) {
+                    throw new RuntimeException("Access denied: Cannot load file '" + path
+                            + "' - not in allowed directories");
+                }
+                return originalLoadfile.call(filePath);
+            }
+        });
     }
 
     private void setupRestrictedRequire(Globals globals) {
-        // configure package path to use the randomizer directory
+        // configure package path to include parent directories of allowed directories
+        // This allows require to find the init file of modules like for the core
+        // randomizer files
         LuaValue packageLib = globals.get("package");
         if (!packageLib.isnil()) {
-            // fix windows backslashes for lua
-            String luaPath = randomizerPath.replace('\\', '/');
+            List<String> packagePaths = new ArrayList<>();
 
-            // We need to get the parent directory of the randomizer path
-            // to get requires to work right
-            File randomizerDir = new File(randomizerPath);
-            File parentDir = randomizerDir.getParentFile();
-            String parentPath =
-                    parentDir != null ? parentDir.getAbsolutePath().replace('\\', '/') : luaPath;
+            for (Path allowedRoot : allowedRootDirectories) {
+                File allowedDir = allowedRoot.toFile();
+                File parentDir = allowedDir.getParentFile();
+                if (parentDir != null) {
+                    String parentPath = parentDir.getAbsolutePath().replace('\\', '/');
+                    // Standard Lua module search patterns
+                    packagePaths.add(parentPath + "/?.lua");
+                    packagePaths.add(parentPath + "/?/init.lua");
+                }
+            }
 
-            // Set the path lua looks for modules.
-            // TODO: Seems to me like we shouldn't need to specify the init but it seems like
-            // we need to and I plan to revisit the loading restrictions anyways
-            String packagePath = parentPath + "/?.lua;" + parentPath + "/?/init.lua";
+            String packagePath = String.join(";", packagePaths);
             packageLib.set("path", LuaValue.valueOf(packagePath));
 
             // block c library loading
             packageLib.set("cpath", LuaValue.valueOf(""));
         }
 
-        // wrap require to only allow randomizer modules
+        // wrap require to validate that resolved paths are within allowed directories
         final LuaValue originalRequire = globals.get("require");
+        final LuaValue packageLibFinal = packageLib;
 
         globals.set("require", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue moduleName) {
                 String module = moduleName.tojstring();
-
-                // only allow randomizer modules
-                if (module.equals("randomizer") || module.startsWith("randomizer.")
-                        || module.startsWith("randomizer/")) {
-                    return originalRequire.call(moduleName);
+                try {
+                    // Use package.searchpath to find where the module would be loaded from
+                    if (!packageLibFinal.isnil()) {
+                        LuaValue searchpath = packageLibFinal.get("searchpath");
+                        if (!searchpath.isnil() && searchpath.isfunction()) {
+                            LuaValue resolvedPath =
+                                    searchpath.call(moduleName, packageLibFinal.get("path"));
+                            if (resolvedPath.isstring()) {
+                                String filePath = resolvedPath.tojstring();
+                                if (!isPathAllowed(filePath)) {
+                                    throw new RuntimeException("Access denied: Cannot load module '"
+                                            + module + "' - resolved path '" + filePath
+                                            + "' is not in allowed directories");
+                                }
+                            }
+                        }
+                    }
+                } catch (SecurityException e) {
+                    throw e;
+                } catch (Exception e) {
+                    // Not found - continue on and it will give the not found error
                 }
 
-                // block everything else
-                throw new RuntimeException(
-                        "Access denied: Cannot load module '" + module + "' in sandbox");
+                // Path is good or couldn't be resolved
+                return originalRequire.call(moduleName);
             }
         });
     }
@@ -140,6 +211,12 @@ public class LuaSandbox {
     }
 
     public LuaValue executeFile(String filePath) {
+        // Validate that the file path is within allowed directories
+        if (!isPathAllowed(filePath)) {
+            throw new SecurityException("Access denied: Cannot execute file '" + filePath
+                    + "' - not in allowed directories");
+        }
+
         try {
             // read the file contents
             String luaCode =
@@ -147,6 +224,8 @@ public class LuaSandbox {
                             java.nio.charset.StandardCharsets.UTF_8);
             // load and run the lua code
             return globals.load(luaCode, filePath).call();
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(
                     "Error loading Lua file '" + filePath + "': " + e.getMessage(), e);

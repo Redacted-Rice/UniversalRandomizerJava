@@ -78,8 +78,17 @@ public class ExampleApp {
                     "Failed to extract core lua randomizer files. Error: " + e.getMessage());
         }
 
+        // Define allowed directories
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(randomizerExtractionPath); // randomizer core files
+        allowedDirectories.add(modulesPath); // app example modules
+
+        // Search paths for module. Generally allowed directories except the core randomizer files
+        List<String> searchPaths = new ArrayList<>();
+        searchPaths.add(modulesPath);
+
         LuaRandomizerWrapper wrapper =
-                new LuaRandomizerWrapper(Collections.singletonList(modulesPath), pseudoEnums);
+                new LuaRandomizerWrapper(allowedDirectories, searchPaths, pseudoEnums);
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)

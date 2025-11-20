@@ -2,12 +2,12 @@ A list of things to do in no particular order:
 - Begin integrating with PTCGR and ensure use cases are covered
 - Revisit sandbox. Maybe add resource limits. Check for holes and see if I can relax the includes some
 - Consider adding grouping/filtering logic of modules in here instead of PTCGR
-- Consolidate resource copying scripts and make it auto extract whole folder instead of specifying each file
 - Figure out if I want to make scripts more or less aligned with modules
   - Replace configs in context with args for scripts so they are more like modules?
   - Would they use seeds? They shouldn't but how do we handle this 
   - Make modules when = "user" and have explicit pre/post field or have the pre/post field include the user equvalent?
   - Separate execution request/results classes?
+- Include randomizer in modules by default? Any other things to just always have or do?
 
 Coding cleanliness tasks
 - Look into null annotations

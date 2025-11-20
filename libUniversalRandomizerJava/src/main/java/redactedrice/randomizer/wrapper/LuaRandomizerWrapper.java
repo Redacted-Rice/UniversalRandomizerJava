@@ -11,7 +11,6 @@ import java.util.*;
 
 // main api for loading and running lua randomizer modules
 public class LuaRandomizerWrapper {
-    String randomizerPath;
     List<String> searchPaths;
     LuaSandbox sandbox;
     ModuleRegistry moduleRegistry;
@@ -19,10 +18,15 @@ public class LuaRandomizerWrapper {
     PseudoEnumRegistry pseudoEnumRegistry;
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
 
-    public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
-        this.randomizerPath = "randomizer";
+    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
+            PseudoEnumRegistry pseudoEnumRegistry) {
+        if (allowedDirectories == null || allowedDirectories.isEmpty()) {
+            throw new IllegalArgumentException("At least one allowed directory must be provided");
+        }
+
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
-        this.sandbox = new LuaSandbox(randomizerPath);
+
+        this.sandbox = new LuaSandbox(allowedDirectories);
         this.moduleRegistry = new ModuleRegistry(sandbox);
         this.moduleExecutor = new ModuleExecutor(sandbox);
         this.pseudoEnumRegistry =
@@ -30,17 +34,8 @@ public class LuaRandomizerWrapper {
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
 
-    public LuaRandomizerWrapper(List<String> searchPaths) {
-        this(searchPaths, null);
-    }
-
-    public LuaRandomizerWrapper(String searchPath) {
-        this(searchPath != null ? Collections.singletonList(searchPath) : null);
-    }
-
-    public LuaRandomizerWrapper() {
-        // Cast to use the right other constructor
-        this((List<String>) null);
+    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths) {
+        this(allowedDirectories, searchPaths, null);
     }
 
     public void addSearchPath(String path) {
