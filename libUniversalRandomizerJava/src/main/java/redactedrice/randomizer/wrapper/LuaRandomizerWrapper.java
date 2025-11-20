@@ -20,7 +20,7 @@ public class LuaRandomizerWrapper {
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
 
     public LuaRandomizerWrapper(List<String> searchPaths, PseudoEnumRegistry pseudoEnumRegistry) {
-        this.randomizerPath = RandomizerResourceExtractor.getPath();
+        this.randomizerPath = ResourceFolderExtractor.getPath();
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
         this.sandbox = new LuaSandbox(randomizerPath);
         this.moduleRegistry = new ModuleRegistry(sandbox);
