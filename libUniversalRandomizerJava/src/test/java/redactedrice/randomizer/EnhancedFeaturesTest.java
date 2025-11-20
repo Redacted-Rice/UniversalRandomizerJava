@@ -37,8 +37,16 @@ public class EnhancedFeaturesTest {
         testModulesPath =
                 new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
 
-        wrapper = new LuaRandomizerWrapper(Collections.singletonList(testModulesPath));
+        // Define allowed directories: randomizer + modules
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(randomizerPath);
+        allowedDirectories.add(testModulesPath);
+        
+        // Search paths for module discovery
+        List<String> searchPaths = new ArrayList<>();
+        searchPaths.add(testModulesPath);
 
+        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths, null);
         wrapper.loadModules();
     }
 

@@ -28,7 +28,17 @@ public class RandomizerWrapperTest {
     public void setUp() {
         randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
         modulesPath = new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
-        wrapper = new LuaRandomizerWrapper(modulesPath);
+        
+        // Define allowed directories: randomizer + modules
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(randomizerPath);
+        allowedDirectories.add(modulesPath);
+        
+        // Search paths for module discovery
+        List<String> searchPaths = new ArrayList<>();
+        searchPaths.add(modulesPath);
+        
+        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths, null);
     }
 
     @Test
