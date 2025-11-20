@@ -6,7 +6,7 @@ import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
 import redactedrice.randomizer.wrapper.ExecutionRequest;
-import redactedrice.randomizer.wrapper.ResourceFolderExtractor;
+import redactedrice.randomizer.wrapper.ManifestResourceExtractor;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -71,7 +71,7 @@ public class ExampleApp {
             // modified
             // if desired but for the example I do this to ensure it picks up any updates from the
             // universal randomizer core
-            ResourceFolderExtractor.extract(resourcePath, randomizerExtractionPath, true);
+            ManifestResourceExtractor.extract(resourcePath, randomizerExtractionPath, true);
             System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
         } catch (Exception e) {
             System.out.println(
