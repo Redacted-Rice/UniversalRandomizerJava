@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ResourceFolderExtractor {
+public class ManifestResourceExtractor {
 
     public static void extract(String resourcePath, String outputPath, boolean overwriteExisting)
             throws IOException {
@@ -47,7 +47,7 @@ public class ResourceFolderExtractor {
             Files.createDirectories(targetFile.getParent());
 
             String fullResourcePath = resourcePath + "/" + file;
-            try (InputStream in = ResourceFolderExtractor.class.getClassLoader()
+            try (InputStream in = ManifestResourceExtractor.class.getClassLoader()
                     .getResourceAsStream(fullResourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found: " + fullResourcePath);
@@ -60,7 +60,7 @@ public class ResourceFolderExtractor {
     private static List<String> readManifest(String resourcePath) throws IOException {
         String manifestFile = resourcePath + "/.manifest";
         try (InputStream manifestStream =
-                ResourceFolderExtractor.class.getClassLoader().getResourceAsStream(manifestFile)) {
+                ManifestResourceExtractor.class.getClassLoader().getResourceAsStream(manifestFile)) {
             if (manifestStream == null) {
                 throw new IOException("Manifest file not found: " + manifestFile);
             }
