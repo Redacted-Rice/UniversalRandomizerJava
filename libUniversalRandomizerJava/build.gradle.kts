@@ -79,6 +79,18 @@ tasks.register<Sync>("copyRandomizerFiles") {
         include("*.lua")
     }
     into("${projectDir}/src/main/resources/randomizer")
+
+    doLast {
+        // Generate manifest file listing all copied files. We use this in our
+        // resource extractor to extract everything out without having to
+        // list everything manually
+        val manifestFile = file("${projectDir}/src/main/resources/randomizer/.manifest")
+        val files = fileTree("${projectDir}/src/main/resources/randomizer") {
+            include("*.lua")
+            exclude(".manifest")
+        }.files.map { it.name }.sorted()
+        manifestFile.writeText(files.joinToString("\n"))
+    }
 }
 
 // Make processResources depend on copyRandomizerFiles to ensure files are copied before packaging

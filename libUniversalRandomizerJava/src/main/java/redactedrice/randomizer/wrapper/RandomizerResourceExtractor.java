@@ -1,18 +1,22 @@
 package redactedrice.randomizer.wrapper;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+// Extracts resources based on the manifest file which is assumed to be generated
+// as part of the build process
 public class RandomizerResourceExtractor {
     private static final String RANDOMIZER_RESOURCE_PATH = "randomizer";
-    // TODO: Look into this more. It seems like there should be a way to just copy
-    // the whole directory but it doesn't seem to be for a JAR
-    private static final String[] RANDOMIZER_FILES =
-            {"init.lua", "list.lua", "group.lua", "utils.lua", "changedetector.lua"};
+    private static final String MANIFEST_FILE = RANDOMIZER_RESOURCE_PATH + "/.manifest";
     private static String extractionPath = "randomizer";
 
     public static void setPath(String path) {
@@ -27,44 +31,67 @@ public class RandomizerResourceExtractor {
     }
 
     public static void extract(boolean overwriteExisting) throws IOException {
-        File targetDir = new File(extractionPath);
-        if (!targetDir.exists()) {
-            if (!targetDir.mkdirs()) {
-                throw new IOException("Failed to create directory: " + extractionPath);
-            }
+        Path targetDir = Paths.get(extractionPath);
+
+        if (overwriteExisting && Files.exists(targetDir)) {
+            deleteDirectory(targetDir);
         }
 
-        if (!targetDir.isDirectory()) {
-            throw new IOException("Target path is not a directory: " + extractionPath);
+        if (!Files.exists(targetDir)) {
+            Files.createDirectories(targetDir);
         }
 
-        // Extract all randomizer files
-        for (String fileName : RANDOMIZER_FILES) {
-            File targetFile = new File(targetDir, fileName);
+        // Read manifest to get list of files
+        java.util.List<String> files = readManifest();
 
-            // Skip if file exists and we're not overwriting
-            if (targetFile.exists() && !overwriteExisting) {
+        // Copy each file
+        for (String file : files) {
+            Path targetFile = targetDir.resolve(file);
+
+            if (Files.exists(targetFile) && !overwriteExisting) {
                 continue;
             }
 
-            String resourcePath = RANDOMIZER_RESOURCE_PATH + "/" + fileName;
-            InputStream resourceStream = RandomizerResourceExtractor.class.getClassLoader()
-                    .getResourceAsStream(resourcePath);
+            Files.createDirectories(targetFile.getParent());
 
-            if (resourceStream == null) {
-                throw new IOException("Resource not found: " + resourcePath);
-            }
-
-            try {
-                Path targetPath = targetFile.toPath();
-                if (overwriteExisting) {
-                    Files.copy(resourceStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                } else {
-                    Files.copy(resourceStream, targetPath);
+            String resourcePath = RANDOMIZER_RESOURCE_PATH + "/" + file;
+            try (InputStream in = RandomizerResourceExtractor.class.getClassLoader()
+                    .getResourceAsStream(resourcePath)) {
+                if (in == null) {
+                    throw new IOException("Resource not found: " + resourcePath);
                 }
-            } finally {
-                resourceStream.close();
+                Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
             }
+        }
+    }
+
+    private static List<String> readManifest() throws IOException {
+        try (InputStream manifestStream = RandomizerResourceExtractor.class.getClassLoader()
+                .getResourceAsStream(MANIFEST_FILE)) {
+            if (manifestStream == null) {
+                throw new IOException("Manifest file not found: " + MANIFEST_FILE);
+            }
+
+            try (BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(manifestStream))) {
+                return reader.lines().map(String::trim)
+                        .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                        .collect(Collectors.toList());
+            }
+        }
+    }
+
+    private static void deleteDirectory(Path directory) throws IOException {
+        if (!Files.exists(directory))
+            return;
+        try (Stream<Path> paths = Files.walk(directory)) {
+            paths.sorted((a, b) -> b.compareTo(a)).forEach(path -> {
+                try {
+                    Files.delete(path);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
         }
     }
 }
