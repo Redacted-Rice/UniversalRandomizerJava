@@ -1,7 +1,7 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.wrapper.RandomizerResourceExtractor;
+import redactedrice.randomizer.wrapper.ResourceFolderExtractor;
 import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
@@ -28,7 +28,7 @@ public class RandomizerWrapperTest {
     @BeforeEach
     public void setUp() {
         randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
-        RandomizerResourceExtractor.setPath(randomizerPath);
+        ResourceFolderExtractor.setPath(randomizerPath);
         modulesPath = new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
         wrapper = new LuaRandomizerWrapper(modulesPath);
     }

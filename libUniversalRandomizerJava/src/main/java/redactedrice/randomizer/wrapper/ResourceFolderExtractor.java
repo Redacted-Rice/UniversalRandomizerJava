@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 // Extracts resources based on the manifest file which is assumed to be generated
 // as part of the build process
-public class RandomizerResourceExtractor {
+public class ResourceFolderExtractor {
     private static final String RANDOMIZER_RESOURCE_PATH = "randomizer";
     private static final String MANIFEST_FILE = RANDOMIZER_RESOURCE_PATH + "/.manifest";
     private static String extractionPath = "randomizer";
@@ -55,7 +55,7 @@ public class RandomizerResourceExtractor {
             Files.createDirectories(targetFile.getParent());
 
             String resourcePath = RANDOMIZER_RESOURCE_PATH + "/" + file;
-            try (InputStream in = RandomizerResourceExtractor.class.getClassLoader()
+            try (InputStream in = ResourceFolderExtractor.class.getClassLoader()
                     .getResourceAsStream(resourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found: " + resourcePath);
@@ -66,7 +66,7 @@ public class RandomizerResourceExtractor {
     }
 
     private static List<String> readManifest() throws IOException {
-        try (InputStream manifestStream = RandomizerResourceExtractor.class.getClassLoader()
+        try (InputStream manifestStream = ResourceFolderExtractor.class.getClassLoader()
                 .getResourceAsStream(MANIFEST_FILE)) {
             if (manifestStream == null) {
                 throw new IOException("Manifest file not found: " + MANIFEST_FILE);
