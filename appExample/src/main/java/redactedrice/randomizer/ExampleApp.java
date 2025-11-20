@@ -56,9 +56,8 @@ public class ExampleApp {
         System.out.println("=== Lua Randomizer Wrapper Example App ===\n");
 
         // Set the extraction path for bundled randomizer files
-        // Default is "randomizer" if not set
+        String resourcePath = "randomizer";
         String randomizerExtractionPath = new File("randomizer").getAbsolutePath();
-        ResourceFolderExtractor.setPath(randomizerExtractionPath);
         String modulesPath = new File("lua_modules").getAbsolutePath();
 
         PseudoEnumRegistry pseudoEnums = new PseudoEnumRegistry();
@@ -72,7 +71,7 @@ public class ExampleApp {
             // modified
             // if desired but for the example I do this to ensure it picks up any updates from the
             // universal randomizer core
-            ResourceFolderExtractor.extract(true);
+            ResourceFolderExtractor.extract(resourcePath, randomizerExtractionPath, true);
             System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
         } catch (Exception e) {
             System.out.println(
