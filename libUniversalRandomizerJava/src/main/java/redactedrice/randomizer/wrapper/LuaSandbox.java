@@ -140,10 +140,9 @@ public class LuaSandbox {
     }
 
     private void setupRestrictedRequire(Globals globals) {
-        // configure package path to include parent directories of allowed directories
-        // This allows require to find the init file of modules like for the core
-        // randomizer files
+        // Create the modified package path based on our allowed directories
         LuaValue packageLib = globals.get("package");
+        final String allowedPackagePath; // Declared here and set once below
         if (!packageLib.isnil()) {
             List<String> packagePaths = new ArrayList<>();
 
@@ -158,14 +157,19 @@ public class LuaSandbox {
                 }
             }
 
-            String packagePath = String.join(";", packagePaths);
-            packageLib.set("path", LuaValue.valueOf(packagePath));
+            allowedPackagePath = String.join(";", packagePaths);
+            packageLib.set("path", LuaValue.valueOf(allowedPackagePath));
 
             // block c library loading
             packageLib.set("cpath", LuaValue.valueOf(""));
+        } else {
+            // this should always be set but just in case package path is excluded already
+            // don't add it back in
+            allowedPackagePath = "";
         }
 
         // wrap require to validate that resolved paths are within allowed directories
+        // Additionally reset package path before each require to prevent runtime modifications
         final LuaValue originalRequire = globals.get("require");
         final LuaValue packageLibFinal = packageLib;
 
@@ -173,13 +177,19 @@ public class LuaSandbox {
             @Override
             public LuaValue call(LuaValue moduleName) {
                 String module = moduleName.tojstring();
+
+                // Reset package path to the allowed value before each require call
+                if (!packageLibFinal.isnil()) {
+                    packageLibFinal.set("path", LuaValue.valueOf(allowedPackagePath));
+                }
+
                 try {
                     // Use package.searchpath to find where the module would be loaded from
                     if (!packageLibFinal.isnil()) {
                         LuaValue searchpath = packageLibFinal.get("searchpath");
                         if (!searchpath.isnil() && searchpath.isfunction()) {
-                            LuaValue resolvedPath =
-                                    searchpath.call(moduleName, packageLibFinal.get("path"));
+                            LuaValue resolvedPath = searchpath.call(moduleName,
+                                    LuaValue.valueOf(allowedPackagePath));
                             if (resolvedPath.isstring()) {
                                 String filePath = resolvedPath.tojstring();
                                 if (!isPathAllowed(filePath)) {
@@ -191,6 +201,9 @@ public class LuaSandbox {
                         }
                     }
                 } catch (SecurityException e) {
+                    // TODO: Revisit what to throw and what to catch
+                    throw e;
+                } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
                     // Not found - continue on and it will give the not found error
