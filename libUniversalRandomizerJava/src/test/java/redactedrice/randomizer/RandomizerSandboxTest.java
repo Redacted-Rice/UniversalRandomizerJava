@@ -91,4 +91,55 @@ public class RandomizerSandboxTest {
                 "Expected access denied even after package.path modification, but got: "
                         + exception.getMessage());
     }
+
+    @Test
+    public void testMemoryLimitEnforced() {
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(testCasesPath);
+        allowedDirectories.add(includetestPath);
+        LuaSandbox limitedSandbox = new LuaSandbox(allowedDirectories); // Default 100MB
+
+        // Script will create 200 MB worth of data
+        String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
+
+        // This should throw MemoryLimitExceededException
+        // There is a possibility that a script could still succeed if it finishes before
+        // the memory limit check is done but should not happen with this script since
+        // allocates significantly more than the limit
+        LuaSandbox.MemoryLimitExceededException exception =
+                assertThrows(LuaSandbox.MemoryLimitExceededException.class,
+                        () -> limitedSandbox.executeFile(testFile));
+
+        assertTrue(exception.getMessage().contains("Memory limit exceeded"));
+        assertTrue(exception.getMessage().contains("100.00 MB")
+                || exception.getMessage().contains("104857600")); // 100 MB in bytes
+    }
+
+    @Test
+    public void testNormalExecutionWithMemoryLimit() {
+        // Test that normal execution works fine with memory limits
+        String testFile = new File(testCasesPath, "test_loadfile_allowed.lua").getAbsolutePath();
+
+        // Normal script should execute fine
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+        assertTrue(result.tojstring().contains("load/execute allowed"));
+
+    }
+
+    @Test
+    public void testMemoryLimitDisabled() {
+        // Test that memory limit can be disabled with -1
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(testCasesPath);
+        allowedDirectories.add(includetestPath);
+        LuaSandbox unlimitedSandbox = new LuaSandbox(allowedDirectories, -1);
+
+        assertEquals(-1, unlimitedSandbox.getMaxMemoryBytes());
+
+        // Should execute normally this time since limit is disabled
+        String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
+        LuaValue result = unlimitedSandbox.executeFile(testFile);
+        assertNotNull(result);
+    }
 }
