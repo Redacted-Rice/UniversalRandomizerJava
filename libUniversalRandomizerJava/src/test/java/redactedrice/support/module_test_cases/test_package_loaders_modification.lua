@@ -1,5 +1,4 @@
 -- Test blocking intentionally unloaded libraries via loader
-
 local success, error = pcall(function()
     package.loaders[#package.loaders + 1] = function() end
 end)
