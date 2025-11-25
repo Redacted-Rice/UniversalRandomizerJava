@@ -276,4 +276,18 @@ public class RandomizerSandboxTest {
         String resultStr = result.tojstring();
         assertTrue(resultStr.contains("loaders successfully blocked modification"));
     }
+
+    @Test
+    public void testPackagePreloadModificationBlocked() {
+        // Test preloading is blocked correctly as well
+        String testFile =
+                new File(testCasesPath, "test_package_preload_modification.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("preload successfully blocked IO injection"));
+        assertFalse(resultStr.contains("preload failed to block IO injection"));
+    }
 }

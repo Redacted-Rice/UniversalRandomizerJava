@@ -208,9 +208,10 @@ public class LuaSandbox {
             // block c library loading
             packageLib.set("cpath", LuaValue.valueOf(""));
 
-            // Protect package loaded and searchers from manipulation
+            // Protect package loaded, searchers, and preload from manipulation
             setupRestrictedPackageLoaded(packageLib);
             setupRestrictedPackageSearchers(packageLib);
+            setupRestrictedPackagePreload(packageLib);
         } else {
             // this should always be set but just in case package path is excluded already
             // don't add it back in
@@ -413,6 +414,17 @@ public class LuaSandbox {
         }
     }
 
+    private void setupRestrictedPackagePreload(LuaValue packageLib) {
+        if (packageLib.isnil()) {
+            return;
+        }
+
+        LuaValue preload = packageLib.get("preload");
+        if (!preload.isnil() && preload.istable()) {
+            packageLib.set("preload", createReadOnlyProtectedTable((LuaTable) preload, "preload"));
+        }
+    }
+
     public LuaValue execute(String luaCode) throws TimeoutException {
         return executeWithMonitoring(() -> globals.load(luaCode).call(), "Lua code execution");
     }
@@ -423,7 +435,6 @@ public class LuaSandbox {
             throw new SecurityException("Access denied: Cannot execute file '" + filePath
                     + "' - not in allowed directories");
         }
-
         try {
             // read the file contents
             String luaCode =
