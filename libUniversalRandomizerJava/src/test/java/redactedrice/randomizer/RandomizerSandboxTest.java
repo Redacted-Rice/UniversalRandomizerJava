@@ -8,6 +8,8 @@ import org.luaj.vm2.LuaValue;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -141,5 +143,86 @@ public class RandomizerSandboxTest {
         String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
         LuaValue result = unlimitedSandbox.executeFile(testFile);
         assertNotNull(result);
+    }
+
+    @Test
+    public void testTimeoutEnforced() throws InterruptedException {
+        // Test that execution timeout is enforced using default timeout (5 seconds)
+        // Run in separate thread so we can kill it if it doesn't timeout
+        String testFile = new File(testCasesPath, "test_infinite_loop.lua").getAbsolutePath();
+
+        // Run the infinite loop in a separate thread
+        AtomicReference<LuaSandbox.TimeoutException> caughtException = new AtomicReference<>();
+        AtomicBoolean executionCompleted = new AtomicBoolean(false);
+        Thread executionThread = new Thread(() -> {
+            try {
+                sandbox.executeFile(testFile);
+                executionCompleted.set(true);
+            } catch (LuaSandbox.TimeoutException e) {
+                caughtException.set(e);
+                executionCompleted.set(true);
+            } catch (RuntimeException e) {
+                // Other exceptions are unexpected but we'll catch them
+                executionCompleted.set(true);
+            }
+        });
+        executionThread.setDaemon(true);
+        executionThread.start();
+
+        // Wait up to 10 seconds
+        executionThread.join(10000);
+
+        // Verify the execution completed
+        assertTrue(executionCompleted.get() || !executionThread.isAlive());
+
+        // If thread is still alive the timeout failed
+        if (executionThread.isAlive()) {
+            executionThread.interrupt();
+            executionThread.join(10000);
+            fail("Timeout mechanism failed - thread was still running after 10 seconds");
+        }
+
+        // Verify we got the exception
+        assertNotNull(caughtException.get());
+        assertTrue(caughtException.get().getMessage().contains("Execution timeout exceeded"));
+        assertTrue(caughtException.get().getMessage().contains("5000") // 5 seconds in ms
+                || caughtException.get().getMessage().contains("5"));
+    }
+
+
+    @Test
+    public void testTimeoutDisabledWithInfiniteLoop() throws InterruptedException {
+        // Test that timeout disabled allows infinite loop to run without timing out
+        // Run it for 10 seconds to show its going well beyond the default 5 seconds
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(testCasesPath);
+        allowedDirectories.add(includetestPath);
+        // No memory constraints, no timeout
+        LuaSandbox noTimeoutSandbox = new LuaSandbox(allowedDirectories, -1, -1);
+
+        assertEquals(-1, noTimeoutSandbox.getMaxExecutionTimeMs());
+
+        String testFile = new File(testCasesPath, "test_infinite_loop.lua").getAbsolutePath();
+
+        // Run the infinite loop in a separate thread so we can kill it after 10 seconds
+        Thread executionThread = new Thread(() -> {
+            try {
+                noTimeoutSandbox.executeFile(testFile);
+            } catch (RuntimeException e) {
+                // Expected when we interrupt
+            }
+        });
+        executionThread.setDaemon(true);
+        executionThread.start();
+
+        // Wait up to 10 seconds
+        Thread.sleep(10000);
+
+        // Thread should still be running
+        assertTrue(executionThread.isAlive());
+
+        // Now kill it manually to clean up
+        executionThread.interrupt();
+        executionThread.join(2000);
     }
 }
