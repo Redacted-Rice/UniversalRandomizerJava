@@ -23,18 +23,27 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LuaSandbox {
     // Default to 100MB arbitrarily
     public static final long DEFAULT_MAX_MEMORY_BYTES = 100 * 1024 * 1024;
+    // Default to 5 seconds arbitrarily. These really should not take long
+    // to run
+    public static final long DEFAULT_MAX_EXECUTION_TIME_MS = 5 * 1000;
     private static final long MEMORY_CHECK_INTERVAL_MS = 200;
 
     Globals globals;
     List<Path> allowedRootDirectories;
     private final long maxMemoryBytes;
+    private final long maxExecutionTimeMs;
 
 
     public LuaSandbox(List<String> allowedRootDirectories) {
-        this(allowedRootDirectories, DEFAULT_MAX_MEMORY_BYTES);
+        this(allowedRootDirectories, DEFAULT_MAX_MEMORY_BYTES, DEFAULT_MAX_EXECUTION_TIME_MS);
     }
 
     public LuaSandbox(List<String> allowedRootDirectories, long maxMemoryBytes) {
+        this(allowedRootDirectories, maxMemoryBytes, DEFAULT_MAX_EXECUTION_TIME_MS);
+    }
+
+    public LuaSandbox(List<String> allowedRootDirectories, long maxMemoryBytes,
+            long maxExecutionTimeMs) {
         if (allowedRootDirectories == null || allowedRootDirectories.isEmpty()) {
             throw new IllegalArgumentException(
                     "At least one allowed root directory must be provided");
@@ -63,7 +72,13 @@ public class LuaSandbox {
             throw new IllegalArgumentException("maxMemoryBytes must be positive or -1 to disable");
         }
 
+        if (maxExecutionTimeMs <= 0 && maxExecutionTimeMs != -1) {
+            throw new IllegalArgumentException(
+                    "maxExecutionTimeMs must be positive or -1 to disable");
+        }
+
         this.maxMemoryBytes = maxMemoryBytes;
+        this.maxExecutionTimeMs = maxExecutionTimeMs;
 
         this.globals = createSandboxedGlobals();
     }
@@ -234,7 +249,7 @@ public class LuaSandbox {
         });
     }
 
-    public LuaValue execute(String luaCode) {
+    public LuaValue execute(String luaCode) throws TimeoutException {
         return executeWithMonitoring(() -> globals.load(luaCode).call(), "Lua code execution");
     }
 
@@ -256,6 +271,8 @@ public class LuaSandbox {
         } catch (SecurityException e) {
             throw e;
         } catch (MemoryLimitExceededException e) {
+            throw e;
+        } catch (TimeoutException e) {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException(
@@ -284,9 +301,10 @@ public class LuaSandbox {
         globals.set("logger", loggerTable);
     }
 
-    private LuaValue executeWithMonitoring(Callable<LuaValue> executionTask, String context) {
-        // Skip monitoring if memory limit is disabled
-        if (maxMemoryBytes == -1) {
+    private LuaValue executeWithMonitoring(Callable<LuaValue> executionTask, String context)
+            throws TimeoutException {
+        // Skip monitoring if both limits are disabled
+        if (maxMemoryBytes == -1 && maxExecutionTimeMs == -1) {
             try {
                 return executionTask.call();
             } catch (Exception e) {
@@ -298,9 +316,11 @@ public class LuaSandbox {
         }
 
         long memoryBefore = getCurrentMemoryUsage();
+        long executionStartTime = System.currentTimeMillis();
         AtomicReference<LuaValue> result = new AtomicReference<>();
         AtomicReference<Throwable> executionException = new AtomicReference<>();
         AtomicReference<MemoryLimitExceededException> memoryException = new AtomicReference<>();
+        AtomicReference<TimeoutException> timeoutException = new AtomicReference<>();
         AtomicBoolean executionComplete = new AtomicBoolean(false);
 
         // Create execution thread
@@ -317,56 +337,103 @@ public class LuaSandbox {
         executionThread.setDaemon(true);
         executionThread.start();
 
-        // Start memory monitoring thread
-        Thread monitoringThread = new Thread(() -> {
-            while (!executionComplete.get() && !Thread.currentThread().isInterrupted()) {
-                try {
-                    Thread.sleep(MEMORY_CHECK_INTERVAL_MS);
+        // Start monitoring thread to check memory and timeout
+        Thread monitoringThread = null;
+        if (maxMemoryBytes != -1 || maxExecutionTimeMs != -1) {
+            monitoringThread = new Thread(() -> {
+                while (!executionComplete.get() && !Thread.currentThread().isInterrupted()) {
+                    try {
+                        Thread.sleep(MEMORY_CHECK_INTERVAL_MS);
 
-                    if (executionComplete.get()) {
+                        if (executionComplete.get()) {
+                            break;
+                        }
+
+                        // Check timeout
+                        if (maxExecutionTimeMs != -1) {
+                            long elapsedTime = System.currentTimeMillis() - executionStartTime;
+                            if (elapsedTime > maxExecutionTimeMs) {
+                                executionThread.interrupt();
+                                executionComplete.set(true);
+                                timeoutException.set(new TimeoutException(String.format(
+                                        "Execution timeout exceeded during %s. Elapsed: %d ms, Limit: %d ms",
+                                        context, elapsedTime, maxExecutionTimeMs)));
+                                break;
+                            }
+                        }
+
+                        // Check memory
+                        if (maxMemoryBytes != -1) {
+                            long currentMemory = getCurrentMemoryUsage();
+                            long memoryUsed = currentMemory - memoryBefore;
+
+                            if (memoryUsed > maxMemoryBytes) {
+                                executionThread.interrupt();
+                                executionComplete.set(true);
+                                memoryException.set(new MemoryLimitExceededException(String.format(
+                                        "Memory limit exceeded during %s. Used: %d bytes (%.2f MB), Limit: %d bytes (%.2f MB)",
+                                        context, memoryUsed, memoryUsed / (1024.0 * 1024.0),
+                                        maxMemoryBytes, maxMemoryBytes / (1024.0 * 1024.0))));
+                                break;
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         break;
                     }
-
-                    long currentMemory = getCurrentMemoryUsage();
-                    long memoryUsed = currentMemory - memoryBefore;
-
-                    if (memoryUsed > maxMemoryBytes) {
-                        // Interrupt the execution thread and set exception
-                        executionThread.interrupt();
-                        executionComplete.set(true);
-
-                        memoryException.set(new MemoryLimitExceededException(String.format(
-                                "Memory limit exceeded during %s. Used: %d bytes (%.2f MB), Limit: %d bytes (%.2f MB)",
-                                context, memoryUsed, memoryUsed / (1024.0 * 1024.0), maxMemoryBytes,
-                                maxMemoryBytes / (1024.0 * 1024.0))));
-                        break;
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
                 }
-            }
-        }, "LuaSandbox-MemoryMonitor");
-        monitoringThread.setDaemon(true);
-        monitoringThread.start();
+            }, "LuaSandbox-Monitor");
+            monitoringThread.setDaemon(true);
+            monitoringThread.start();
+        }
 
         try {
             // Wait for execution thread to complete
-            executionThread.join();
+            if (maxExecutionTimeMs != -1) {
+                executionThread.join(maxExecutionTimeMs);
+                // Check if timeout was exceeded - i.e. thread is still running
+                if (executionThread.isAlive()) {
+                    executionThread.interrupt();
+                    executionComplete.set(true);
+                    // Wait a moment for monitoring thread to set exception if it hasn't already
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    // If monitoring thread didn't set timeout exception, set it here
+                    if (timeoutException.get() == null) {
+                        timeoutException.set(new TimeoutException(
+                                String.format("Execution timeout exceeded during %s. Limit: %d ms",
+                                        context, maxExecutionTimeMs)));
+                    }
+                }
+            } else {
+                executionThread.join();
+            }
         } catch (InterruptedException e) {
             // Main thread was interrupted - cancel execution
             executionThread.interrupt();
-            monitoringThread.interrupt();
+            if (monitoringThread != null) {
+                monitoringThread.interrupt();
+            }
             Thread.currentThread().interrupt();
             throw new RuntimeException("Lua execution interrupted", e);
         } finally {
             // Stop monitoring thread
-            monitoringThread.interrupt();
-            try {
-                monitoringThread.join(1000); // Wait up to 1 second for cleanup
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            if (monitoringThread != null) {
+                monitoringThread.interrupt();
+                try {
+                    monitoringThread.join(1000); // Wait up to 1 second for cleanup
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
+        }
+
+        // Check if timeout was exceeded
+        if (timeoutException.get() != null) {
+            throw timeoutException.get();
         }
 
         // Check if memory limit was exceeded
@@ -395,8 +462,18 @@ public class LuaSandbox {
         return maxMemoryBytes;
     }
 
+    public long getMaxExecutionTimeMs() {
+        return maxExecutionTimeMs;
+    }
+
     public static class MemoryLimitExceededException extends RuntimeException {
         public MemoryLimitExceededException(String message) {
+            super(message);
+        }
+    }
+
+    public static class TimeoutException extends RuntimeException {
+        public TimeoutException(String message) {
             super(message);
         }
     }
