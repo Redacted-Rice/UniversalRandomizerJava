@@ -3,6 +3,7 @@ package redactedrice.randomizer.wrapper;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.*;
 import org.luaj.vm2.lib.jse.*;
 
@@ -18,6 +19,9 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 // sandboxed lua environment that blocks dangerous functions and libraries
 public class LuaSandbox {
@@ -27,6 +31,12 @@ public class LuaSandbox {
     // to run
     public static final long DEFAULT_MAX_EXECUTION_TIME_MS = 5 * 1000;
     private static final long MEMORY_CHECK_INTERVAL_MS = 200;
+
+    // Dangerous modules to block and not allow
+    // Note Debug is handled specially as need to expose part of it in order
+    // to have stack traces
+    private static final Set<String> BLOCKED_MODULES =
+            new HashSet<>(Arrays.asList("io", "os", "luajava"));
 
     Globals globals;
     List<Path> allowedRootDirectories;
@@ -130,10 +140,11 @@ public class LuaSandbox {
     }
 
     private void blockDangerousFunctions(Globals globals) {
-        // remove io os and luajava completely
-        globals.set("io", LuaValue.NIL);
-        globals.set("os", LuaValue.NIL);
-        globals.set("luajava", LuaValue.NIL);
+        // Remove blocked modules completely
+        // Note this does NOT include debug intentionally
+        for (String moduleName : BLOCKED_MODULES) {
+            globals.set(moduleName, LuaValue.NIL);
+        }
 
         // restrict debug table to only have traceback
         LuaValue debugLib = globals.get("debug");
@@ -196,6 +207,10 @@ public class LuaSandbox {
 
             // block c library loading
             packageLib.set("cpath", LuaValue.valueOf(""));
+
+            // Protect package loaded and searchers from manipulation
+            setupRestrictedPackageLoaded(packageLib);
+            setupRestrictedPackageSearchers(packageLib);
         } else {
             // this should always be set but just in case package path is excluded already
             // don't add it back in
@@ -211,6 +226,12 @@ public class LuaSandbox {
             @Override
             public LuaValue call(LuaValue moduleName) {
                 String module = moduleName.tojstring();
+
+                // Validate module name is not blocked
+                if (isBlockedModuleName(module)) {
+                    throw new SecurityException(
+                            "Access denied: Cannot require blocked module '" + module + "'");
+                }
 
                 // Reset package path to the allowed value before each require call
                 if (!packageLibFinal.isnil()) {
@@ -247,6 +268,149 @@ public class LuaSandbox {
                 return originalRequire.call(moduleName);
             }
         });
+    }
+
+    private boolean isBlockedModuleName(String moduleName) {
+        if (moduleName == null || moduleName.trim().isEmpty()) {
+            return false;
+        }
+
+        String normalized = moduleName.trim();
+
+        // Is the module blocked?
+        if (BLOCKED_MODULES.contains(normalized)) {
+            return true;
+        }
+
+        // Block debug even though it's restricted rather than completely removed
+        // to prevent loading the full debug module via require
+        if (normalized.equals("debug")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // base class for lua table wrappers to control access/writing
+    // By default it just passes everthing to the original
+    private abstract class DelegatingLuaTable extends LuaTable {
+        protected final LuaTable original;
+
+        protected DelegatingLuaTable(LuaTable original) {
+            this.original = original;
+        }
+
+        @Override
+        public LuaValue rawget(LuaValue key) {
+            return original.rawget(key);
+        }
+
+        @Override
+        public LuaValue get(LuaValue key) {
+            return original.get(key);
+        }
+
+        @Override
+        public LuaValue get(int key) {
+            return original.get(key);
+        }
+
+        @Override
+        public void set(LuaValue key, LuaValue value) {
+            rawset(key, value);
+        }
+
+        @Override
+        public Varargs next(LuaValue key) {
+            return original.next(key);
+        }
+
+        @Override
+        public int length() {
+            return original.length();
+        }
+    }
+
+    // Creates a read only table for lua so it can't be modified to inlcude
+    // unloaded or blocked packages
+    private LuaTable createReadOnlyProtectedTable(LuaTable original, String tableName) {
+        return new DelegatingLuaTable(original) {
+            @Override
+            public void rawset(LuaValue key, LuaValue value) {
+                throw new SecurityException("Cannot modify package: " + tableName);
+            }
+        };
+    }
+
+    // Creates a table that blocks the packages we want to exclude for
+    // security reasons
+    private LuaTable createModuleFilteredProtectedTable(LuaTable original) {
+        return new DelegatingLuaTable(original) {
+            @Override
+            public void rawset(LuaValue key, LuaValue value) {
+                // Only allow setting if module name is not blocked
+                if (key.isstring()) {
+                    String moduleName = key.tojstring();
+                    if (isBlockedModuleName(moduleName)) {
+                        throw new SecurityException("Cannot load blocked module:" + moduleName);
+                    }
+                }
+                original.rawset(key, value);
+            }
+
+            @Override
+            public LuaValue rawget(LuaValue key) {
+                // Check if trying to access a blocked module
+                if (key.isstring()) {
+                    String moduleName = key.tojstring();
+                    if (isBlockedModuleName(moduleName)) {
+                        // Return nil instead of allowing access to potentially injected modules
+                        return LuaValue.NIL;
+                    }
+                }
+                return original.rawget(key);
+            }
+
+            @Override
+            public LuaValue get(LuaValue key) {
+                // Use rawget to apply filtering
+                return rawget(key);
+            }
+        };
+    }
+
+    private void setupRestrictedPackageLoaded(LuaValue packageLib) {
+        if (packageLib.isnil()) {
+            return;
+        }
+
+        LuaValue loaded = packageLib.get("loaded");
+        if (loaded.isnil() || !loaded.istable()) {
+            return;
+        }
+
+        final LuaTable originalLoaded = (LuaTable) loaded;
+        packageLib.set("loaded", createModuleFilteredProtectedTable(originalLoaded));
+    }
+
+    private void setupRestrictedPackageSearchers(LuaValue packageLib) {
+        if (packageLib.isnil()) {
+            return;
+        }
+
+        // <= Lua 5.1 uses loaders, >= 5.2 uses searchers so we need to
+        // block both for compatibility
+
+        LuaValue loaders = packageLib.get("loaders");
+        if (!loaders.isnil() && loaders.istable()) {
+            packageLib.set("loaders", createReadOnlyProtectedTable((LuaTable) loaders, "loaders"));
+        }
+
+        LuaValue searchers = packageLib.get("searchers");
+        if (!searchers.isnil() && searchers.istable()) {
+            packageLib.set("searchers",
+                    createReadOnlyProtectedTable((LuaTable) searchers, "searchers"));
+        }
     }
 
     public LuaValue execute(String luaCode) throws TimeoutException {
