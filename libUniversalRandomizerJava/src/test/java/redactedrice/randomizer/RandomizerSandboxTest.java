@@ -225,4 +225,55 @@ public class RandomizerSandboxTest {
         executionThread.interrupt();
         executionThread.join(2000);
     }
+
+    @Test
+    public void testRequireBlockedModule() {
+        // Test requiring blocked modules
+        String testFile = new File(testCasesPath, "test_require_blocked_io.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("require successfully blocked IO"));
+    }
+
+    @Test
+    public void testPackageLoadedInjectionBlocked() {
+        // Test injected loaded packages
+        String testFile =
+                new File(testCasesPath, "test_package_loaded_inject_io.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("loaded successfully blocked IO injection"));
+    }
+
+    @Test
+    public void testPackageLoadedDirectAccessBlocked() {
+        // Test directly adding loaded packages
+        String testFile =
+                new File(testCasesPath, "test_package_loaded_direct_access.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("loaded successfully blocked IO"));
+    }
+
+    @Test
+    public void testPackageSystemModificationBlocked() {
+        // Test adding loader is blocked
+        String testFile =
+                new File(testCasesPath, "test_package_loaders_modification.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("loaders successfully blocked modification"));
+    }
 }
