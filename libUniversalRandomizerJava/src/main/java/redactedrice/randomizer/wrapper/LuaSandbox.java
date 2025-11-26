@@ -173,6 +173,10 @@ public class LuaSandbox {
         globals.set("getfenv", LuaValue.NIL);
         globals.set("setfenv", LuaValue.NIL);
 
+        // Remove collectgarbage. No reason to have it and it can be abused. Probably a bit overkill
+        // but it was simple to add so I decided just to do it
+        globals.set("collectgarbage", LuaValue.NIL);
+
         // Restrict setmetatable to prevent bypassing security protections
         // We allow getmetatable as its read only
         setupRestrictedSetMetatable(globals);
@@ -433,10 +437,17 @@ public class LuaSandbox {
         }
     }
 
+    // Note: Use this for dynamic code generation or to bypass path checks
+    // Should only be used from the Java side and not used to execute untrusted
+    // lua scripts. This still does most of the other security protections.
     public LuaValue execute(String luaCode) throws TimeoutException {
-        return executeWithMonitoring(() -> globals.load(luaCode).call(), "Lua code execution");
+        // Load and parse the code then execute so the loading is not counted against the timeout
+        LuaValue chunk = globals.load(luaCode);
+        return executeWithMonitoring(() -> chunk.call(), "Lua code execution");
     }
 
+    // Note: Primiary execute for files. This will ensure they are from an
+    // expected path and run with full security
     public LuaValue executeFile(String filePath) {
         // Validate that the file path is within allowed directories
         if (!isPathAllowed(filePath)) {
@@ -448,9 +459,10 @@ public class LuaSandbox {
             String luaCode =
                     new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(filePath)),
                             java.nio.charset.StandardCharsets.UTF_8);
-            // load and run the lua code with monitoring
-            return executeWithMonitoring(() -> globals.load(luaCode, filePath).call(),
-                    "Lua file execution: " + filePath);
+            // Load and parse the code then execute so the loading is not counted against the
+            // timeout
+            LuaValue chunk = globals.load(luaCode, filePath);
+            return executeWithMonitoring(() -> chunk.call(), "Lua file execution: " + filePath);
         } catch (SecurityException e) {
             throw e;
         } catch (MemoryLimitExceededException e) {
