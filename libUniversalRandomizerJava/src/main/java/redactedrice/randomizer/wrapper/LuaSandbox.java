@@ -136,6 +136,10 @@ public class LuaSandbox {
         // add logger functions
         setupLoggerFunctions(globals);
 
+        // protect globals from modification
+        // Note this must be done last or else we will block ourself
+        setupProtectedGlobals(globals);
+
         return globals;
     }
 
@@ -168,6 +172,10 @@ public class LuaSandbox {
         // remove lua 5.1 environment manipulation
         globals.set("getfenv", LuaValue.NIL);
         globals.set("setfenv", LuaValue.NIL);
+
+        // Restrict setmetatable to prevent bypassing security protections
+        // We allow getmetatable as its read only
+        setupRestrictedSetMetatable(globals);
 
         // wrap loadfile to restrict access to allowed directories only
         final LuaValue originalLoadfile = globals.get("loadfile");
@@ -456,11 +464,65 @@ public class LuaSandbox {
     }
 
     public void set(String name, LuaValue value) {
-        globals.set(name, value);
+        // Use rawset to bypass the __newindex metamethod protection
+        // This allows us to set globals without triggering the security protection meant for Lua
+        // scripts
+        globals.rawset(name, value);
     }
 
     public LuaValue get(String name) {
         return globals.get(name);
+    }
+
+    private void setupRestrictedSetMetatable(Globals globals) {
+        // Block global and restricted functions metatables from being modified
+        final LuaValue originalSetmetatable = globals.get("setmetatable");
+        final Globals globalsFinal = globals;
+        globals.set("setmetatable", new TwoArgFunction() {
+            @Override
+            public LuaValue call(LuaValue table, LuaValue metatable) {
+                // Prevent modification of globals table metatable
+                if (table == globalsFinal
+                        || (table.istable() && table.touserdata() == globalsFinal)) {
+                    throw new SecurityException("Cannot modify metatable of global environment");
+                }
+                // Prevent modification of package system tables metatables
+                LuaValue packageLib = globalsFinal.get("package");
+                if (!packageLib.isnil() && packageLib.istable()) {
+                    LuaTable packageTable = (LuaTable) packageLib;
+                    String[] protectedPackageTables = {"loaded", "loaders", "searchers", "preload"};
+
+                    for (String tableName : protectedPackageTables) {
+                        LuaValue protectedTable = packageTable.get(tableName);
+                        if (!protectedTable.isnil()
+                                && (table == protectedTable || table.equals(protectedTable))) {
+                            throw new SecurityException(
+                                    "Cannot modify metatable of protected " + tableName + " table");
+                        }
+                    }
+                }
+                // Allow setmetatable for all other tables
+                return originalSetmetatable.call(table, metatable);
+            }
+        });
+    }
+
+    private void setupProtectedGlobals(Globals globals) {
+        // Create a metatable that prevents new global assignments
+        LuaTable globalsMetatable = new LuaTable();
+
+        globalsMetatable.set(LuaValue.NEWINDEX, new ThreeArgFunction() {
+            @Override
+            // __newindex is only called for keys that don't exist in the table
+            // so we can just block it to prevent new assignments
+            public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
+                throw new SecurityException("Cannot create new global variable '" + key.tojstring()
+                        + "'. Global environment is protected. Use local variables instead.");
+            }
+        });
+        // Don't modify __index so we can still access existing globals
+
+        globals.setmetatable(globalsMetatable);
     }
 
     private void setupLoggerFunctions(Globals globals) {
