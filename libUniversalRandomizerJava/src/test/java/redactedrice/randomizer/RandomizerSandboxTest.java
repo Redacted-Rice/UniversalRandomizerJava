@@ -325,4 +325,16 @@ public class RandomizerSandboxTest {
         assertTrue(resultStr.contains("testGlobal accessible"));
         assertTrue(resultStr.contains("testGlobalNumber accessible"));
     }
+
+    @Test
+    public void testCollectGarbageRemoved() {
+        // Test that collectgarbage is blocked to prevent DoS attacks
+        String testFile = new File(testCasesPath, "test_collect_garbage.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("collect garbage successfully blocked"));
+    }
 }
