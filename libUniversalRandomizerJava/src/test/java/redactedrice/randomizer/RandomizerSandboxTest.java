@@ -290,4 +290,39 @@ public class RandomizerSandboxTest {
         assertTrue(resultStr.contains("preload successfully blocked IO injection"));
         assertFalse(resultStr.contains("preload failed to block IO injection"));
     }
+
+    @Test
+    public void testMetatableBlocked() {
+        // Test that getmetatable and setmetatable work for user tables,
+        // but globals metatable is protected
+        String testFile = new File(testCasesPath, "test_metatable_blocked.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("getmetatable works"));
+        assertTrue(resultStr.contains("setmetatable works"));
+        assertTrue(resultStr.contains("globals metatable protected"));
+        assertTrue(resultStr.contains("globals metatable removal blocked"));
+    }
+
+    @Test
+    public void testGlobalsProtected() {
+        // Test that new global variables cannot be created but existing globals are accessible
+
+        // Set test globals before running the script to verify globals are accessible
+        sandbox.set("testGlobal", LuaValue.valueOf("test_value_123"));
+        sandbox.set("testGlobalNumber", LuaValue.valueOf(42));
+
+        String testFile = new File(testCasesPath, "test_globals_protected.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        assertNotNull(result);
+
+        String resultStr = result.tojstring();
+        assertTrue(resultStr.contains("new globals blocked"));
+        assertTrue(resultStr.contains("testGlobal accessible"));
+        assertTrue(resultStr.contains("testGlobalNumber accessible"));
+    }
 }
