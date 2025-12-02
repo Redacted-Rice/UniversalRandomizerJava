@@ -12,6 +12,7 @@ import redactedrice.randomizer.logger.LuaLogFunctions;
 import org.luaj.vm2.lib.DebugLib;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -105,10 +106,19 @@ public class LuaSandbox {
         try {
             Path requestedPath = Paths.get(filePath).toAbsolutePath().normalize();
 
-            // Check if the requested path is within any allowed root directory
+            // Resolve symlinks if there are any
+            Path resolvedPath;
+            try {
+                resolvedPath = requestedPath.toRealPath();
+            } catch (java.nio.file.NoSuchFileException e) {
+                // Use the normalized path
+                resolvedPath = requestedPath;
+            }
+
+            // Check if the resolved path is within an allowed directory
             for (Path allowedRoot : allowedRootDirectories) {
                 Path normalizedAllowed = allowedRoot.toAbsolutePath().normalize();
-                if (requestedPath.startsWith(normalizedAllowed)) {
+                if (resolvedPath.startsWith(normalizedAllowed)) {
                     return true;
                 }
             }
