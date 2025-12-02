@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -336,5 +339,47 @@ public class RandomizerSandboxTest {
 
         String resultStr = result.tojstring();
         assertTrue(resultStr.contains("collect garbage successfully blocked"));
+    }
+
+    @Test
+    public void testPathTraversalDotDot() {
+        // Test that path traversal using .. is blocked if it goes outside allowed directories
+        String testFile =
+                new File(testCasesPath, "test_path_traversal_dotdot.lua").getAbsolutePath();
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            sandbox.executeFile(testFile);
+        });
+        assertTrue(exception.getMessage().contains("Access denied")
+                || exception.getMessage().contains("not in allowed directories")
+                || exception.getMessage().contains("loadfile successfully blocked load"));
+    }
+
+    @Test
+    public void testSymlinkFromUnallowedPath() throws Exception {
+        // Test that symlinks pointing to files outside allowed directories are blocked
+        // Git wasn't working well with symlinks so we create and remove it as part of
+        // this test instead
+        Path symlinkPath = Paths.get(testCasesPath).resolve("symlink_to_unallowed.lua");
+        Path targetPath =
+                Paths.get(testCasesPath).resolve("../module_fail_cases/unallowed_path.lua");
+
+        try {
+            // Create symlink pointing to unallowed path
+            Files.createSymbolicLink(symlinkPath, targetPath);
+
+            // Try to execute the symlink
+            RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+                sandbox.executeFile(symlinkPath.toAbsolutePath().toString());
+            });
+
+            assertTrue(exception.getMessage().contains("Access denied")
+                    || exception.getMessage().contains("not in allowed directories"));
+        } finally {
+            // Always clean up symlink
+            if (Files.exists(symlinkPath)) {
+                Files.delete(symlinkPath);
+            }
+        }
     }
 }
