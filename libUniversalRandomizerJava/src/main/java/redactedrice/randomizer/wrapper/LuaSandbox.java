@@ -187,6 +187,12 @@ public class LuaSandbox {
         // but it was simple to add so I decided just to do it
         globals.set("collectgarbage", LuaValue.NIL);
 
+        // Block rawset and rawget to prevent bypassing our protections
+        // I am not sure if rawget is really needed but there also isn't really
+        // any reason why they should be using it so I remove it to be safe
+        globals.set("rawset", LuaValue.NIL);
+        globals.set("rawget", LuaValue.NIL);
+
         // Restrict setmetatable to prevent bypassing security protections
         // We allow getmetatable as its read only
         setupRestrictedSetMetatable(globals);
