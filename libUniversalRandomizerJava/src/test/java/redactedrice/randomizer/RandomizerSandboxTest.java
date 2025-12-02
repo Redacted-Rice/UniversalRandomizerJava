@@ -382,4 +382,28 @@ public class RandomizerSandboxTest {
             }
         }
     }
+
+    @Test
+    public void testRawsetBlocked() {
+        // Test that rawset is blocked and cannot bypass protections
+        String testFile = new File(testCasesPath, "test_rawset_blocked.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        String resultStr = result.tojstring();
+
+        assertTrue(resultStr.contains("rawset successfully blocked"),
+                "rawset should be blocked, got: " + resultStr);
+    }
+
+    @Test
+    public void testRawgetBlocked() {
+        // Test that rawget is blocked too
+        String testFile = new File(testCasesPath, "test_rawget_blocked.lua").getAbsolutePath();
+
+        LuaValue result = sandbox.executeFile(testFile);
+        String resultStr = result.tojstring();
+
+        assertTrue(resultStr.contains("rawget successfully blocked"),
+                "rawget should be blocked, got: " + resultStr);
+    }
 }
