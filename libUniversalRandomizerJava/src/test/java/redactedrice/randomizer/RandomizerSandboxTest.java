@@ -81,8 +81,7 @@ public class RandomizerSandboxTest {
     public void testRequireFromUnallowedLocation() {
         // Test that require from unallowed location is blocked
         // The test script tries to modify package.path to include an unallowed path
-        // There isn't really another way in lua to require so this is sufficient
-        String testFile = new File(testCasesPath, "test_require_unallowed.lua").getAbsolutePath();
+        String testFile = new File(testCasesPath, "test_path_readonly.lua").getAbsolutePath();
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             sandbox.executeFile(testFile);
@@ -92,7 +91,8 @@ public class RandomizerSandboxTest {
         assertTrue(
                 exception.getMessage().contains("Access denied")
                         || exception.getMessage().contains("not in allowed directories")
-                        || exception.getMessage().contains("module 'module_fail_cases' not found"),
+                        || exception.getMessage().contains("module 'module_fail_cases' not found")
+                        || exception.getMessage().contains("Cannot modify package.path"),
                 "Expected access denied even after package.path modification, but got: "
                         + exception.getMessage());
     }
@@ -134,13 +134,14 @@ public class RandomizerSandboxTest {
 
     @Test
     public void testMemoryLimitDisabled() {
-        // Test that memory limit can be disabled with -1
+        // Test that memory limit can be disabled
         List<String> allowedDirectories = new ArrayList<>();
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
-        LuaSandbox unlimitedSandbox = new LuaSandbox(allowedDirectories, -1);
+        LuaSandbox unlimitedSandbox = new LuaSandbox(allowedDirectories);
+        unlimitedSandbox.disableMaxMemory();
 
-        assertEquals(-1, unlimitedSandbox.getMaxMemoryBytes());
+        assertEquals(LuaSandbox.MAX_MEMORY_DISABLED, unlimitedSandbox.getMaxMemoryBytes());
 
         // Should execute normally this time since limit is disabled
         String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
@@ -201,9 +202,12 @@ public class RandomizerSandboxTest {
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
         // No memory constraints, no timeout
-        LuaSandbox noTimeoutSandbox = new LuaSandbox(allowedDirectories, -1, -1);
+        LuaSandbox noTimeoutSandbox = new LuaSandbox(allowedDirectories);
+        noTimeoutSandbox.disableMaxMemory();
+        noTimeoutSandbox.disableMaxExecutionTime();
 
-        assertEquals(-1, noTimeoutSandbox.getMaxExecutionTimeMs());
+        assertEquals(LuaSandbox.MAX_EXECUTION_TIME_DISABLED,
+                noTimeoutSandbox.getMaxExecutionTimeMs());
 
         String testFile = new File(testCasesPath, "test_infinite_loop.lua").getAbsolutePath();
 

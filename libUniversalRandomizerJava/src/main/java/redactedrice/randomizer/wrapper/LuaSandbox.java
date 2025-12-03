@@ -12,7 +12,6 @@ import redactedrice.randomizer.logger.LuaLogFunctions;
 import org.luaj.vm2.lib.DebugLib;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -26,12 +25,27 @@ import java.util.Set;
 
 // sandboxed lua environment that blocks dangerous functions and libraries
 public class LuaSandbox {
-    // Default to 100MB arbitrarily
-    public static final long DEFAULT_MAX_MEMORY_BYTES = 100 * 1024 * 1024;
-    // Default to 5 seconds arbitrarily. These really should not take long
-    // to run
+    // How often we check is not a huge priority since these are not meant
+    // to be strict guidelines but only general safety mechanims
+    // 1/5 of a second is arbitrarily chosen
+    public static final long DEFAULT_MONITORING_INTERVAL_MS = 200;
+    public static final long MONITORING_INTERVAL_DISABLED = -1;
+
+    // Default to 5 seconds arbitrarily but not too long so the timeout
+    // tests don't take forever. These scripts should not take long to run
     public static final long DEFAULT_MAX_EXECUTION_TIME_MS = 5 * 1000;
-    private static final long MEMORY_CHECK_INTERVAL_MS = 200;
+    public static final long MAX_EXECUTION_TIME_DISABLED = -1;
+
+    // Default to 100MB arbitrarily. Should be plenty big for what we are
+    // intending on doing
+    public static final long DEFAULT_MAX_MEMORY_BYTES = 100 * 1024 * 1024;
+    public static final long MAX_MEMORY_DISABLED = -1;
+
+    // I don't care too much about the specific memory usage so default to
+    // false. This means a script coulr use more memory than the limit if we
+    // do a GC after starting the script but that's fine as the intent is just
+    // to keep it from overwhelming the device
+    private static final boolean GC_BEFORE_SNAPSHOT = false;
 
     // Dangerous modules to block and not allow
     // Note Debug is handled specially as need to expose part of it in order
@@ -41,20 +55,12 @@ public class LuaSandbox {
 
     Globals globals;
     List<Path> allowedRootDirectories;
-    private final long maxMemoryBytes;
-    private final long maxExecutionTimeMs;
-
+    private long maxMemoryBytes;
+    private long maxExecutionTimeMs;
+    private long monitoringIntervalMs;
+    private boolean gcBeforeSnapshot;
 
     public LuaSandbox(List<String> allowedRootDirectories) {
-        this(allowedRootDirectories, DEFAULT_MAX_MEMORY_BYTES, DEFAULT_MAX_EXECUTION_TIME_MS);
-    }
-
-    public LuaSandbox(List<String> allowedRootDirectories, long maxMemoryBytes) {
-        this(allowedRootDirectories, maxMemoryBytes, DEFAULT_MAX_EXECUTION_TIME_MS);
-    }
-
-    public LuaSandbox(List<String> allowedRootDirectories, long maxMemoryBytes,
-            long maxExecutionTimeMs) {
         if (allowedRootDirectories == null || allowedRootDirectories.isEmpty()) {
             throw new IllegalArgumentException(
                     "At least one allowed root directory must be provided");
@@ -79,17 +85,10 @@ public class LuaSandbox {
             throw new IllegalArgumentException("No valid allowed root directories provided");
         }
 
-        if (maxMemoryBytes < 0 && maxMemoryBytes != -1) {
-            throw new IllegalArgumentException("maxMemoryBytes must be positive or -1 to disable");
-        }
-
-        if (maxExecutionTimeMs <= 0 && maxExecutionTimeMs != -1) {
-            throw new IllegalArgumentException(
-                    "maxExecutionTimeMs must be positive or -1 to disable");
-        }
-
-        this.maxMemoryBytes = maxMemoryBytes;
-        this.maxExecutionTimeMs = maxExecutionTimeMs;
+        this.maxMemoryBytes = DEFAULT_MAX_MEMORY_BYTES;
+        this.maxExecutionTimeMs = DEFAULT_MAX_EXECUTION_TIME_MS;
+        this.monitoringIntervalMs = DEFAULT_MONITORING_INTERVAL_MS;
+        this.gcBeforeSnapshot = GC_BEFORE_SNAPSHOT;
 
         this.globals = createSandboxedGlobals();
     }
@@ -231,15 +230,15 @@ public class LuaSandbox {
             }
 
             allowedPackagePath = String.join(";", packagePaths);
-            packageLib.set("path", LuaValue.valueOf(allowedPackagePath));
-
-            // block c library loading
-            packageLib.set("cpath", LuaValue.valueOf(""));
 
             // Protect package loaded, searchers, and preload from manipulation
             setupRestrictedPackageLoaded(packageLib);
             setupRestrictedPackageSearchers(packageLib);
             setupRestrictedPackagePreload(packageLib);
+
+            // Make package.path and package.cpath read only
+            // This needs to be done after setting the paths above
+            setupProtectedPackagePath(globals, packageLib, allowedPackagePath);
         } else {
             // this should always be set but just in case package path is excluded already
             // don't add it back in
@@ -247,7 +246,6 @@ public class LuaSandbox {
         }
 
         // wrap require to validate that resolved paths are within allowed directories
-        // Additionally reset package path before each require to prevent runtime modifications
         final LuaValue originalRequire = globals.get("require");
         final LuaValue packageLibFinal = packageLib;
 
@@ -260,11 +258,6 @@ public class LuaSandbox {
                 if (isBlockedModuleName(module)) {
                     throw new SecurityException(
                             "Access denied: Cannot require blocked module '" + module + "'");
-                }
-
-                // Reset package path to the allowed value before each require call
-                if (!packageLibFinal.isnil()) {
-                    packageLibFinal.set("path", LuaValue.valueOf(allowedPackagePath));
                 }
 
                 try {
@@ -453,6 +446,41 @@ public class LuaSandbox {
         }
     }
 
+    private void setupProtectedPackagePath(Globals globals, LuaValue packageLib,
+            String allowedPackagePath) {
+        if (packageLib.isnil()) {
+            return;
+        }
+        LuaTable packageTable = (LuaTable) packageLib;
+
+        // set the packages to the allowed paths
+        packageTable.rawset("path", LuaValue.valueOf(allowedPackagePath));
+        // block c library loading completely
+        packageTable.rawset("cpath", LuaValue.valueOf(""));
+
+        // Create a wrapper table that blocks changes to path and cpath
+        LuaTable protectedPackage = new DelegatingLuaTable(packageTable) {
+            @Override
+            public void rawset(LuaValue key, LuaValue value) {
+                // Block changes to path and cpath fields
+                if (key.isstring()) {
+                    String keyStr = key.tojstring();
+                    if (keyStr.equals("path") || keyStr.equals("cpath")) {
+                        throw new SecurityException("Cannot modify package." + keyStr);
+                    }
+                }
+                original.rawset(key, value);
+            }
+
+            // Also override normal set. Just delegate to rawset for simplicity
+            @Override
+            public void set(LuaValue key, LuaValue value) {
+                rawset(key, value);
+            }
+        };
+        globals.set("package", protectedPackage);
+    }
+
     // Note: Use this for dynamic code generation or to bypass path checks
     // Should only be used from the Java side and not used to execute untrusted
     // lua scripts. This still does most of the other security protections.
@@ -568,8 +596,10 @@ public class LuaSandbox {
 
     private LuaValue executeWithMonitoring(Callable<LuaValue> executionTask, String context)
             throws TimeoutException {
-        // Skip monitoring if both limits are disabled
-        if (maxMemoryBytes == -1 && maxExecutionTimeMs == -1) {
+        // Skip monitoring if both limits are disabled or monitoring interval is disabled
+        if ((maxMemoryBytes == MAX_MEMORY_DISABLED
+                && maxExecutionTimeMs == MAX_EXECUTION_TIME_DISABLED)
+                || monitoringIntervalMs == MONITORING_INTERVAL_DISABLED) {
             try {
                 return executionTask.call();
             } catch (Exception e) {
@@ -580,6 +610,15 @@ public class LuaSandbox {
             }
         }
 
+        // Clear up memory and wait a bit for it if set to do so
+        if (gcBeforeSnapshot && maxMemoryBytes != MAX_MEMORY_DISABLED) {
+            System.gc();
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
         long memoryBefore = getCurrentMemoryUsage();
         long executionStartTime = System.currentTimeMillis();
         AtomicReference<LuaValue> result = new AtomicReference<>();
@@ -604,18 +643,22 @@ public class LuaSandbox {
 
         // Start monitoring thread to check memory and timeout
         Thread monitoringThread = null;
-        if (maxMemoryBytes != -1 || maxExecutionTimeMs != -1) {
+        if ((maxMemoryBytes != MAX_MEMORY_DISABLED
+                || maxExecutionTimeMs != MAX_EXECUTION_TIME_DISABLED)
+                && monitoringIntervalMs != MONITORING_INTERVAL_DISABLED) {
             monitoringThread = new Thread(() -> {
                 while (!executionComplete.get() && !Thread.currentThread().isInterrupted()) {
                     try {
-                        Thread.sleep(MEMORY_CHECK_INTERVAL_MS);
+                        // monitoring interval must be valid if we are here so no need
+                        // to check it
+                        Thread.sleep(monitoringIntervalMs);
 
                         if (executionComplete.get()) {
                             break;
                         }
 
                         // Check timeout
-                        if (maxExecutionTimeMs != -1) {
+                        if (maxExecutionTimeMs != MAX_EXECUTION_TIME_DISABLED) {
                             long elapsedTime = System.currentTimeMillis() - executionStartTime;
                             if (elapsedTime > maxExecutionTimeMs) {
                                 executionThread.interrupt();
@@ -627,10 +670,12 @@ public class LuaSandbox {
                             }
                         }
 
-                        // Check memory
-                        if (maxMemoryBytes != -1) {
-                            long currentMemory = getCurrentMemoryUsage();
-                            long memoryUsed = currentMemory - memoryBefore;
+                        // Compary current memory to initial memory to determine if the
+                        // script exceeds its allotment. Note its possible for this to be
+                        // negative if memory is freed after the initial snapshot
+                        if (maxMemoryBytes != MAX_MEMORY_DISABLED) {
+                            long memoryNow = getCurrentMemoryUsage();
+                            long memoryUsed = memoryNow - memoryBefore;
 
                             if (memoryUsed > maxMemoryBytes) {
                                 executionThread.interrupt();
@@ -654,7 +699,7 @@ public class LuaSandbox {
 
         try {
             // Wait for execution thread to complete
-            if (maxExecutionTimeMs != -1) {
+            if (maxExecutionTimeMs != MAX_EXECUTION_TIME_DISABLED) {
                 executionThread.join(maxExecutionTimeMs);
                 // Check if timeout was exceeded - i.e. thread is still running
                 if (executionThread.isAlive()) {
@@ -723,12 +768,57 @@ public class LuaSandbox {
         return runtime.totalMemory() - runtime.freeMemory();
     }
 
+    public long getMaxExecutionTimeMs() {
+        return maxExecutionTimeMs;
+    }
+
+    public void setMaxExecutionTimeMs(long maxExecutionTimeMs) {
+        if (maxExecutionTimeMs <= 0 && maxExecutionTimeMs != MAX_EXECUTION_TIME_DISABLED) {
+            throw new IllegalArgumentException(
+                    "maxExecutionTimeMs must be positive or MAX_EXECUTION_TIME_DISABLED to disable");
+        }
+        this.maxExecutionTimeMs = maxExecutionTimeMs;
+    }
+
+    public void disableMaxExecutionTime() {
+        setMaxExecutionTimeMs(MAX_EXECUTION_TIME_DISABLED);
+    }
+
     public long getMaxMemoryBytes() {
         return maxMemoryBytes;
     }
 
-    public long getMaxExecutionTimeMs() {
-        return maxExecutionTimeMs;
+    public boolean doGcBeforeSnapshot() {
+        return gcBeforeSnapshot;
+    }
+
+    public void setMaxMemoryLimiting(long maxMemoryBytes, boolean gcBeforeSnapshot) {
+        if (maxMemoryBytes < 0 && maxMemoryBytes != MAX_MEMORY_DISABLED) {
+            throw new IllegalArgumentException(
+                    "maxMemoryBytes must be positive or MAX_MEMORY_DISABLED to disable");
+        }
+        this.maxMemoryBytes = maxMemoryBytes;
+        this.gcBeforeSnapshot = gcBeforeSnapshot;
+    }
+
+    public void disableMaxMemory() {
+        setMaxMemoryLimiting(MAX_MEMORY_DISABLED, gcBeforeSnapshot);
+    }
+
+    public long getMonitoringIntervalMs() {
+        return monitoringIntervalMs;
+    }
+
+    public void setMonitoringIntervalMs(long monitoringIntervalMs) {
+        if (monitoringIntervalMs <= 0 && monitoringIntervalMs != MONITORING_INTERVAL_DISABLED) {
+            throw new IllegalArgumentException(
+                    "monitoringIntervalMs must be positive or MONITORING_INTERVAL_DISABLED to disable");
+        }
+        this.monitoringIntervalMs = monitoringIntervalMs;
+    }
+
+    public void disableMonitoringInterval() {
+        setMonitoringIntervalMs(MONITORING_INTERVAL_DISABLED);
     }
 
     public static class MemoryLimitExceededException extends RuntimeException {
