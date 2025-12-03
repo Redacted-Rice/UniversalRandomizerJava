@@ -201,6 +201,14 @@ public class LuaSandbox {
         globals.set("loadfile", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue filePath) {
+                // Handle bad arguments gracefully
+                if (filePath.isnil()) {
+                    throw new IllegalArgumentException("loadfile: filename cannot be nil");
+                }
+                if (!filePath.isstring()) {
+                    throw new IllegalArgumentException(
+                            "loadfile: filename must be a string, got " + filePath.typename());
+                }
                 String path = filePath.tojstring();
                 if (!isPathAllowed(path)) {
                     throw new RuntimeException("Access denied: Cannot load file '" + path
@@ -252,6 +260,14 @@ public class LuaSandbox {
         globals.set("require", new OneArgFunction() {
             @Override
             public LuaValue call(LuaValue moduleName) {
+                // Handle bad arguments gracefully
+                if (moduleName.isnil()) {
+                    throw new IllegalArgumentException("require: module name cannot be nil");
+                }
+                if (!moduleName.isstring()) {
+                    throw new IllegalArgumentException(
+                            "require: module name must be a string, got " + moduleName.typename());
+                }
                 String module = moduleName.tojstring();
 
                 // Validate module name is not blocked
@@ -537,6 +553,20 @@ public class LuaSandbox {
         globals.set("setmetatable", new TwoArgFunction() {
             @Override
             public LuaValue call(LuaValue table, LuaValue metatable) {
+                // Handle bad arguments gracefully
+                if (table.isnil()) {
+                    throw new IllegalArgumentException("setmetatable: table cannot be nil");
+                }
+                if (!table.istable()) {
+                    throw new IllegalArgumentException(
+                            "setmetatable: first argument must be a table, got "
+                                    + table.typename());
+                }
+                if (!metatable.isnil() && !metatable.istable()) {
+                    throw new IllegalArgumentException(
+                            "setmetatable: metatable must be nil or a table, got "
+                                    + metatable.typename());
+                }
                 // Prevent modification of globals table metatable
                 if (table == globalsFinal
                         || (table.istable() && table.touserdata() == globalsFinal)) {
@@ -572,7 +602,9 @@ public class LuaSandbox {
             // __newindex is only called for keys that don't exist in the table
             // so we can just block it to prevent new assignments
             public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
-                throw new SecurityException("Cannot create new global variable '" + key.tojstring()
+                // Not sure its possible to pass nil here but guard for it just in case
+                String keyStr = key.isnil() ? "nil" : key.tojstring();
+                throw new SecurityException("Cannot create new global variable '" + keyStr
                         + "'. Global environment is protected. Use local variables instead.");
             }
         });
