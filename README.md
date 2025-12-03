@@ -67,12 +67,28 @@ See the lua modules in the example app for example structure. More documentation
 ## Security
 
 This wrapper restricts Lua to provide a safe area to run untrusted scripts. This should not be relied upon though and users
-are responsible for validating any modules before they load and run them. Some of the security measures are:
+are responsible for validating any modules before they load and run them. This section explains the security measures taken at a high level.
 
-- Library Whitelisting: Only safe Lua libraries are loaded (math, string, table)
-- Explicit Blocking: Dangerous functions are explicitly undefined
-- Restricted Require: Only the randomizer module can be loaded (may relax in the future)
-- Sandboxed Execution: All Lua code runs in this isolated environment
+### Filesystem Restrictions
+- Path Validation: Lua scripts can only access files within explicitly allowed directories
+- Symlink Resolution: Symlinks are resolved and handled like full paths
+- Blocked File Operations: Functions like `dofile`, `load`, and `loadstring` are either blocked or restricted
+
+### Module and Library Protection
+- Blocked Modules: Dangerous modules (`io`, `os`, `luajava`) are completely removed
+- Debug Library Restriction: Only `debug.traceback()` is available for error messages to aid in debugging scripts
+- Package System Protection: `package.path`, `package.loaded`, and module loaders are protected from modification
+- Require Validation: Module loading is restricted to allowed paths and blocks dangerous modules
+
+### Function-Level Security
+- Dangerous Functions Blocked: `rawget`, `rawset`, `collectgarbage`, `getfenv`, `setfenv` removed
+- Metatable Protection: Prevents modification of global environment and protected table metatables
+- Global Environment Protection: Scripts cannot create new global variables
+
+### Resource Limits
+- Memory Limiting: Configurable memory usage limits with delta-based tracking
+- Execution Timeout: Configurable timeout limits to prevent infinite loops
+- Monitoring Thread: Separate thread monitors resource usage during script execution.
 
 ## Error Handling
 
