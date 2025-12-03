@@ -5,6 +5,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.logger.Logger;
 import redactedrice.randomizer.metadata.LuaModuleMetadata;
+import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 
 import java.io.OutputStream;
 import java.util.*;

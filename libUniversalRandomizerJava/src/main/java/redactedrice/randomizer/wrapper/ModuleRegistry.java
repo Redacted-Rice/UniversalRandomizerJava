@@ -2,6 +2,7 @@ package redactedrice.randomizer.wrapper;
 
 import redactedrice.randomizer.metadata.*;
 import redactedrice.randomizer.logger.Logger;
+import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;

@@ -4,6 +4,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.logger.Logger;
 import redactedrice.randomizer.metadata.ArgumentDefinition;
 import redactedrice.randomizer.metadata.LuaModuleMetadata;
+import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;

@@ -1,6 +1,9 @@
 package redactedrice.randomizer;
 
-import redactedrice.randomizer.wrapper.LuaSandbox;
+import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
+import redactedrice.randomizer.wrapper.sandbox.ResourceMonitor;
+import redactedrice.randomizer.wrapper.sandbox.MemoryLimitExceededException;
+import redactedrice.randomizer.wrapper.sandbox.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
@@ -111,8 +114,8 @@ public class RandomizerSandboxTest {
         // There is a possibility that a script could still succeed if it finishes before
         // the memory limit check is done but should not happen with this script since
         // allocates significantly more than the limit
-        LuaSandbox.MemoryLimitExceededException exception =
-                assertThrows(LuaSandbox.MemoryLimitExceededException.class,
+        MemoryLimitExceededException exception =
+                assertThrows(MemoryLimitExceededException.class,
                         () -> limitedSandbox.executeFile(testFile));
 
         assertTrue(exception.getMessage().contains("Memory limit exceeded"));
@@ -139,9 +142,10 @@ public class RandomizerSandboxTest {
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
         LuaSandbox unlimitedSandbox = new LuaSandbox(allowedDirectories);
-        unlimitedSandbox.disableMaxMemory();
+        unlimitedSandbox.getResourceMonitor().disableMaxMemory();
 
-        assertEquals(LuaSandbox.MAX_MEMORY_DISABLED, unlimitedSandbox.getMaxMemoryBytes());
+        assertEquals(ResourceMonitor.MAX_MEMORY_DISABLED,
+                unlimitedSandbox.getResourceMonitor().getMaxMemoryBytes());
 
         // Should execute normally this time since limit is disabled
         String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
@@ -156,13 +160,13 @@ public class RandomizerSandboxTest {
         String testFile = new File(testCasesPath, "test_infinite_loop.lua").getAbsolutePath();
 
         // Run the infinite loop in a separate thread
-        AtomicReference<LuaSandbox.TimeoutException> caughtException = new AtomicReference<>();
+        AtomicReference<TimeoutException> caughtException = new AtomicReference<>();
         AtomicBoolean executionCompleted = new AtomicBoolean(false);
         Thread executionThread = new Thread(() -> {
             try {
                 sandbox.executeFile(testFile);
                 executionCompleted.set(true);
-            } catch (LuaSandbox.TimeoutException e) {
+            } catch (TimeoutException e) {
                 caughtException.set(e);
                 executionCompleted.set(true);
             } catch (RuntimeException e) {
@@ -203,11 +207,11 @@ public class RandomizerSandboxTest {
         allowedDirectories.add(includetestPath);
         // No memory constraints, no timeout
         LuaSandbox noTimeoutSandbox = new LuaSandbox(allowedDirectories);
-        noTimeoutSandbox.disableMaxMemory();
-        noTimeoutSandbox.disableMaxExecutionTime();
+        noTimeoutSandbox.getResourceMonitor().disableMaxMemory();
+        noTimeoutSandbox.getResourceMonitor().disableMaxExecutionTime();
 
-        assertEquals(LuaSandbox.MAX_EXECUTION_TIME_DISABLED,
-                noTimeoutSandbox.getMaxExecutionTimeMs());
+        assertEquals(ResourceMonitor.MAX_EXECUTION_TIME_DISABLED,
+                noTimeoutSandbox.getResourceMonitor().getMaxExecutionTimeMs());
 
         String testFile = new File(testCasesPath, "test_infinite_loop.lua").getAbsolutePath();
 
