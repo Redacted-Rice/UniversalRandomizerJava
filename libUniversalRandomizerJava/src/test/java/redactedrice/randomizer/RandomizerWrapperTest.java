@@ -28,16 +28,16 @@ public class RandomizerWrapperTest {
     public void setUp() {
         randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
         modulesPath = new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
-        
+
         // Define allowed directories: randomizer + modules
         List<String> allowedDirectories = new ArrayList<>();
         allowedDirectories.add(randomizerPath);
         allowedDirectories.add(modulesPath);
-        
+
         // Search paths for module discovery
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(modulesPath);
-        
+
         wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths, null);
     }
 
@@ -96,7 +96,8 @@ public class RandomizerWrapperTest {
         arguments.put("healthMax", 200);
         arguments.put("damageMultiplier", 1.5);
 
-        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset("Simple Entity Randomizer", arguments, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset(
+                "Simple Entity Randomizer", arguments, 0, wrapper.getModuleRegistry());
         ExecutionResult result = wrapper.executeModule(request, context);
 
         assertTrue(result.isSuccess());
@@ -119,7 +120,8 @@ public class RandomizerWrapperTest {
         arguments.put("level", 11);
         arguments.put("applyBonus", true);
 
-        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset("Advanced Entity Randomizer", arguments, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset(
+                "Advanced Entity Randomizer", arguments, 0, wrapper.getModuleRegistry());
         ExecutionResult result = wrapper.executeModule(request, context);
 
         assertTrue(result.isSuccess());
@@ -140,13 +142,15 @@ public class RandomizerWrapperTest {
         TestEntity entity1 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context1 = new JavaContext();
         context1.register("entity", entity1);
-        ExecutionRequest request1 = ExecutionRequest.withSeed("Simple Entity Randomizer", args, 999);
+        ExecutionRequest request1 =
+                ExecutionRequest.withSeed("Simple Entity Randomizer", args, 999);
         wrapper.executeModule(request1, context1);
 
         TestEntity entity2 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context2 = new JavaContext();
         context2.register("entity", entity2);
-        ExecutionRequest request2 = ExecutionRequest.withSeed("Simple Entity Randomizer", args, 999);
+        ExecutionRequest request2 =
+                ExecutionRequest.withSeed("Simple Entity Randomizer", args, 999);
         wrapper.executeModule(request2, context2);
 
         assertEquals(entity1.getName(), entity2.getName());
@@ -167,7 +171,8 @@ public class RandomizerWrapperTest {
         args1.put("healthMin", 80);
         args1.put("healthMax", 120);
         args1.put("damageMultiplier", 1.2);
-        ExecutionRequest request1 = ExecutionRequest.withDefaultSeedOffset("Simple Entity Randomizer", args1, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request1 = ExecutionRequest.withDefaultSeedOffset(
+                "Simple Entity Randomizer", args1, 0, wrapper.getModuleRegistry());
         wrapper.executeModule(request1, context1);
 
         JavaContext context2 = new JavaContext();
@@ -176,7 +181,8 @@ public class RandomizerWrapperTest {
         args2.put("entityType", "mage");
         args2.put("level", 16);
         args2.put("applyBonus", false);
-        ExecutionRequest request2 = ExecutionRequest.withDefaultSeedOffset("Advanced Entity Randomizer", args2, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request2 = ExecutionRequest.withDefaultSeedOffset(
+                "Advanced Entity Randomizer", args2, 0, wrapper.getModuleRegistry());
         wrapper.executeModule(request2, context2);
 
         assertNotEquals("Entity1", entity1.getName());
@@ -197,7 +203,8 @@ public class RandomizerWrapperTest {
         badArgs.put("level", 1);
         badArgs.put("applyBonus", true);
 
-        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset("Advanced Entity Randomizer", badArgs, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset(
+                "Advanced Entity Randomizer", badArgs, 0, wrapper.getModuleRegistry());
         ExecutionResult result = wrapper.executeModule(request, context);
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrorMessage());
@@ -219,7 +226,8 @@ public class RandomizerWrapperTest {
         args.put("healthMax", 110);
         args.put("damageMultiplier", 1.0);
 
-        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset("Simple Entity Randomizer", args, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset(
+                "Simple Entity Randomizer", args, 0, wrapper.getModuleRegistry());
         wrapper.executeModule(request, context);
 
         assertTrue(context.contains("entity"));
@@ -236,7 +244,8 @@ public class RandomizerWrapperTest {
         args.put("healthMax", 100);
         args.put("damageMultiplier", 1.0);
 
-        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset("Simple Entity Randomizer", args, 0, wrapper.getModuleRegistry());
+        ExecutionRequest request = ExecutionRequest.withDefaultSeedOffset(
+                "Simple Entity Randomizer", args, 0, wrapper.getModuleRegistry());
         ExecutionResult result = wrapper.executeModule(request, emptyContext);
 
         assertFalse(result.isSuccess());
@@ -374,6 +383,81 @@ public class RandomizerWrapperTest {
         wrapper.executePostRandomizeScripts(data.context);
 
         verifyBatchTestDataExecution();
+    }
+
+    @Test
+    public void testGetModulesByGroup() {
+        wrapper.loadModules();
+
+        // Get all groups
+        Set<String> groupKeys = wrapper.getGroups();
+        assertNotNull(groupKeys);
+        assertTrue(groupKeys.contains("health"));
+        assertTrue(groupKeys.contains("damage"));
+
+        // Get modules in the health group
+        List<LuaModuleMetadata> healthModules = wrapper.getModulesByGroup("health");
+        assertNotNull(healthModules);
+        assertEquals(2, healthModules.size());
+
+        // Verify module names in health group
+        Set<String> healthModuleNames = new HashSet<>();
+        for (LuaModuleMetadata module : healthModules) {
+            healthModuleNames.add(module.getName());
+        }
+        assertTrue(healthModuleNames.contains("Health Randomizer"));
+        assertTrue(healthModuleNames.contains("Health Booster"));
+
+        // Get modules in the damage group
+        List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
+        assertNotNull(damageModules);
+        assertEquals(1, damageModules.size());
+        assertEquals("Damage Randomizer", damageModules.get(0).getName());
+
+        // Test an undefined group
+        List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
+        assertNotNull(nonExistentModules);
+        assertTrue(nonExistentModules.isEmpty());
+    }
+
+    @Test
+    public void testExecuteModulesByGroup() {
+        wrapper.loadModules();
+
+        // Create test entity
+        TestEntity entity = new TestEntity("Test Entity", 100, 50.0, true);
+
+        // Create context with entity
+        JavaContext context = new JavaContext();
+        context.register("entity", entity);
+
+        // Get and execute all modules in the health group
+        List<LuaModuleMetadata> healthModules = wrapper.getModulesByGroup("health");
+        assertEquals(2, healthModules.size());
+
+        // Execute first health module (Health Randomizer - sets health to 150)
+        ExecutionRequest request1 =
+                ExecutionRequest.withSeed(healthModules.get(0).getName(), new HashMap<>(), 0);
+        ExecutionResult result1 = wrapper.executeModule(request1, context);
+        assertTrue(result1.isSuccess());
+        assertEquals(150, entity.getHealth());
+
+        // Execute second health module (Health Booster - doubles current health)
+        ExecutionRequest request2 =
+                ExecutionRequest.withSeed(healthModules.get(1).getName(), new HashMap<>(), 0);
+        ExecutionResult result2 = wrapper.executeModule(request2, context);
+        assertTrue(result2.isSuccess());
+        assertEquals(300, entity.getHealth());
+
+        // Execute damage group module
+        List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
+        assertEquals(1, damageModules.size());
+
+        ExecutionRequest request3 =
+                ExecutionRequest.withSeed(damageModules.get(0).getName(), new HashMap<>(), 0);
+        ExecutionResult result3 = wrapper.executeModule(request3, context);
+        assertTrue(result3.isSuccess());
+        assertEquals(75.5, entity.getDamage());
     }
 }
 
