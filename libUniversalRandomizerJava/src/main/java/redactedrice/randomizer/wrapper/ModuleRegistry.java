@@ -16,7 +16,10 @@ import java.util.*;
 public class ModuleRegistry {
     LuaSandbox sandbox;
     // Modules are the core randomization that are manually specified and run
+    // This is a map from the module name to its metadata
     Map<String, LuaModuleMetadata> modules;
+    // Modules organized by their group metadata field
+    Map<String, List<LuaModuleMetadata>> modulesByGroup;
     // Scripts are automatically run before and after triggers. Name may change
     Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
     List<String> errors;
@@ -33,6 +36,7 @@ public class ModuleRegistry {
         }
         this.sandbox = sandbox;
         this.modules = new HashMap<>();
+        this.modulesByGroup = new HashMap<>();
         this.scriptsByType = new HashMap<>();
         this.errors = new ArrayList<>();
 
@@ -99,6 +103,12 @@ public class ModuleRegistry {
         List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, "actions");
         return loadModulesFromScripts(luaFiles, modules, "module", (metadata) -> {
             modules.put(metadata.getName(), metadata);
+
+            // Add by group as well
+            String group = metadata.getGroup();
+            if (group != null && !group.trim().isEmpty()) {
+                modulesByGroup.computeIfAbsent(group, k -> new ArrayList<>()).add(metadata);
+            }
         });
     }
 
@@ -494,6 +504,19 @@ public class ModuleRegistry {
         return modules.get(name);
     }
 
+    public Set<String> getGroups() {
+        return new HashSet<>(modulesByGroup.keySet());
+    }
+
+    public List<LuaModuleMetadata> getModulesByGroup(String group) {
+        if (group == null || group.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<LuaModuleMetadata> groupModules = modulesByGroup.get(group);
+        return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
+    }
+
     public List<LuaModuleMetadata> getAllModules() {
         return new ArrayList<>(modules.values());
     }
@@ -522,6 +545,7 @@ public class ModuleRegistry {
 
     public void clear() {
         modules.clear();
+        modulesByGroup.clear();
         for (Map<String, List<LuaModuleMetadata>> timingMap : scriptsByType.values()) {
             for (List<LuaModuleMetadata> scripts : timingMap.values()) {
                 scripts.clear();
