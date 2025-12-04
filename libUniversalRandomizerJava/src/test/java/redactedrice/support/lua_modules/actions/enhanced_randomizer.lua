@@ -11,7 +11,7 @@ local randomizer = require("randomizer")
 return {
 	name = "Enhanced Entity Randomizer",
 	description = "Demonstrates all new parameter types and metadata features",
-	group = "gameplay",
+	group = { "gameplay", "advanced" },
 	modifies = { "stats", "appearance", "loot" },
 	seedOffset = 77777,
 	author = "Test Author",

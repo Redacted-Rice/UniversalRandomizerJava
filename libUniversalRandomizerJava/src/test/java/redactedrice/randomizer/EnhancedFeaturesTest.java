@@ -3,14 +3,10 @@ package redactedrice.randomizer;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.EnumContext;
 import redactedrice.randomizer.context.EnumDefinition;
-import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.metadata.*;
 import redactedrice.support.test.TestEntity;
 import redactedrice.support.test.EntityType;
-import redactedrice.support.test.Rarity;
 import redactedrice.support.test.FlagEnum;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
 import redactedrice.randomizer.wrapper.ExecutionRequest;
@@ -41,7 +37,7 @@ public class EnhancedFeaturesTest {
         List<String> allowedDirectories = new ArrayList<>();
         allowedDirectories.add(randomizerPath);
         allowedDirectories.add(testModulesPath);
-        
+
         // Search paths for module discovery
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(testModulesPath);
@@ -85,9 +81,10 @@ public class EnhancedFeaturesTest {
                 wrapper.getAvailableModules();
         Map<String, List<String>> modulesByGroup = new HashMap<>();
         for (redactedrice.randomizer.metadata.LuaModuleMetadata module : modules) {
-            String group = module.getGroup();
-            modulesByGroup.putIfAbsent(group, new ArrayList<>());
-            modulesByGroup.get(group).add(module.getName());
+            for (String group : module.getGroups()) {
+                modulesByGroup.putIfAbsent(group, new ArrayList<>());
+                modulesByGroup.get(group).add(module.getName());
+            }
         }
 
         assertTrue(modulesByGroup.containsKey("gameplay"));
