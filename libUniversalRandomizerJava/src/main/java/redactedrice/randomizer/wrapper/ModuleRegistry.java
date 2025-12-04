@@ -25,6 +25,12 @@ public class ModuleRegistry {
     // Scripts are automatically run before and after triggers. Name may change
     Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
     List<String> errors;
+    // If set, this will restrict the groups that are loaded to only specified values. Null to
+    // autodetermine from loading
+    Set<String> definedGroups;
+    // If set, this will restrict the modifies that are loaded to only specified values. Null to
+    // autodetermine from loading
+    Set<String> definedModifies;
 
     public static final String SCRIPT_TIMING_PRE = "pre";
     public static final String SCRIPT_TIMING_POST = "post";
@@ -33,6 +39,11 @@ public class ModuleRegistry {
     public static final String SCRIPT_WHEN_MODULE = "module";
 
     public ModuleRegistry(LuaSandbox sandbox) {
+        this(sandbox, null, null);
+    }
+
+    public ModuleRegistry(LuaSandbox sandbox, Set<String> definedGroups,
+            Set<String> definedModifies) {
         if (sandbox == null) {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
@@ -42,6 +53,8 @@ public class ModuleRegistry {
         this.modulesByModifies = new HashMap<>();
         this.scriptsByType = new HashMap<>();
         this.errors = new ArrayList<>();
+        this.definedGroups = definedGroups != null ? new HashSet<>(definedGroups) : null;
+        this.definedModifies = definedModifies != null ? new HashSet<>(definedModifies) : null;
 
         // Initialize the scripts maps
         Map<String, List<LuaModuleMetadata>> preScripts = new HashMap<>();
@@ -105,11 +118,46 @@ public class ModuleRegistry {
     private int loadModulesFromSubfolder(String directoryPath) {
         List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, "actions");
         return loadModulesFromScripts(luaFiles, modules, "module", (metadata) -> {
+            // Check if module should be loaded based on group filter
+            if (definedGroups != null && !definedGroups.isEmpty()) {
+                String group = metadata.getGroup();
+                if (group == null || group.trim().isEmpty() || !definedGroups.contains(group)) {
+                    Logger.warn("Ignoring module '" + metadata.getName() + "' - group '"
+                            + (group != null ? group : "null") + "' not in defined group values");
+                    return;
+                }
+            }
+
+            // Check if module should be loaded based on modifies filter
+            if (definedModifies != null && !definedModifies.isEmpty()) {
+                List<String> modifies = metadata.getModifies();
+                boolean hasDefinedModifies = false;
+                if (modifies != null && !modifies.isEmpty()) {
+                    for (String modifiesEntry : modifies) {
+                        if (modifiesEntry != null && !modifiesEntry.trim().isEmpty()) {
+                            if (definedModifies.contains(modifiesEntry)) {
+                                hasDefinedModifies = true;
+                            } else {
+                                Logger.warn("Module '" + metadata.getName() + "' has modifies '"
+                                        + modifiesEntry
+                                        + "' which is not in defined modifies values");
+                            }
+                        }
+                    }
+                }
+                if (!hasDefinedModifies) {
+                    Logger.warn("Ignoring module '" + metadata.getName()
+                            + "' - no modifies values in defined list");
+                    return;
+                }
+            }
+
             modules.put(metadata.getName(), metadata);
 
             // Add by group as well
             String group = metadata.getGroup();
             if (group != null && !group.trim().isEmpty()) {
+                // Undefined groups will already be handled since we can only have one currently
                 modulesByGroup.computeIfAbsent(group, k -> new ArrayList<>()).add(metadata);
             }
 
@@ -118,8 +166,13 @@ public class ModuleRegistry {
             if (modifies != null && !modifies.isEmpty()) {
                 for (String modifiesEntry : modifies) {
                     if (modifiesEntry != null && !modifiesEntry.trim().isEmpty()) {
-                        modulesByModifies.computeIfAbsent(modifiesEntry, k -> new ArrayList<>())
-                                .add(metadata);
+                        // Only add to modulesByModifies if not predefined or if in defined list
+                        // This is needed because we can have multiple values
+                        if (definedModifies == null || definedModifies.isEmpty()
+                                || definedModifies.contains(modifiesEntry)) {
+                            modulesByModifies.computeIfAbsent(modifiesEntry, k -> new ArrayList<>())
+                                    .add(metadata);
+                        }
                     }
                 }
             }
@@ -519,6 +572,10 @@ public class ModuleRegistry {
     }
 
     public Set<String> getDefinedGroupValues() {
+        // Return defined groups if set. Otherwise return dynamically loaded values
+        if (definedGroups != null && !definedGroups.isEmpty()) {
+            return new HashSet<>(definedGroups);
+        }
         return new HashSet<>(modulesByGroup.keySet());
     }
 
@@ -532,6 +589,10 @@ public class ModuleRegistry {
     }
 
     public Set<String> getDefinedModifiesValues() {
+        // Return defined modifies values if set. Otherwise return dynamically loaded values
+        if (definedModifies != null && !definedModifies.isEmpty()) {
+            return new HashSet<>(definedModifies);
+        }
         return new HashSet<>(modulesByModifies.keySet());
     }
 

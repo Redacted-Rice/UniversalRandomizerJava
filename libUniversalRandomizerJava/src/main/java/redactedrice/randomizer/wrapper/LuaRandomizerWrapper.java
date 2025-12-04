@@ -20,6 +20,7 @@ public class LuaRandomizerWrapper {
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
+            Set<String> definedGroups, Set<String> definedModifies,
             PseudoEnumRegistry pseudoEnumRegistry) {
         if (allowedDirectories == null || allowedDirectories.isEmpty()) {
             throw new IllegalArgumentException("At least one allowed directory must be provided");
@@ -28,15 +29,25 @@ public class LuaRandomizerWrapper {
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
 
         this.sandbox = new LuaSandbox(allowedDirectories);
-        this.moduleRegistry = new ModuleRegistry(sandbox);
+        this.moduleRegistry = new ModuleRegistry(sandbox, definedGroups, definedModifies);
         this.moduleExecutor = new ModuleExecutor(sandbox);
         this.pseudoEnumRegistry =
                 pseudoEnumRegistry != null ? pseudoEnumRegistry : new PseudoEnumRegistry();
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
 
+    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
+            PseudoEnumRegistry pseudoEnumRegistry) {
+        this(allowedDirectories, searchPaths, null, null, pseudoEnumRegistry);
+    }
+
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths) {
-        this(allowedDirectories, searchPaths, null);
+        this(allowedDirectories, searchPaths, null, null, null);
+    }
+
+    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
+            Set<String> definedGroups, Set<String> definedModifies) {
+        this(allowedDirectories, searchPaths, definedGroups, definedModifies, null);
     }
 
     public void addSearchPath(String path) {
