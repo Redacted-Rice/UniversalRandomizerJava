@@ -7,6 +7,7 @@ return {
 	name = "Health Randomizer",
 	description = "Randomizes entity health",
 	group = "health",
+	modifies = { "health", "stats" },
 	seedOffset = 10,
 	author = "Test Author",
 	version = "0.1",

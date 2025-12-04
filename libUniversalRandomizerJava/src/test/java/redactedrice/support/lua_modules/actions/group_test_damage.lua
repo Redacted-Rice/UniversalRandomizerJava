@@ -7,6 +7,7 @@ return {
 	name = "Damage Randomizer",
 	description = "Randomizes entity damage",
 	group = "damage",
+	modifies = { "damage", "stats" },
 	seedOffset = 20,
 	author = "Test Author",
 	version = "0.1",

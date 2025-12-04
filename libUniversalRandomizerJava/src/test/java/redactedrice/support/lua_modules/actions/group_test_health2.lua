@@ -7,6 +7,7 @@ return {
 	name = "Health Booster",
 	description = "Increases entity health",
 	group = "health",
+	modifies = "health",
 	seedOffset = 30,
 	author = "Test Author",
 	version = "0.1",

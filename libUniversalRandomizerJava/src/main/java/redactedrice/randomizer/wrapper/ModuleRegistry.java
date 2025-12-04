@@ -20,6 +20,8 @@ public class ModuleRegistry {
     Map<String, LuaModuleMetadata> modules;
     // Modules organized by their group metadata field
     Map<String, List<LuaModuleMetadata>> modulesByGroup;
+    // Modules organized by what they modify. Modules can be in more than one key/list here
+    Map<String, List<LuaModuleMetadata>> modulesByModifies;
     // Scripts are automatically run before and after triggers. Name may change
     Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
     List<String> errors;
@@ -37,6 +39,7 @@ public class ModuleRegistry {
         this.sandbox = sandbox;
         this.modules = new HashMap<>();
         this.modulesByGroup = new HashMap<>();
+        this.modulesByModifies = new HashMap<>();
         this.scriptsByType = new HashMap<>();
         this.errors = new ArrayList<>();
 
@@ -108,6 +111,17 @@ public class ModuleRegistry {
             String group = metadata.getGroup();
             if (group != null && !group.trim().isEmpty()) {
                 modulesByGroup.computeIfAbsent(group, k -> new ArrayList<>()).add(metadata);
+            }
+
+            // Add by modifies for each modify category
+            List<String> modifies = metadata.getModifies();
+            if (modifies != null && !modifies.isEmpty()) {
+                for (String modifiesEntry : modifies) {
+                    if (modifiesEntry != null && !modifiesEntry.trim().isEmpty()) {
+                        modulesByModifies.computeIfAbsent(modifiesEntry, k -> new ArrayList<>())
+                                .add(metadata);
+                    }
+                }
             }
         });
     }
@@ -504,7 +518,7 @@ public class ModuleRegistry {
         return modules.get(name);
     }
 
-    public Set<String> getGroups() {
+    public Set<String> getDefinedGroupValues() {
         return new HashSet<>(modulesByGroup.keySet());
     }
 
@@ -515,6 +529,19 @@ public class ModuleRegistry {
 
         List<LuaModuleMetadata> groupModules = modulesByGroup.get(group);
         return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
+    }
+
+    public Set<String> getDefinedModifiesValues() {
+        return new HashSet<>(modulesByModifies.keySet());
+    }
+
+    public List<LuaModuleMetadata> getModulesByModifies(String modifies) {
+        if (modifies == null || modifies.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<LuaModuleMetadata> modifiesModules = modulesByModifies.get(modifies);
+        return modifiesModules != null ? new ArrayList<>(modifiesModules) : new ArrayList<>();
     }
 
     public List<LuaModuleMetadata> getAllModules() {
@@ -546,6 +573,7 @@ public class ModuleRegistry {
     public void clear() {
         modules.clear();
         modulesByGroup.clear();
+        modulesByModifies.clear();
         for (Map<String, List<LuaModuleMetadata>> timingMap : scriptsByType.values()) {
             for (List<LuaModuleMetadata> scripts : timingMap.values()) {
                 scripts.clear();

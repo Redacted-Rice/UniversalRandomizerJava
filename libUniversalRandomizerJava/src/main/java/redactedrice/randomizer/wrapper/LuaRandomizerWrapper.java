@@ -383,12 +383,20 @@ public class LuaRandomizerWrapper {
         return Logger.isForceModuleWidth();
     }
 
-    public Set<String> getGroups() {
-        return moduleRegistry.getGroups();
+    public Set<String> getDefinedGroupValues() {
+        return moduleRegistry.getDefinedGroupValues();
     }
 
     public List<LuaModuleMetadata> getModulesByGroup(String group) {
         return moduleRegistry.getModulesByGroup(group);
+    }
+
+    public Set<String> getDefinedModifiesValues() {
+        return moduleRegistry.getDefinedModifiesValues();
+    }
+
+    public List<LuaModuleMetadata> getModulesByModifies(String modifies) {
+        return moduleRegistry.getModulesByModifies(modifies);
     }
 }
 

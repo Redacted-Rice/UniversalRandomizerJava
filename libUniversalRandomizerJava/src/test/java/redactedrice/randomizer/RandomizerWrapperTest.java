@@ -390,7 +390,7 @@ public class RandomizerWrapperTest {
         wrapper.loadModules();
 
         // Get all groups
-        Set<String> groupKeys = wrapper.getGroups();
+        Set<String> groupKeys = wrapper.getDefinedGroupValues();
         assertNotNull(groupKeys);
         assertTrue(groupKeys.contains("health"));
         assertTrue(groupKeys.contains("damage"));
@@ -451,6 +451,104 @@ public class RandomizerWrapperTest {
 
         // Execute damage group module
         List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
+        assertEquals(1, damageModules.size());
+
+        ExecutionRequest request3 =
+                ExecutionRequest.withSeed(damageModules.get(0).getName(), new HashMap<>(), 0);
+        ExecutionResult result3 = wrapper.executeModule(request3, context);
+        assertTrue(result3.isSuccess());
+        assertEquals(75.5, entity.getDamage());
+    }
+
+    @Test
+    public void testGetModulesByModifies() {
+        wrapper.loadModules();
+
+        // Get all modifies categories
+        Set<String> modifies = wrapper.getDefinedModifiesValues();
+        assertNotNull(modifies);
+        assertTrue(modifies.contains("health"));
+        assertTrue(modifies.contains("damage"));
+        assertTrue(modifies.contains("stats"));
+
+        // Get modules that modify health
+        List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
+        assertNotNull(healthModules);
+        assertEquals(2, healthModules.size());
+
+        // Verify module names that modify health
+        Set<String> healthModuleNames = new HashSet<>();
+        for (LuaModuleMetadata module : healthModules) {
+            healthModuleNames.add(module.getName());
+        }
+        assertTrue(healthModuleNames.contains("Health Randomizer"));
+        assertTrue(healthModuleNames.contains("Health Booster"));
+
+        // Get modules that modify damage
+        List<LuaModuleMetadata> damageModules = wrapper.getModulesByModifies("damage");
+        assertNotNull(damageModules);
+        assertEquals(1, damageModules.size());
+        assertEquals("Damage Randomizer", damageModules.get(0).getName());
+
+        // Get modules that modify stats
+        List<LuaModuleMetadata> statsModules = wrapper.getModulesByModifies("stats");
+        assertNotNull(statsModules);
+        assertEquals(3, statsModules.size());
+
+        // Verify all three modules are present
+        Set<String> statsModuleNames = new HashSet<>();
+        for (LuaModuleMetadata module : statsModules) {
+            statsModuleNames.add(module.getName());
+        }
+        assertTrue(statsModuleNames.contains("Health Randomizer"));
+        assertTrue(statsModuleNames.contains("Damage Randomizer"));
+        assertTrue(statsModuleNames.contains("Enhanced Entity Randomizer"));
+
+        // Test undefined modifies
+        List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
+        assertNotNull(nonExistentModules);
+        assertTrue(nonExistentModules.isEmpty());
+    }
+
+    @Test
+    public void testExecuteModulesByModifies() {
+        wrapper.loadModules();
+
+        // Create test entity
+        TestEntity entity = new TestEntity("Original Name", 100, 50.0, true);
+
+        // Create context with entity
+        JavaContext context = new JavaContext();
+        context.register("entity", entity);
+
+        // Get and execute modules that modify health
+        List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
+        assertEquals(2, healthModules.size());
+
+        // Execute Health Randomizer (sets health to 150)
+        LuaModuleMetadata healthRandomizer = healthModules.stream()
+                .filter(m -> m.getName().equals("Health Randomizer")).findFirst().orElse(null);
+        assertNotNull(healthRandomizer);
+
+        ExecutionRequest request1 =
+                ExecutionRequest.withSeed(healthRandomizer.getName(), new HashMap<>(), 0);
+        ExecutionResult result1 = wrapper.executeModule(request1, context);
+        assertTrue(result1.isSuccess());
+        assertEquals(150, entity.getHealth());
+
+        // Execute Health Booster (doubles current health from 150 to 300)
+        LuaModuleMetadata healthBooster = healthModules.stream()
+                .filter(m -> m.getName().equals("Health Booster")).findFirst().orElse(null);
+        assertNotNull(healthBooster);
+
+        ExecutionRequest request2 =
+                ExecutionRequest.withSeed(healthBooster.getName(), new HashMap<>(), 0);
+        ExecutionResult result2 = wrapper.executeModule(request2, context);
+        assertTrue(result2.isSuccess());
+        assertEquals(300, entity.getHealth());
+
+        // Get and execute module that modifies damage
+        List<LuaModuleMetadata> damageModules = wrapper.getModulesByModifies("damage");
         assertEquals(1, damageModules.size());
 
         ExecutionRequest request3 =
