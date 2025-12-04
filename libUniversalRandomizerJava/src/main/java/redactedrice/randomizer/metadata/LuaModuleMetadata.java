@@ -12,7 +12,7 @@ import java.util.Map;
 public class LuaModuleMetadata {
     String name;
     String description;
-    String group;
+    List<String> groups;
     List<String> modifies;
     List<ArgumentDefinition> arguments;
     LuaFunction executeFunction;
@@ -35,12 +35,41 @@ public class LuaModuleMetadata {
     String license;
     String about;
 
-    public LuaModuleMetadata(String name, String description, String group, List<String> modifies,
-            List<ArgumentDefinition> arguments, LuaFunction executeFunction,
+    public LuaModuleMetadata(String name, String description, List<String> groups,
+            List<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when,
             String author, String version, Map<String, String> requires, String source,
             String license, String about) {
         // validate required fields
+        validateRequiredFields(name, executeFunction, author, version, requires);
+
+        // For regular modules (when == null) groups are required
+        // Scripts (when != null) should not have groups
+        boolean isScript = when != null && !when.trim().isEmpty();
+        validateGroupsForModuleType(groups, isScript);
+
+        // initialize all fields with defaults where appropriate
+        this.name = name;
+        this.description = description != null ? description : "";
+        this.groups = normalizeStringList(groups);
+        this.modifies = normalizeStringList(modifies);
+        this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
+        this.executeFunction = executeFunction;
+        this.onLoadFunction = onLoadFunction; // can be null
+        this.filePath = filePath;
+        this.defaultSeedOffset = defaultSeedOffset;
+        this.when = when;
+        this.author = author;
+        this.version = version;
+        this.requires = requires != null ? new HashMap<>(requires) : new HashMap<>();
+        this.source = source;
+        this.license = license;
+        this.about = about;
+    }
+
+    // Should already be checked by module registry but here too just in case
+    private void validateRequiredFields(String name, LuaFunction executeFunction, String author,
+            String version, Map<String, String> requires) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
         }
@@ -60,43 +89,34 @@ public class LuaModuleMetadata {
             throw new IllegalArgumentException(
                     "Requires must specify the UniversalRandomizerJava version");
         }
+    }
 
-        // For regular modules (when == null) group is required
-        // Scripts (when != null) should not have a group
-        boolean isScript = when != null && !when.trim().isEmpty();
+    private void validateGroupsForModuleType(List<String> groups, boolean isScript) {
         if (!isScript) {
-            if (group == null || group.trim().isEmpty()) {
+            // Regular modules require at least one group
+            if (groups == null || groups.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "Group cannot be null or empty for regular modules");
+                        "Groups cannot be null or empty for regular modules");
             }
         } else {
-            // Scripts should not have a group set
-            if (group != null && !group.trim().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Scripts (when != null) should not have a group");
+            // Scripts should not have groups
+            if (groups != null && !groups.isEmpty()) {
+                throw new IllegalArgumentException("Scripts (when != null) should not have groups");
             }
         }
+    }
 
-        // initialize all fields with defaults where appropriate
-        this.name = name;
-        this.description = description != null ? description : "";
-        this.group = group != null ? group.toLowerCase() : null;
-        this.modifies = modifies != null ? new ArrayList<>(modifies) : new ArrayList<>();
-        this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
-        this.executeFunction = executeFunction;
-        this.onLoadFunction = onLoadFunction; // can be null
-        this.filePath = filePath;
-        this.defaultSeedOffset = defaultSeedOffset;
-        this.when = when;
-        this.author = author;
-        this.version = version;
-        this.requires = requires != null ? new HashMap<>(requires) : new HashMap<>();
-        this.source = source;
-        this.license = license;
-        this.about = about;
-
-        // note: pseudo-enum registration is now handled by lua randomization wrapper
-        // after loading
+    private List<String> normalizeStringList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                normalized.add(value.toLowerCase());
+            }
+        }
+        return normalized;
     }
 
     // Getters
@@ -108,8 +128,8 @@ public class LuaModuleMetadata {
         return description;
     }
 
-    public String getGroup() {
-        return group;
+    public List<String> getGroups() {
+        return Collections.unmodifiableList(groups);
     }
 
     public List<String> getModifies() {
@@ -175,8 +195,8 @@ public class LuaModuleMetadata {
     @Override
     public String toString() {
         return String.format(
-                "LuaModuleMetadata{name='%s', group='%s', modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s', author='%s', version='%s'}",
-                name, group, modifies, description, arguments.size(), defaultSeedOffset, when,
+                "LuaModuleMetadata{name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s', author='%s', version='%s'}",
+                name, groups, modifies, description, arguments.size(), defaultSeedOffset, when,
                 filePath, author, version);
     }
 }

@@ -29,23 +29,20 @@ public class LuaModuleMetadataTest {
         return requires;
     }
 
-    private List<String> createModifiesList() {
-        return Arrays.asList("test");
-    }
-
     @Test
     public void testConstructor() {
         LuaFunction executeFunc = createMockFunction();
         Map<String, String> requires = createRequiresMap();
         LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", "Test description",
-                "gameplay", Arrays.asList("stats", "appearance"),
+                Arrays.asList("gameplay"), Arrays.asList("stats", "appearance"),
                 Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
                 executeFunc, null, "/path/to/module.lua", 0, null, "TestAuthor", "0.1", requires,
                 null, null, null);
 
         assertEquals("TestModule", metadata.getName());
         assertEquals("Test description", metadata.getDescription());
-        assertEquals("gameplay", metadata.getGroup());
+        assertEquals(1, metadata.getGroups().size());
+        assertEquals("gameplay", metadata.getGroups().get(0));
         assertEquals(2, metadata.getModifies().size());
         assertTrue(metadata.getModifies().contains("stats"));
         assertTrue(metadata.getModifies().contains("appearance"));
@@ -218,30 +215,31 @@ public class LuaModuleMetadataTest {
     }
 
     @Test
-    public void testConstructorNullGroupForScriptsAllowed() {
+    public void testConstructorNullGroupsForScriptsAllowed() {
         LuaFunction executeFunc = createMockFunction();
         LuaModuleMetadata metadata =
                 new LuaModuleMetadata("TestModule", null, null, null, null, executeFunc, null, null,
                         0, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
-        // Scripts should not have a group
-        assertNull(metadata.getGroup());
+        // Scripts should not have groups
+        assertTrue(metadata.getGroups().isEmpty());
     }
 
     @Test
-    public void testConstructorWithGroupForScriptsThrows() {
+    public void testConstructorWithGroupsForScriptsThrows() {
         LuaFunction executeFunc = createMockFunction();
-        // Scripts should not have a group
+        // Scripts should not have groups
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata("TestModule", null, "test", null, null, executeFunc, null, null,
-                    0, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+            new LuaModuleMetadata("TestModule", null, Arrays.asList("test"), null, null,
+                    executeFunc, null, null, 0, "module", "TestAuthor", "0.1", createRequiresMap(),
+                    null, null, null);
         });
     }
 
     @Test
-    public void testConstructorNullGroupForRegularModuleThrows() {
+    public void testConstructorNullGroupsForRegularModuleThrows() {
         LuaFunction executeFunc = createMockFunction();
-        // Regular modules require group
+        // Regular modules require groups
         assertThrows(IllegalArgumentException.class, () -> {
             new LuaModuleMetadata("TestModule", null, null, null, null, executeFunc, null, null, 0,
                     null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
@@ -249,31 +247,44 @@ public class LuaModuleMetadataTest {
     }
 
     @Test
-    public void testConstructorEmptyGroupForRegularModuleThrows() {
+    public void testConstructorEmptyGroupsForRegularModuleThrows() {
         LuaFunction executeFunc = createMockFunction();
-        // Regular modules cannot have empty group
+        // Regular modules cannot have empty groups
         assertThrows(IllegalArgumentException.class, () -> {
-            new LuaModuleMetadata("TestModule", null, "", null, null, executeFunc, null, null, 0,
-                    null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+            new LuaModuleMetadata("TestModule", null, Arrays.asList(), null, null, executeFunc,
+                    null, null, 0, null, "TestAuthor", "0.1", createRequiresMap(), null, null,
+                    null);
         });
     }
 
     @Test
-    public void testConstructorGroupCaseInsensitive() {
+    public void testConstructorGroupsCaseInsensitive() {
         LuaFunction executeFunc = createMockFunction();
-        LuaModuleMetadata metadata =
-                new LuaModuleMetadata("TestModule", null, "GAMEPLAY", null, null, executeFunc, null,
-                        null, 0, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+        LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", null,
+                Arrays.asList("GAMEPLAY"), null, null, executeFunc, null, null, 0, null,
+                "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
-        assertEquals("gameplay", metadata.getGroup()); // Lowercased
+        assertEquals("gameplay", metadata.getGroups().get(0)); // Lowercased
+    }
+
+    @Test
+    public void testConstructorMultipleGroups() {
+        LuaFunction executeFunc = createMockFunction();
+        LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", null,
+                Arrays.asList("gameplay", "ACTION"), null, null, executeFunc, null, null, 0, null,
+                "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+
+        assertEquals(2, metadata.getGroups().size());
+        assertEquals("gameplay", metadata.getGroups().get(0));
+        assertEquals("action", metadata.getGroups().get(1)); // Lowercased
     }
 
     @Test
     public void testConstructorNullModifies() {
         LuaFunction executeFunc = createMockFunction();
-        LuaModuleMetadata metadata =
-                new LuaModuleMetadata("TestModule", null, "test", null, null, executeFunc, null,
-                        null, 0, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+        LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", null,
+                Arrays.asList("test"), null, null, executeFunc, null, null, 0, null, "TestAuthor",
+                "0.1", createRequiresMap(), null, null, null);
 
         assertTrue(metadata.getModifies().isEmpty());
     }
@@ -332,8 +343,8 @@ public class LuaModuleMetadataTest {
     @Test
     public void testToString() {
         LuaFunction executeFunc = createMockFunction();
-        LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", "Description", "gameplay",
-                Arrays.asList("stats"),
+        LuaModuleMetadata metadata = new LuaModuleMetadata("TestModule", "Description",
+                Arrays.asList("gameplay"), Arrays.asList("stats"),
                 Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
                 executeFunc, null, "/path/to/module.lua", 5, null, "TestAuthor", "0.1",
                 createRequiresMap(), null, null, null);
@@ -341,9 +352,10 @@ public class LuaModuleMetadataTest {
         String str = metadata.toString();
         assertTrue(str.contains("LuaModuleMetadata"));
         assertTrue(str.contains("name='TestModule'"));
-        assertTrue(str.contains("group='gameplay'"));
+        assertTrue(str.contains("groups=[gameplay]"));
         assertTrue(str.contains("description='Description'"));
         assertTrue(str.contains("arguments=1"));
+        assertTrue(str.contains("modifies="));
         assertTrue(str.contains("seedOffset=5"));
         assertTrue(str.contains("filePath='/path/to/module.lua'"));
         assertTrue(str.contains("author='TestAuthor'"));

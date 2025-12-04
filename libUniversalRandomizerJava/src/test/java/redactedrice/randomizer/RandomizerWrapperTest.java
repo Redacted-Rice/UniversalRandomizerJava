@@ -406,8 +406,13 @@ public class RandomizerWrapperTest {
         // Get modules in the advanced group
         List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
         assertNotNull(advancedModules);
-        assertEquals(1, advancedModules.size());
-        assertEquals("Advanced Entity Randomizer", advancedModules.get(0).getName());
+        assertEquals(2, advancedModules.size());
+        Set<String> advancedNames = new HashSet<>();
+        for (LuaModuleMetadata module : advancedModules) {
+            advancedNames.add(module.getName());
+        }
+        assertTrue(advancedNames.contains("Advanced Entity Randomizer"));
+        assertTrue(advancedNames.contains("Enhanced Entity Randomizer"));
 
         // Test an undefined group
         List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
@@ -442,7 +447,13 @@ public class RandomizerWrapperTest {
 
         // Execute advanced group module (Advanced Entity Randomizer)
         List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
-        assertEquals(1, advancedModules.size());
+        assertEquals(2, advancedModules.size()); // Advanced and Enhanced both in advanced group
+
+        // Find and execute the Advanced Entity Randomizer specifically
+        LuaModuleMetadata advancedRandomizer = advancedModules.stream()
+                .filter(m -> m.getName().equals("Advanced Entity Randomizer")).findFirst()
+                .orElse(null);
+        assertNotNull(advancedRandomizer);
 
         Map<String, Object> args2 = new HashMap<>();
         args2.put("entityType", "mage");
@@ -450,7 +461,7 @@ public class RandomizerWrapperTest {
         args2.put("applyBonus", false);
 
         ExecutionRequest request2 =
-                ExecutionRequest.withSeed(advancedModules.get(0).getName(), args2, 0);
+                ExecutionRequest.withSeed(advancedRandomizer.getName(), args2, 0);
         ExecutionResult result2 = wrapper.executeModule(request2, context);
         assertTrue(result2.isSuccess());
     }

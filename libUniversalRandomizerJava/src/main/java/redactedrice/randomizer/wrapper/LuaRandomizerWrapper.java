@@ -76,9 +76,6 @@ public class LuaRandomizerWrapper {
             totalLoaded += loaded;
         }
 
-        // register all the group and modifies enum values
-        registerModulePseudoEnums();
-
         // call onLoad functions if modules have them
         callModuleOnLoadFunctions();
 
@@ -99,23 +96,6 @@ public class LuaRandomizerWrapper {
                     e.printStackTrace();
                     System.err.println("[LuaRandomizerWrapper] Error calling onLoad for module '"
                             + module.getName() + "': " + e.getMessage());
-                }
-            }
-        }
-    }
-
-    public void registerModulePseudoEnums() {
-        // go through all modules and register their group and modifies values
-        for (LuaModuleMetadata module : getAvailableModules()) {
-            // register module group
-            if (module.getGroup() != null && !module.getGroup().isEmpty()) {
-                pseudoEnumRegistry.extendEnum("ModuleGroup", module.getGroup());
-            }
-
-            // register module modifies
-            for (String modifyValue : module.getModifies()) {
-                if (modifyValue != null && !modifyValue.isEmpty()) {
-                    pseudoEnumRegistry.extendEnum("ModuleModifies", modifyValue);
                 }
             }
         }
@@ -277,7 +257,9 @@ public class LuaRandomizerWrapper {
         for (LuaModuleMetadata module : modules) {
             System.out.println("Module: " + module.getName());
             System.out.println("  Description: " + module.getDescription());
-            System.out.println("  Group: " + module.getGroup());
+            if (!module.getGroups().isEmpty()) {
+                System.out.println("  Groups: " + module.getGroups());
+            }
             if (!module.getModifies().isEmpty()) {
                 System.out.println("  Modifies: " + module.getModifies());
             }
