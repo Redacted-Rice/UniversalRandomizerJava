@@ -392,27 +392,22 @@ public class RandomizerWrapperTest {
         // Get all groups
         Set<String> groupKeys = wrapper.getDefinedGroupValues();
         assertNotNull(groupKeys);
-        assertTrue(groupKeys.contains("health"));
-        assertTrue(groupKeys.contains("damage"));
+        assertTrue(groupKeys.contains("basic"));
+        assertTrue(groupKeys.contains("advanced"));
+        assertTrue(groupKeys.contains("gameplay"));
+        assertTrue(groupKeys.contains("utils"));
 
-        // Get modules in the health group
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByGroup("health");
-        assertNotNull(healthModules);
-        assertEquals(2, healthModules.size());
+        // Get modules in the basic group
+        List<LuaModuleMetadata> basicModules = wrapper.getModulesByGroup("basic");
+        assertNotNull(basicModules);
+        assertEquals(1, basicModules.size());
+        assertEquals("Simple Entity Randomizer", basicModules.get(0).getName());
 
-        // Verify module names in health group
-        Set<String> healthModuleNames = new HashSet<>();
-        for (LuaModuleMetadata module : healthModules) {
-            healthModuleNames.add(module.getName());
-        }
-        assertTrue(healthModuleNames.contains("Health Randomizer"));
-        assertTrue(healthModuleNames.contains("Health Booster"));
-
-        // Get modules in the damage group
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
-        assertNotNull(damageModules);
-        assertEquals(1, damageModules.size());
-        assertEquals("Damage Randomizer", damageModules.get(0).getName());
+        // Get modules in the advanced group
+        List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
+        assertNotNull(advancedModules);
+        assertEquals(1, advancedModules.size());
+        assertEquals("Advanced Entity Randomizer", advancedModules.get(0).getName());
 
         // Test an undefined group
         List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
@@ -431,33 +426,33 @@ public class RandomizerWrapperTest {
         JavaContext context = new JavaContext();
         context.register("entity", entity);
 
-        // Get and execute all modules in the health group
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByGroup("health");
-        assertEquals(2, healthModules.size());
+        // Execute basic group module (Simple Entity Randomizer)
+        List<LuaModuleMetadata> basicModules = wrapper.getModulesByGroup("basic");
+        assertEquals(1, basicModules.size());
 
-        // Execute first health module (Health Randomizer - sets health to 150)
+        Map<String, Object> args = new HashMap<>();
+        args.put("healthMin", 75);
+        args.put("healthMax", 125);
+        args.put("damageMultiplier", 1.5);
+
         ExecutionRequest request1 =
-                ExecutionRequest.withSeed(healthModules.get(0).getName(), new HashMap<>(), 0);
+                ExecutionRequest.withSeed(basicModules.get(0).getName(), args, 0);
         ExecutionResult result1 = wrapper.executeModule(request1, context);
         assertTrue(result1.isSuccess());
-        assertEquals(150, entity.getHealth());
 
-        // Execute second health module (Health Booster - doubles current health)
+        // Execute advanced group module (Advanced Entity Randomizer)
+        List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
+        assertEquals(1, advancedModules.size());
+
+        Map<String, Object> args2 = new HashMap<>();
+        args2.put("entityType", "mage");
+        args2.put("level", 16);
+        args2.put("applyBonus", false);
+
         ExecutionRequest request2 =
-                ExecutionRequest.withSeed(healthModules.get(1).getName(), new HashMap<>(), 0);
+                ExecutionRequest.withSeed(advancedModules.get(0).getName(), args2, 0);
         ExecutionResult result2 = wrapper.executeModule(request2, context);
         assertTrue(result2.isSuccess());
-        assertEquals(300, entity.getHealth());
-
-        // Execute damage group module
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
-        assertEquals(1, damageModules.size());
-
-        ExecutionRequest request3 =
-                ExecutionRequest.withSeed(damageModules.get(0).getName(), new HashMap<>(), 0);
-        ExecutionResult result3 = wrapper.executeModule(request3, context);
-        assertTrue(result3.isSuccess());
-        assertEquals(75.5, entity.getDamage());
     }
 
     @Test
@@ -467,9 +462,9 @@ public class RandomizerWrapperTest {
         // Get all modifies categories
         Set<String> modifies = wrapper.getDefinedModifiesValues();
         assertNotNull(modifies);
+        assertTrue(modifies.contains("name"));
         assertTrue(modifies.contains("health"));
         assertTrue(modifies.contains("damage"));
-        assertTrue(modifies.contains("stats"));
 
         // Get modules that modify health
         List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
@@ -481,28 +476,8 @@ public class RandomizerWrapperTest {
         for (LuaModuleMetadata module : healthModules) {
             healthModuleNames.add(module.getName());
         }
-        assertTrue(healthModuleNames.contains("Health Randomizer"));
-        assertTrue(healthModuleNames.contains("Health Booster"));
-
-        // Get modules that modify damage
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByModifies("damage");
-        assertNotNull(damageModules);
-        assertEquals(1, damageModules.size());
-        assertEquals("Damage Randomizer", damageModules.get(0).getName());
-
-        // Get modules that modify stats
-        List<LuaModuleMetadata> statsModules = wrapper.getModulesByModifies("stats");
-        assertNotNull(statsModules);
-        assertEquals(3, statsModules.size());
-
-        // Verify all three modules are present
-        Set<String> statsModuleNames = new HashSet<>();
-        for (LuaModuleMetadata module : statsModules) {
-            statsModuleNames.add(module.getName());
-        }
-        assertTrue(statsModuleNames.contains("Health Randomizer"));
-        assertTrue(statsModuleNames.contains("Damage Randomizer"));
-        assertTrue(statsModuleNames.contains("Enhanced Entity Randomizer"));
+        assertTrue(healthModuleNames.contains("Simple Entity Randomizer"));
+        assertTrue(healthModuleNames.contains("Advanced Entity Randomizer"));
 
         // Test undefined modifies
         List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
@@ -525,37 +500,43 @@ public class RandomizerWrapperTest {
         List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
         assertEquals(2, healthModules.size());
 
-        // Execute Health Randomizer (sets health to 150)
-        LuaModuleMetadata healthRandomizer = healthModules.stream()
-                .filter(m -> m.getName().equals("Health Randomizer")).findFirst().orElse(null);
-        assertNotNull(healthRandomizer);
+        // Execute Simple Entity Randomizer
+        LuaModuleMetadata simpleRandomizer =
+                healthModules.stream().filter(m -> m.getName().equals("Simple Entity Randomizer"))
+                        .findFirst().orElse(null);
+        assertNotNull(simpleRandomizer);
 
-        ExecutionRequest request1 =
-                ExecutionRequest.withSeed(healthRandomizer.getName(), new HashMap<>(), 0);
+        Map<String, Object> args1 = new HashMap<>();
+        args1.put("healthMin", 150);
+        args1.put("healthMax", 150);
+        args1.put("damageMultiplier", 1.5);
+
+        ExecutionRequest request1 = ExecutionRequest.withSeed(simpleRandomizer.getName(), args1, 0);
         ExecutionResult result1 = wrapper.executeModule(request1, context);
         assertTrue(result1.isSuccess());
         assertEquals(150, entity.getHealth());
+        assertEquals(75.0, entity.getDamage());
 
-        // Execute Health Booster (doubles current health from 150 to 300)
-        LuaModuleMetadata healthBooster = healthModules.stream()
-                .filter(m -> m.getName().equals("Health Booster")).findFirst().orElse(null);
-        assertNotNull(healthBooster);
+        // Get and execute modules that modify name
+        List<LuaModuleMetadata> nameModules = wrapper.getModulesByModifies("name");
+        assertTrue(nameModules.size() >= 1);
+
+        // Verify at least one module modifies the name
+        LuaModuleMetadata advancedRandomizer =
+                nameModules.stream().filter(m -> m.getName().equals("Advanced Entity Randomizer"))
+                        .findFirst().orElse(null);
+        assertNotNull(advancedRandomizer);
+
+        Map<String, Object> args2 = new HashMap<>();
+        args2.put("entityType", "warrior");
+        args2.put("level", 11);
+        args2.put("applyBonus", true);
 
         ExecutionRequest request2 =
-                ExecutionRequest.withSeed(healthBooster.getName(), new HashMap<>(), 0);
+                ExecutionRequest.withSeed(advancedRandomizer.getName(), args2, 0);
         ExecutionResult result2 = wrapper.executeModule(request2, context);
         assertTrue(result2.isSuccess());
-        assertEquals(300, entity.getHealth());
-
-        // Get and execute module that modifies damage
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByModifies("damage");
-        assertEquals(1, damageModules.size());
-
-        ExecutionRequest request3 =
-                ExecutionRequest.withSeed(damageModules.get(0).getName(), new HashMap<>(), 0);
-        ExecutionResult result3 = wrapper.executeModule(request3, context);
-        assertTrue(result3.isSuccess());
-        assertEquals(75.5, entity.getDamage());
+        assertNotEquals("Original Name", entity.getName());
     }
 }
 

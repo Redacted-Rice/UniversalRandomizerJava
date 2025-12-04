@@ -7,7 +7,7 @@ return {
 	name = "Enum OnLoad",
 	description = "Registers test enums in onLoad for use by other modules",
 	group = "utils",
-	modifies = {},
+	modifies = { "context" },
 	author = "Test Author",
 	version = "0.1",
 	requires = {
