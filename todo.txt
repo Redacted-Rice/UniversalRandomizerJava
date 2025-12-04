@@ -1,6 +1,5 @@
 A list of things to do in no particular order:
 - Begin integrating with PTCGR and ensure use cases are covered
-- Consider adding grouping/filtering logic of modules in here instead of PTCGR
 - Figure out if I want to make scripts more or less aligned with modules
   - Replace configs in context with args for scripts so they are more like modules?
   - Would they use seeds? They shouldn't but how do we handle this 
@@ -19,3 +18,4 @@ Some finalizing things once I'm confident things won't change much:
 Potential things:
 - Make it so it can abort if a module fails or have some dependcies structure to say what requires what or what needs to be run before hand?
 - Add a way to allow testing/validating modules without a full run?
+- Allow nested groups/modifies
