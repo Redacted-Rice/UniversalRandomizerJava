@@ -61,10 +61,26 @@ public class LuaModuleMetadata {
                     "Requires must specify the UniversalRandomizerJava version");
         }
 
+        // For regular modules (when == null) group is required
+        // Scripts (when != null) should not have a group
+        boolean isScript = when != null && !when.trim().isEmpty();
+        if (!isScript) {
+            if (group == null || group.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Group cannot be null or empty for regular modules");
+            }
+        } else {
+            // Scripts should not have a group set
+            if (group != null && !group.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Scripts (when != null) should not have a group");
+            }
+        }
+
         // initialize all fields with defaults where appropriate
         this.name = name;
         this.description = description != null ? description : "";
-        this.group = group != null ? group.toLowerCase() : "utility"; // default group is utility
+        this.group = group != null ? group.toLowerCase() : null;
         this.modifies = modifies != null ? new ArrayList<>(modifies) : new ArrayList<>();
         this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
         this.executeFunction = executeFunction;

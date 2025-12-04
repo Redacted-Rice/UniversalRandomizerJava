@@ -21,7 +21,8 @@ public class ModuleRegistryTest {
     @BeforeEach
     public void setUp() {
         randomizerPath = new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
-        modulesPath = new File("src/test/java/redactedrice/support/lua_modules").getAbsolutePath();
+        modulesPath = new File("src/test/java/redactedrice/support/module_registry_test_modules")
+                .getAbsolutePath();
 
         List<String> allowedDirectories = Arrays.asList(randomizerPath, modulesPath);
         List<String> searchPaths = Arrays.asList(modulesPath);
