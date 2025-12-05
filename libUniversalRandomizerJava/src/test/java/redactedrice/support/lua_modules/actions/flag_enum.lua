@@ -6,7 +6,7 @@ local randomizer = require("randomizer")
 return {
 	name = "Flag Enum",
 	description = "Tests flag enum usage with non-sequential values",
-	group = "utils",
+	groups = { "utils" },
 	modifies = { "entity" },
 	author = "Test Author",
 	version = "0.1",

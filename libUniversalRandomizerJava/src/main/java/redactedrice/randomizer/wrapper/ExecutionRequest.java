@@ -1,6 +1,5 @@
 package redactedrice.randomizer.wrapper;
 
-import redactedrice.randomizer.metadata.LuaModuleMetadata;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,7 +29,7 @@ public final class ExecutionRequest {
     public static ExecutionRequest withDefaultSeedOffset(String moduleName,
             Map<String, Object> arguments, int baseSeed, ModuleRegistry moduleRegistry) {
         Objects.requireNonNull(moduleRegistry, "ModuleRegistry cannot be null");
-        LuaModuleMetadata module = moduleRegistry.getModule(moduleName);
+        LuaModule module = moduleRegistry.getModule(moduleName);
         if (module == null) {
             throw new IllegalArgumentException("Module not found: " + moduleName);
         }

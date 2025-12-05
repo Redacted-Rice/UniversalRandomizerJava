@@ -4,7 +4,7 @@ import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.logger.Logger;
-import redactedrice.randomizer.metadata.LuaModuleMetadata;
+import redactedrice.randomizer.logger.ErrorTracker;
 import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 
 import java.io.OutputStream;
@@ -84,7 +84,7 @@ public class LuaRandomizerWrapper {
 
     private void callModuleOnLoadFunctions() {
         // call each modules onLoad function if it has one
-        for (LuaModuleMetadata module : getAvailableModules()) {
+        for (LuaModule module : getAvailableModules()) {
             if (module.hasOnLoad()) {
                 try {
                     // create a context with registered enum available
@@ -101,7 +101,7 @@ public class LuaRandomizerWrapper {
         }
     }
 
-    public List<LuaModuleMetadata> getAvailableModules() {
+    public List<LuaModule> getAvailableModules() {
         return moduleRegistry.getAllModules();
     }
 
@@ -109,7 +109,7 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModuleNames();
     }
 
-    public LuaModuleMetadata getModule(String name) {
+    public LuaModule getModule(String name) {
         return moduleRegistry.getModule(name);
     }
 
@@ -128,7 +128,7 @@ public class LuaRandomizerWrapper {
         // Clear previous results
         moduleExecutor.clearResults();
         // get the pre randomize scripts and run them
-        List<LuaModuleMetadata> preRandomizeScripts = moduleRegistry
+        List<LuaModule> preRandomizeScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
         moduleExecutor.executeScripts(preRandomizeScripts, context,
                 ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
@@ -143,7 +143,7 @@ public class LuaRandomizerWrapper {
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
         // get the post randomize scripts and run them
-        List<LuaModuleMetadata> postRandomizeScripts = moduleRegistry.getScripts(
+        List<LuaModule> postRandomizeScripts = moduleRegistry.getScripts(
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
         moduleExecutor.executeScripts(postRandomizeScripts, context,
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
@@ -163,13 +163,13 @@ public class LuaRandomizerWrapper {
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
         // get scripts by timing and when
-        List<LuaModuleMetadata> preRandomizeScripts = moduleRegistry
+        List<LuaModule> preRandomizeScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
-        List<LuaModuleMetadata> preModuleScripts = moduleRegistry
+        List<LuaModule> preModuleScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<LuaModuleMetadata> postModuleScripts = moduleRegistry
+        List<LuaModule> postModuleScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<LuaModuleMetadata> postRandomizeScripts = moduleRegistry.getScripts(
+        List<LuaModule> postRandomizeScripts = moduleRegistry.getScripts(
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
         // Clear results and execute pre randomize scripts
@@ -201,9 +201,9 @@ public class LuaRandomizerWrapper {
         context.mergeEnumContext(sharedEnumContext.getEnumContext());
 
         // get only module level scripts. Randomize level must be called by the caller
-        List<LuaModuleMetadata> preModuleScripts = moduleRegistry
+        List<LuaModule> preModuleScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<LuaModuleMetadata> postModuleScripts = moduleRegistry
+        List<LuaModule> postModuleScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
 
         // Execute the module with only pre/post module scripts
@@ -215,16 +215,6 @@ public class LuaRandomizerWrapper {
     }
 
     // Will return module and scrupt results
-    public List<String> getLoadErrors() {
-        return moduleRegistry.getErrors();
-    }
-
-    // Will return module and scrupt results
-    public List<String> getExecutionErrors() {
-        return moduleExecutor.getErrors();
-    }
-
-    // Will return module and scrupt results
     public List<ExecutionResult> getExecutionResults() {
         return moduleExecutor.getResults();
     }
@@ -233,28 +223,15 @@ public class LuaRandomizerWrapper {
         moduleExecutor.clearResults();
     }
 
-    // Will return module and scrupt results
-    public List<String> getAllErrors() {
-        List<String> allErrors = new ArrayList<>();
-        allErrors.addAll(moduleRegistry.getErrors());
-        allErrors.addAll(moduleExecutor.getErrors());
-        return allErrors;
-    }
-
-    // For module and scrupt results
-    public boolean hasErrors() {
-        return moduleRegistry.hasErrors() || moduleExecutor.hasErrors();
-    }
-
     public void printModuleSummary() {
         // print summary of all loaded modules and their metadata
-        List<LuaModuleMetadata> modules = getAvailableModules();
+        List<LuaModule> modules = getAvailableModules();
         System.out.println("=== Loaded Modules ===");
         System.out.println("Total: " + modules.size());
         System.out.println();
 
         // print each module's details
-        for (LuaModuleMetadata module : modules) {
+        for (LuaModule module : modules) {
             System.out.println("Module: " + module.getName());
             System.out.println("  Description: " + module.getDescription());
             if (!module.getGroups().isEmpty()) {
@@ -276,9 +253,9 @@ public class LuaRandomizerWrapper {
         }
 
         // print any errors encountered during loading
-        if (moduleRegistry.hasErrors()) {
+        if (ErrorTracker.hasErrors()) {
             System.out.println("=== Load Errors ===");
-            moduleRegistry.getErrors().forEach(System.out::println);
+            ErrorTracker.getErrors().forEach(System.out::println);
             System.out.println();
         }
     }
@@ -380,7 +357,7 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getDefinedGroupValues();
     }
 
-    public List<LuaModuleMetadata> getModulesByGroup(String group) {
+    public List<LuaModule> getModulesByGroup(String group) {
         return moduleRegistry.getModulesByGroup(group);
     }
 
@@ -388,7 +365,7 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getDefinedModifiesValues();
     }
 
-    public List<LuaModuleMetadata> getModulesByModifies(String modifies) {
+    public List<LuaModule> getModulesByModifies(String modifies) {
         return moduleRegistry.getModulesByModifies(modifies);
     }
 }

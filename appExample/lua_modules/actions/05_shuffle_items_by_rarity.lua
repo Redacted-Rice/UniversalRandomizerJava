@@ -6,7 +6,7 @@ local randomizer = require("randomizer")
 return {
 	name = "05_shuffle_items_by_rarity",
 	description = "Shuffles all item stat tuples within the same rarity using grouped consumable pools",
-	group = "utils",
+	groups = { "utils" },
 	modifies = { "attackBonus", "defenseBonus", "healthBonus", "speedBonus" },
 	author = "Redacted Rice",
 	version = "1.0.0",

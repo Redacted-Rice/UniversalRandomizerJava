@@ -1,10 +1,9 @@
 package redactedrice.randomizer.wrapper;
 
-import redactedrice.randomizer.metadata.*;
 import redactedrice.randomizer.logger.Logger;
+import redactedrice.randomizer.logger.ErrorTracker;
 import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 import org.luaj.vm2.LuaError;
-import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
@@ -17,14 +16,13 @@ public class ModuleRegistry {
     LuaSandbox sandbox;
     // Modules are the core randomization that are manually specified and run
     // This is a map from the module name to its metadata
-    Map<String, LuaModuleMetadata> modules;
+    Map<String, LuaModule> modules;
     // Modules organized by their group metadata field
-    Map<String, List<LuaModuleMetadata>> modulesByGroup;
+    Map<String, List<LuaModule>> modulesByGroup;
     // Modules organized by what they modify. Modules can be in more than one key/list here
-    Map<String, List<LuaModuleMetadata>> modulesByModifies;
+    Map<String, List<LuaModule>> modulesByModifies;
     // Scripts are automatically run before and after triggers. Name may change
-    Map<String, Map<String, List<LuaModuleMetadata>>> scriptsByType;
-    List<String> errors;
+    Map<String, Map<String, List<LuaModule>>> scriptsByType;
     // If set, this will restrict the groups that are loaded to only specified values. Null to
     // autodetermine from loading
     Set<String> definedGroups;
@@ -52,17 +50,16 @@ public class ModuleRegistry {
         this.modulesByGroup = new HashMap<>();
         this.modulesByModifies = new HashMap<>();
         this.scriptsByType = new HashMap<>();
-        this.errors = new ArrayList<>();
-        this.definedGroups = definedGroups != null ? new HashSet<>(definedGroups) : null;
-        this.definedModifies = definedModifies != null ? new HashSet<>(definedModifies) : null;
+        this.definedGroups = normalizeStringSet(definedGroups);
+        this.definedModifies = normalizeStringSet(definedModifies);
 
         // Initialize the scripts maps
-        Map<String, List<LuaModuleMetadata>> preScripts = new HashMap<>();
+        Map<String, List<LuaModule>> preScripts = new HashMap<>();
         preScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
         preScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
         scriptsByType.put(SCRIPT_TIMING_PRE, preScripts);
 
-        Map<String, List<LuaModuleMetadata>> postScripts = new HashMap<>();
+        Map<String, List<LuaModule>> postScripts = new HashMap<>();
         postScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
         postScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
         scriptsByType.put(SCRIPT_TIMING_POST, postScripts);
@@ -70,18 +67,18 @@ public class ModuleRegistry {
 
     public int loadModulesFromDirectory(String directoryPath) {
         if (directoryPath == null || directoryPath.trim().isEmpty()) {
-            addError("Directory path cannot be null or empty");
+            ErrorTracker.addError("Directory path cannot be null or empty");
             return 0;
         }
 
         File directory = new File(directoryPath);
         if (!directory.exists()) {
-            addError("Directory does not exist: " + directoryPath);
+            ErrorTracker.addError("Directory does not exist: " + directoryPath);
             return 0;
         }
 
         if (!directory.isDirectory()) {
-            addError("Path is not a directory: " + directoryPath);
+            ErrorTracker.addError("Path is not a directory: " + directoryPath);
             return 0;
         }
 
@@ -138,7 +135,7 @@ public class ModuleRegistry {
         });
     }
 
-    private boolean isAllowedGrouping(List<String> metadataValues, Set<String> definedValues,
+    private boolean isAllowedGrouping(Set<String> metadataValues, Set<String> definedValues,
             String moduleName, String fieldName, String singularName) {
         if (definedValues == null || definedValues.isEmpty()) {
             return true;
@@ -164,8 +161,8 @@ public class ModuleRegistry {
         return hasMatch;
     }
 
-    private void addModuleToCategoryIndices(LuaModuleMetadata metadata, List<String> categories,
-            Map<String, List<LuaModuleMetadata>> indexMap, Set<String> definedCategories) {
+    private void addModuleToCategoryIndices(LuaModule metadata, Set<String> categories,
+            Map<String, List<LuaModule>> indexMap, Set<String> definedCategories) {
         if (categories == null || categories.isEmpty()) {
             return;
         }
@@ -200,12 +197,12 @@ public class ModuleRegistry {
     }
 
     private int loadModulesFromScripts(List<File> luaFiles, Object targetCollection,
-            String scriptType, java.util.function.Consumer<LuaModuleMetadata> onSuccess) {
+            String scriptType, java.util.function.Consumer<LuaModule> onSuccess) {
         int loadedCount = 0;
 
         for (File file : luaFiles) {
             try {
-                LuaModuleMetadata metadata = loadModule(file);
+                LuaModule metadata = loadModule(file);
                 if (metadata != null) {
                     onSuccess.accept(metadata);
                     loadedCount++;
@@ -213,7 +210,8 @@ public class ModuleRegistry {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                addError("Error loading script from " + file.getPath() + ": " + e.getMessage());
+                ErrorTracker.addError(
+                        "Error loading script from " + file.getPath() + ": " + e.getMessage());
             }
         }
 
@@ -228,333 +226,23 @@ public class ModuleRegistry {
         return loadScriptsFromSubfolder(directoryPath, "postscripts", SCRIPT_TIMING_POST);
     }
 
-    private LuaModuleMetadata loadModule(File file) {
+    private LuaModule loadModule(File file) {
         Logger.info("Loading module: " + file.getName());
         try {
             LuaValue result = sandbox.executeFile(file.getAbsolutePath());
             if (!result.istable()) {
-                addError(
+                ErrorTracker.addError(
                         file.getName() + " did not return a table (got " + result.typename() + ")");
                 return null;
             }
-            return parseModuleMetadata(result.checktable(), file);
+            return LuaModule.parseFromFile(result.checktable(), file);
         } catch (LuaError e) {
-            addError("Lua error in " + file.getName() + ": " + e.getMessage());
+            ErrorTracker.addError("Lua error in " + file.getName() + ": " + e.getMessage());
             return null;
         } catch (Exception e) {
-            addError("Error loading " + file.getName() + ": " + e.getMessage());
+            ErrorTracker.addError("Error loading " + file.getName() + ": " + e.getMessage());
             return null;
         }
-    }
-
-    private LuaModuleMetadata parseModuleMetadata(LuaTable moduleTable, File file) {
-        String name = getRequiredStringField(moduleTable, file, "name");
-        if (name == null) {
-            return null;
-        }
-
-        String description = getStringField(moduleTable, "description", "");
-        List<String> groups = parseStringOrList(moduleTable, "group");
-        List<String> modifies = parseStringOrList(moduleTable, "modifies");
-        int seedOffset = (int) getNumberField(moduleTable, "seedOffset", 0);
-
-        LuaFunction executeFunction = validateAndGetExecuteFunction(moduleTable, file);
-        if (executeFunction == null) {
-            return null;
-        }
-
-        LuaFunction onLoadFunction = getOptionalOnLoadFunction(moduleTable);
-        List<ArgumentDefinition> arguments = parseModuleArguments(moduleTable, file);
-        if (arguments == null) {
-            return null;
-        }
-
-        String when = getStringField(moduleTable, "when", null);
-
-        String author = getRequiredStringField(moduleTable, file, "author");
-        if (author == null) {
-            return null;
-        }
-
-        String version = getRequiredStringField(moduleTable, file, "version");
-        if (version == null) {
-            return null;
-        }
-
-        Map<String, String> requires = parseRequiresMap(moduleTable, file.getName());
-        if (requires == null) {
-            return null;
-        }
-
-        String source = getStringField(moduleTable, "source", null);
-        String license = getStringField(moduleTable, "license", null);
-        String about = getStringField(moduleTable, "about", null);
-
-        LuaModuleMetadata metadata = new LuaModuleMetadata(name, description, groups, modifies,
-                arguments, executeFunction, onLoadFunction, file.getAbsolutePath(), seedOffset,
-                when, author, version, requires, source, license, about);
-
-        Logger.info("Finished loading module: " + name);
-        return metadata;
-    }
-
-    private LuaFunction validateAndGetExecuteFunction(LuaTable moduleTable, File file) {
-        LuaValue executeValue = moduleTable.get("execute");
-        if (!executeValue.isfunction()) {
-            addError(file.getName() + " missing required 'execute' function");
-            return null;
-        }
-        return executeValue.checkfunction();
-    }
-
-    private LuaFunction getOptionalOnLoadFunction(LuaTable moduleTable) {
-        LuaValue onLoadValue = moduleTable.get("onLoad");
-        if (!onLoadValue.isnil() && onLoadValue.isfunction()) {
-            return onLoadValue.checkfunction();
-        }
-        return null;
-    }
-
-    private List<ArgumentDefinition> parseModuleArguments(LuaTable moduleTable, File file) {
-        LuaValue argsValue = moduleTable.get("arguments");
-        if (argsValue.isnil()) {
-            return new ArrayList<>();
-        }
-        if (!argsValue.istable()) {
-            addError(file.getName() + " 'arguments' field must be a table");
-            return null;
-        }
-        return parseArguments(argsValue.checktable(), file.getName());
-    }
-
-    private List<ArgumentDefinition> parseArguments(LuaTable argsTable, String fileName) {
-        List<ArgumentDefinition> arguments = new ArrayList<>();
-
-        // walk through the array part of the lua table
-        LuaValue key = LuaValue.NIL;
-        while (true) {
-            key = argsTable.next(key).arg1();
-            if (key.isnil()) {
-                break;
-            }
-
-            LuaValue argValue = argsTable.get(key);
-            if (!argValue.istable()) {
-                addError(fileName + " argument entry must be a table");
-                continue;
-            }
-
-            // parse each argument definition
-            try {
-                ArgumentDefinition argDef =
-                        parseArgumentDefinition(argValue.checktable(), fileName);
-                if (argDef != null) {
-                    arguments.add(argDef);
-                }
-            } catch (Exception e) {
-                addError(fileName + " error parsing argument: " + e.getMessage());
-            }
-        }
-
-        return arguments;
-    }
-
-    private ArgumentDefinition parseArgumentDefinition(LuaTable argTable, String fileName) {
-        String name = getStringField(argTable, "name", null);
-        if (name == null || name.trim().isEmpty()) {
-            addError(fileName + " argument missing 'name' field");
-            return null;
-        }
-
-        // get the type definition which can be string or table
-        LuaValue definitionValue = argTable.get("definition");
-        if (definitionValue.isnil()) {
-            addError(fileName + " argument '" + name + "' missing 'definition' field");
-            return null;
-        }
-
-        TypeDefinition typeDef;
-        try {
-            if (definitionValue.isstring()) {
-                // simple type like "number" or "string"
-                typeDef = TypeDefinition.parse(definitionValue.tojstring());
-            } else if (definitionValue.istable()) {
-                // complex type with constraints embedded
-                typeDef = TypeDefinition.parse(luaTableToMap(definitionValue.checktable()));
-            } else {
-                addError(fileName + " argument '" + name + "' has invalid definition field");
-                return null;
-            }
-        } catch (IllegalArgumentException e) {
-            addError(fileName + " invalid argument definition: " + e.getMessage());
-            return null;
-        }
-
-        // get default value if present
-        LuaValue defaultValue = argTable.get("default");
-        Object javaDefaultValue = null;
-        if (!defaultValue.isnil()) {
-            javaDefaultValue = luaValueToJava(defaultValue);
-        }
-
-        return new ArgumentDefinition(name, typeDef, javaDefaultValue);
-    }
-
-    private Map<String, Object> luaTableToMap(LuaTable table) {
-        Map<String, Object> map = new HashMap<>();
-        LuaValue[] keys = table.keys();
-        for (LuaValue key : keys) {
-            if (key.isstring()) {
-                LuaValue value = table.get(key);
-                map.put(key.tojstring(), luaValueToJava(value));
-            }
-        }
-        return map;
-    }
-
-    private Object luaValueToJava(LuaValue value) {
-        if (value.isnil()) {
-            return null;
-        } else if (value.isboolean()) {
-            return value.toboolean();
-        } else if (value.isint()) {
-            return value.toint();
-        } else if (value.isnumber()) {
-            return value.todouble();
-        } else if (value.isstring()) {
-            return value.tojstring();
-        } else if (value.istable()) {
-            LuaTable table = value.checktable();
-            // check if its an array or a map
-            if (isLuaArray(table)) {
-                return luaTableToList(table);
-            } else {
-                return luaTableToMap(table);
-            }
-        }
-        return value.toString();
-    }
-
-    private boolean isLuaArray(LuaTable table) {
-        int length = table.length();
-        if (length == 0) {
-            return false;
-        }
-        // lua arrays have sequential keys from 1 to n
-        for (int i = 1; i <= length; i++) {
-            if (table.get(i).isnil()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private List<Object> luaTableToList(LuaTable table) {
-        List<Object> list = new ArrayList<>();
-        int length = table.length();
-        for (int i = 1; i <= length; i++) {
-            list.add(luaValueToJava(table.get(i)));
-        }
-        return list;
-    }
-
-    private String getStringField(LuaTable table, String fieldName, String defaultValue) {
-        LuaValue value = table.get(fieldName);
-        if (value.isnil()) {
-            return defaultValue;
-        }
-        return value.tojstring();
-    }
-
-    private String getRequiredStringField(LuaTable moduleTable, File file, String fieldName) {
-        String value = getStringField(moduleTable, fieldName, null);
-        if (value == null || value.trim().isEmpty()) {
-            addError(file.getName() + " missing required '" + fieldName + "' field");
-            return null;
-        }
-        return value;
-    }
-
-    private double getNumberField(LuaTable table, String fieldName, double defaultValue) {
-        LuaValue value = table.get(fieldName);
-        if (value.isnil()) {
-            return defaultValue;
-        }
-        if (value.isnumber()) {
-            return value.todouble();
-        }
-        return defaultValue;
-    }
-
-    private List<String> parseStringOrList(LuaTable table, String fieldName) {
-        List<String> result = new ArrayList<>();
-        LuaValue value = table.get(fieldName);
-        if (!value.isnil()) {
-            if (value.istable()) {
-                // It's a table so iterate through all values
-                LuaTable valueTable = value.checktable();
-                LuaValue key = LuaValue.NIL;
-                while (true) {
-                    key = valueTable.next(key).arg1();
-                    if (key.isnil()) {
-                        break;
-                    }
-                    LuaValue tableValue = valueTable.get(key);
-                    if (tableValue.isstring()) {
-                        result.add(tableValue.tojstring());
-                    }
-                }
-            } else if (value.isstring()) {
-                // Single string works too
-                result.add(value.tojstring());
-            }
-        }
-        return result;
-    }
-
-    private Map<String, String> parseRequiresMap(LuaTable moduleTable, String fileName) {
-        LuaValue requiresValue = moduleTable.get("requires");
-        if (requiresValue.isnil()) {
-            addError(fileName + " missing required 'requires' field");
-            return null;
-        }
-
-        if (!requiresValue.istable()) {
-            addError(fileName + " 'requires' field must be a table");
-            return null;
-        }
-
-        LuaTable requiresTable = requiresValue.checktable();
-        Map<String, String> requires = new HashMap<>();
-
-        // Iterate through the table
-        LuaValue key = LuaValue.NIL;
-        while (true) {
-            key = requiresTable.next(key).arg1();
-            if (key.isnil()) {
-                break;
-            }
-            LuaValue value = requiresTable.get(key);
-
-            if (key.isstring() && value.isstring()) {
-                requires.put(key.tojstring(), value.tojstring());
-            } else {
-                addError(fileName + " 'requires' table must contain string keys and string values");
-                return null;
-            }
-        }
-
-        if (!requires.containsKey("UniversalRandomizerJava")) {
-            addError(fileName + " 'requires' field must contain 'UniversalRandomizerJava'");
-            return null;
-        }
-
-        if (requires.isEmpty()) {
-            addError(fileName + " required 'requires' field is empty");
-            return null;
-        }
-
-        return requires;
     }
 
     private List<File> findLuaFiles(File directory) {
@@ -575,12 +263,8 @@ public class ModuleRegistry {
         return luaFiles;
     }
 
-    private void addError(String error) {
-        errors.add(error);
-        System.err.println("[ModuleRegistry] " + error);
-    }
 
-    public LuaModuleMetadata getModule(String name) {
+    public LuaModule getModule(String name) {
         return modules.get(name);
     }
 
@@ -592,12 +276,12 @@ public class ModuleRegistry {
         return new HashSet<>(modulesByGroup.keySet());
     }
 
-    public List<LuaModuleMetadata> getModulesByGroup(String group) {
+    public List<LuaModule> getModulesByGroup(String group) {
         if (group == null || group.trim().isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<LuaModuleMetadata> groupModules = modulesByGroup.get(group);
+        List<LuaModule> groupModules = modulesByGroup.get(group);
         return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
     }
 
@@ -609,16 +293,32 @@ public class ModuleRegistry {
         return new HashSet<>(modulesByModifies.keySet());
     }
 
-    public List<LuaModuleMetadata> getModulesByModifies(String modifies) {
+    public List<LuaModule> getModulesByModifies(String modifies) {
         if (modifies == null || modifies.trim().isEmpty()) {
             return new ArrayList<>();
         }
 
-        List<LuaModuleMetadata> modifiesModules = modulesByModifies.get(modifies);
+        List<LuaModule> modifiesModules = modulesByModifies.get(modifies);
         return modifiesModules != null ? new ArrayList<>(modifiesModules) : new ArrayList<>();
     }
 
-    public List<LuaModuleMetadata> getAllModules() {
+    private Set<String> normalizeStringSet(Set<String> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        Set<String> normalized = new HashSet<>();
+        for (String value : values) {
+            if (value != null) {
+                String trimmed = value.trim().toLowerCase();
+                if (!trimmed.isEmpty()) {
+                    normalized.add(trimmed);
+                }
+            }
+        }
+        return normalized;
+    }
+
+    public List<LuaModule> getAllModules() {
         return new ArrayList<>(modules.values());
     }
 
@@ -626,21 +326,13 @@ public class ModuleRegistry {
         return new HashSet<>(modules.keySet());
     }
 
-    public List<String> getErrors() {
-        return new ArrayList<>(errors);
-    }
-
-    public boolean hasErrors() {
-        return !errors.isEmpty();
-    }
-
-    public List<LuaModuleMetadata> getScripts(String timing, String when) {
-        Map<String, List<LuaModuleMetadata>> timingMap = scriptsByType.get(timing);
+    public List<LuaModule> getScripts(String timing, String when) {
+        Map<String, List<LuaModule>> timingMap = scriptsByType.get(timing);
         if (timingMap == null) {
             return new ArrayList<>();
         }
 
-        List<LuaModuleMetadata> scripts = timingMap.get(when);
+        List<LuaModule> scripts = timingMap.get(when);
         return scripts != null ? new ArrayList<>(scripts) : new ArrayList<>();
     }
 
@@ -648,11 +340,12 @@ public class ModuleRegistry {
         modules.clear();
         modulesByGroup.clear();
         modulesByModifies.clear();
-        for (Map<String, List<LuaModuleMetadata>> timingMap : scriptsByType.values()) {
-            for (List<LuaModuleMetadata> scripts : timingMap.values()) {
+        for (Map<String, List<LuaModule>> timingMap : scriptsByType.values()) {
+            for (List<LuaModule> scripts : timingMap.values()) {
                 scripts.clear();
             }
         }
-        errors.clear();
+        // TODO: Handle this better - probably means making non static
+        ErrorTracker.clearErrors();
     }
 }
