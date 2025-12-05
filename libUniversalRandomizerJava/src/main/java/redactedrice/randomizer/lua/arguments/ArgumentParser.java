@@ -3,7 +3,7 @@ package redactedrice.randomizer.lua.arguments;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import redactedrice.randomizer.utils.ErrorTracker;
-import redactedrice.randomizer.lua.TableParser;
+import redactedrice.randomizer.lua.LuaToJavaConverter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +58,7 @@ public class ArgumentParser {
     }
 
     private static ArgumentDefinition parseArgumentDefinition(LuaTable argTable, String context) {
-        String name = TableParser.parseString(argTable, "name", null, context);
+        String name = LuaToJavaConverter.tryGetStringFromTable(argTable, "name", null, context);
         if (name == null || name.trim().isEmpty()) {
             ErrorTracker.addError(context + " argument missing 'name' field");
             return null;
@@ -79,7 +79,7 @@ public class ArgumentParser {
             } else if (definitionValue.istable()) {
                 // complex type with constraints embedded
                 Map<String, Object> defMap =
-                        (Map<String, Object>) TableParser.luaValueToJava(definitionValue);
+                        (Map<String, Object>) LuaToJavaConverter.convert(definitionValue);
                 typeDef = TypeDefinition.parse(defMap);
             } else {
                 ErrorTracker.addError(
@@ -95,7 +95,7 @@ public class ArgumentParser {
         LuaValue defaultValue = argTable.get("default");
         Object javaDefaultValue = null;
         if (!defaultValue.isnil()) {
-            javaDefaultValue = TableParser.luaValueToJava(defaultValue);
+            javaDefaultValue = LuaToJavaConverter.convert(defaultValue);
         }
 
         return new ArgumentDefinition(name, typeDef, javaDefaultValue);
