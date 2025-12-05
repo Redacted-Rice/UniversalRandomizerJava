@@ -1,9 +1,9 @@
 package redactedrice.randomizer;
 
-import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
-import redactedrice.randomizer.wrapper.sandbox.ResourceMonitor;
-import redactedrice.randomizer.wrapper.sandbox.MemoryLimitExceededException;
-import redactedrice.randomizer.wrapper.sandbox.TimeoutException;
+import redactedrice.randomizer.lua.sandbox.LuaSandbox;
+import redactedrice.randomizer.lua.sandbox.ResourceMonitor;
+import redactedrice.randomizer.lua.sandbox.MemoryLimitExceededException;
+import redactedrice.randomizer.lua.sandbox.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
@@ -114,9 +114,8 @@ public class RandomizerSandboxTest {
         // There is a possibility that a script could still succeed if it finishes before
         // the memory limit check is done but should not happen with this script since
         // allocates significantly more than the limit
-        MemoryLimitExceededException exception =
-                assertThrows(MemoryLimitExceededException.class,
-                        () -> limitedSandbox.executeFile(testFile));
+        MemoryLimitExceededException exception = assertThrows(MemoryLimitExceededException.class,
+                () -> limitedSandbox.executeFile(testFile));
 
         assertTrue(exception.getMessage().contains("Memory limit exceeded"));
         assertTrue(exception.getMessage().contains("100.00 MB")
