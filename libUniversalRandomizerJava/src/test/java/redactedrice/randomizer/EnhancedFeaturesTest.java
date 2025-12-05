@@ -3,14 +3,14 @@ package redactedrice.randomizer;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.EnumContext;
 import redactedrice.randomizer.context.EnumDefinition;
-import redactedrice.randomizer.metadata.*;
+import redactedrice.randomizer.lua.arguments.*;
 import redactedrice.support.test.TestEntity;
 import redactedrice.support.test.EntityType;
 import redactedrice.support.test.FlagEnum;
-import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
-import redactedrice.randomizer.wrapper.ExecutionResult;
-import redactedrice.randomizer.wrapper.ExecutionRequest;
-import redactedrice.randomizer.wrapper.LuaModule;
+import redactedrice.randomizer.LuaRandomizerWrapper;
+import redactedrice.randomizer.lua.ExecutionResult;
+import redactedrice.randomizer.lua.ExecutionRequest;
+import redactedrice.randomizer.lua.Module;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -78,9 +78,9 @@ public class EnhancedFeaturesTest {
 
     @Test
     public void testModuleGrouping() {
-        List<LuaModule> modules = wrapper.getAvailableModules();
+        List<Module> modules = wrapper.getAvailableModules();
         Map<String, List<String>> modulesByGroup = new HashMap<>();
-        for (LuaModule module : modules) {
+        for (Module module : modules) {
             for (String group : module.getGroups()) {
                 modulesByGroup.putIfAbsent(group, new ArrayList<>());
                 modulesByGroup.get(group).add(module.getName());
@@ -122,12 +122,12 @@ public class EnhancedFeaturesTest {
         wrapper.loadModules();
 
         // Check that the Enum OnLoad module was loaded
-        LuaModule onLoadModule = wrapper.getModule("Enum OnLoad");
+        Module onLoadModule = wrapper.getModule("Enum OnLoad");
         assertNotNull(onLoadModule, "Enum OnLoad module should be loaded");
         assertTrue(onLoadModule.hasOnLoad(), "Enum OnLoad module should have onLoad function");
 
         // Check that the Enum Usage module was loaded
-        LuaModule usageModule = wrapper.getModule("Enum Usage");
+        Module usageModule = wrapper.getModule("Enum Usage");
         assertNotNull(usageModule, "Enum Usage module should be loaded");
 
         // Create a context and execute the usage module

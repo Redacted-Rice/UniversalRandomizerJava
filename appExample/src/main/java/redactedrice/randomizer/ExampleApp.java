@@ -3,10 +3,10 @@ package redactedrice.randomizer;
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.context.PseudoEnumRegistry;
-import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
-import redactedrice.randomizer.wrapper.ExecutionResult;
-import redactedrice.randomizer.wrapper.ExecutionRequest;
-import redactedrice.randomizer.wrapper.ManifestResourceExtractor;
+import redactedrice.randomizer.LuaRandomizerWrapper;
+import redactedrice.randomizer.lua.ExecutionResult;
+import redactedrice.randomizer.lua.ExecutionRequest;
+import redactedrice.randomizer.utils.ManifestResourceExtractor;
 
 import java.io.File;
 import java.io.FileOutputStream;
