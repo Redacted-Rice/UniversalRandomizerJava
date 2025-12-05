@@ -1,17 +1,18 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.JavaContext;
+import redactedrice.randomizer.logger.ErrorTracker;
 import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
 import redactedrice.randomizer.wrapper.ExecutionRequest;
-import redactedrice.randomizer.metadata.LuaModuleMetadata;
+import redactedrice.randomizer.wrapper.LuaModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.*;
-
+import java.util.logging.ErrorManager;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -54,7 +55,7 @@ public class RandomizerWrapperTest {
     public void testOptionalMetadataFieldsParsed() {
         wrapper.loadModules();
 
-        LuaModuleMetadata module = wrapper.getModule("Simple Entity Randomizer");
+        LuaModule module = wrapper.getModule("Simple Entity Randomizer");
         assertNotNull(module, "Simple Entity Randomizer module should be loaded");
 
         // Verify optional fields are parsed correctly
@@ -70,7 +71,7 @@ public class RandomizerWrapperTest {
         wrapper.loadModules();
 
         // Find a module that doesn't have optional fields (e.g., Advanced Entity Randomizer)
-        LuaModuleMetadata module = wrapper.getModule("Advanced Entity Randomizer");
+        LuaModule module = wrapper.getModule("Advanced Entity Randomizer");
         if (module != null) {
             // Optional fields should be null if not specified in the module
             assertNull(module.getSource(),
@@ -187,7 +188,7 @@ public class RandomizerWrapperTest {
 
         assertNotEquals("Entity1", entity1.getName());
         assertNotEquals("Entity2", entity2.getName());
-        assertFalse(wrapper.hasErrors());
+        assertFalse(ErrorTracker.hasErrors());
     }
 
     @Test
@@ -351,7 +352,7 @@ public class RandomizerWrapperTest {
         assertEquals(2, postModuleScriptCount);
         assertEquals(1, postRandomizeScriptCount);
 
-        assertFalse(wrapper.hasErrors());
+        assertFalse(ErrorTracker.hasErrors());
     }
 
     @Test
@@ -398,24 +399,24 @@ public class RandomizerWrapperTest {
         assertTrue(groupKeys.contains("utils"));
 
         // Get modules in the basic group
-        List<LuaModuleMetadata> basicModules = wrapper.getModulesByGroup("basic");
+        List<LuaModule> basicModules = wrapper.getModulesByGroup("basic");
         assertNotNull(basicModules);
         assertEquals(1, basicModules.size());
         assertEquals("Simple Entity Randomizer", basicModules.get(0).getName());
 
         // Get modules in the advanced group
-        List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
+        List<LuaModule> advancedModules = wrapper.getModulesByGroup("advanced");
         assertNotNull(advancedModules);
         assertEquals(2, advancedModules.size());
         Set<String> advancedNames = new HashSet<>();
-        for (LuaModuleMetadata module : advancedModules) {
+        for (LuaModule module : advancedModules) {
             advancedNames.add(module.getName());
         }
         assertTrue(advancedNames.contains("Advanced Entity Randomizer"));
         assertTrue(advancedNames.contains("Enhanced Entity Randomizer"));
 
         // Test an undefined group
-        List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
+        List<LuaModule> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
         assertNotNull(nonExistentModules);
         assertTrue(nonExistentModules.isEmpty());
     }
@@ -432,7 +433,7 @@ public class RandomizerWrapperTest {
         context.register("entity", entity);
 
         // Execute basic group module (Simple Entity Randomizer)
-        List<LuaModuleMetadata> basicModules = wrapper.getModulesByGroup("basic");
+        List<LuaModule> basicModules = wrapper.getModulesByGroup("basic");
         assertEquals(1, basicModules.size());
 
         Map<String, Object> args = new HashMap<>();
@@ -446,11 +447,11 @@ public class RandomizerWrapperTest {
         assertTrue(result1.isSuccess());
 
         // Execute advanced group module (Advanced Entity Randomizer)
-        List<LuaModuleMetadata> advancedModules = wrapper.getModulesByGroup("advanced");
+        List<LuaModule> advancedModules = wrapper.getModulesByGroup("advanced");
         assertEquals(2, advancedModules.size()); // Advanced and Enhanced both in advanced group
 
         // Find and execute the Advanced Entity Randomizer specifically
-        LuaModuleMetadata advancedRandomizer = advancedModules.stream()
+        LuaModule advancedRandomizer = advancedModules.stream()
                 .filter(m -> m.getName().equals("Advanced Entity Randomizer")).findFirst()
                 .orElse(null);
         assertNotNull(advancedRandomizer);
@@ -478,20 +479,20 @@ public class RandomizerWrapperTest {
         assertTrue(modifies.contains("damage"));
 
         // Get modules that modify health
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
+        List<LuaModule> healthModules = wrapper.getModulesByModifies("health");
         assertNotNull(healthModules);
         assertEquals(2, healthModules.size());
 
         // Verify module names that modify health
         Set<String> healthModuleNames = new HashSet<>();
-        for (LuaModuleMetadata module : healthModules) {
+        for (LuaModule module : healthModules) {
             healthModuleNames.add(module.getName());
         }
         assertTrue(healthModuleNames.contains("Simple Entity Randomizer"));
         assertTrue(healthModuleNames.contains("Advanced Entity Randomizer"));
 
         // Test undefined modifies
-        List<LuaModuleMetadata> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
+        List<LuaModule> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
         assertNotNull(nonExistentModules);
         assertTrue(nonExistentModules.isEmpty());
     }
@@ -508,11 +509,11 @@ public class RandomizerWrapperTest {
         context.register("entity", entity);
 
         // Get and execute modules that modify health
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
+        List<LuaModule> healthModules = wrapper.getModulesByModifies("health");
         assertEquals(2, healthModules.size());
 
         // Execute Simple Entity Randomizer
-        LuaModuleMetadata simpleRandomizer =
+        LuaModule simpleRandomizer =
                 healthModules.stream().filter(m -> m.getName().equals("Simple Entity Randomizer"))
                         .findFirst().orElse(null);
         assertNotNull(simpleRandomizer);
@@ -529,11 +530,11 @@ public class RandomizerWrapperTest {
         assertEquals(75.0, entity.getDamage());
 
         // Get and execute modules that modify name
-        List<LuaModuleMetadata> nameModules = wrapper.getModulesByModifies("name");
+        List<LuaModule> nameModules = wrapper.getModulesByModifies("name");
         assertTrue(nameModules.size() >= 1);
 
         // Verify at least one module modifies the name
-        LuaModuleMetadata advancedRandomizer =
+        LuaModule advancedRandomizer =
                 nameModules.stream().filter(m -> m.getName().equals("Advanced Entity Randomizer"))
                         .findFirst().orElse(null);
         assertNotNull(advancedRandomizer);

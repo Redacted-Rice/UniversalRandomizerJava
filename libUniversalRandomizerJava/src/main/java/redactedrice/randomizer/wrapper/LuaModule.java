@@ -1,19 +1,18 @@
-package redactedrice.randomizer.metadata;
+package redactedrice.randomizer.wrapper;
 
 import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.LuaTable;
+import redactedrice.randomizer.metadata.ArgumentDefinition;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
 
 // holds metadata and execution function for a lua randomizer module
-public class LuaModuleMetadata {
+public class LuaModule {
     String name;
     String description;
-    List<String> groups;
-    List<String> modifies;
+    Set<String> groups;
+    Set<String> modifies;
     List<ArgumentDefinition> arguments;
     LuaFunction executeFunction;
     LuaFunction onLoadFunction; // Optional onLoad function
@@ -35,8 +34,8 @@ public class LuaModuleMetadata {
     String license;
     String about;
 
-    public LuaModuleMetadata(String name, String description, List<String> groups,
-            List<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunction,
+    public LuaModule(String name, String description, Set<String> groups, Set<String> modifies,
+            List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int defaultSeedOffset, String when,
             String author, String version, Map<String, String> requires, String source,
             String license, String about) {
@@ -44,15 +43,16 @@ public class LuaModuleMetadata {
         validateRequiredFields(name, executeFunction, author, version, requires);
 
         // For regular modules (when == null) groups are required
-        // Scripts (when != null) should not have groups
+        // Scripts (when != null) should not have groups or modifies
         boolean isScript = when != null && !when.trim().isEmpty();
         validateGroupsForModuleType(groups, isScript);
+        validateModifiesForModuleType(modifies, isScript);
 
         // initialize all fields with defaults where appropriate
         this.name = name;
         this.description = description != null ? description : "";
-        this.groups = normalizeStringList(groups);
-        this.modifies = normalizeStringList(modifies);
+        this.groups = normalizeStringSet(groups);
+        this.modifies = normalizeStringSet(modifies);
         this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
         this.executeFunction = executeFunction;
         this.onLoadFunction = onLoadFunction; // can be null
@@ -67,7 +67,44 @@ public class LuaModuleMetadata {
         this.about = about;
     }
 
-    // Should already be checked by module registry but here too just in case
+    public static LuaModule parseFromFile(LuaTable moduleTable, File file) {
+        String fileName = file.getName();
+
+        String name = LuaParser.parseString(moduleTable, "name", null, fileName);
+        String description = LuaParser.parseString(moduleTable, "description", "", fileName);
+        Set<String> groups = LuaParser.parseStringSet(moduleTable, "groups", fileName);
+        Set<String> modifies = LuaParser.parseStringSet(moduleTable, "modifies", fileName);
+
+        Integer seedOffsetInt = LuaParser.parseInt(moduleTable, "seedOffset", fileName);
+        // Default to 0
+        int seedOffset = (seedOffsetInt != null) ? seedOffsetInt : 0;
+        LuaFunction executeFunction = LuaParser.parseFunction(moduleTable, "execute", fileName);
+        LuaFunction onLoadFunction = LuaParser.parseFunction(moduleTable, "onLoad", fileName);
+
+        // Parse arguments - handled separately due to complexity
+        List<ArgumentDefinition> arguments = redactedrice.randomizer.metadata.ArgumentParser
+                .parseArgumentsFromTable(moduleTable, fileName);
+
+        String when = LuaParser.parseString(moduleTable, "when", null, fileName);
+        String author = LuaParser.parseString(moduleTable, "author", null, fileName);
+        String version = LuaParser.parseString(moduleTable, "version", null, fileName);
+        Map<String, String> requires = LuaParser.parseStringMap(moduleTable, "requires", fileName);
+        String source = LuaParser.parseString(moduleTable, "source", null, fileName);
+        String license = LuaParser.parseString(moduleTable, "license", null, fileName);
+        String about = LuaParser.parseString(moduleTable, "about", null, fileName);
+
+        // Create the module. This will validate and throw if there are issues
+        try {
+            return new LuaModule(name, description, groups, modifies, arguments, executeFunction,
+                    onLoadFunction, file.getAbsolutePath(), seedOffset, when, author, version,
+                    requires, source, license, about);
+        } catch (IllegalArgumentException e) {
+            redactedrice.randomizer.logger.ErrorTracker
+                    .addError(fileName + " validation failed: " + e.getMessage());
+            return null;
+        }
+    }
+
     private void validateRequiredFields(String name, LuaFunction executeFunction, String author,
             String version, Map<String, String> requires) {
         if (name == null || name.trim().isEmpty()) {
@@ -91,7 +128,7 @@ public class LuaModuleMetadata {
         }
     }
 
-    private void validateGroupsForModuleType(List<String> groups, boolean isScript) {
+    private void validateGroupsForModuleType(Set<String> groups, boolean isScript) {
         if (!isScript) {
             // Regular modules require at least one group
             if (groups == null || groups.isEmpty()) {
@@ -106,17 +143,28 @@ public class LuaModuleMetadata {
         }
     }
 
-    private List<String> normalizeStringList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return new ArrayList<>();
+    private void validateModifiesForModuleType(Set<String> modifies, boolean isScript) {
+        if (isScript) {
+            // Scripts should not have modifies
+            if (modifies != null && !modifies.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Scripts (when != null) should not have modifies");
+            }
         }
-        List<String> normalized = new ArrayList<>();
+        // Modifies is optional for modules
+    }
+
+    private Set<String> normalizeStringSet(Set<String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> normalized = new LinkedHashSet<>();
         for (String value : values) {
             if (value != null && !value.trim().isEmpty()) {
                 normalized.add(value.toLowerCase());
             }
         }
-        return normalized;
+        return Collections.unmodifiableSet(normalized);
     }
 
     // Getters
@@ -128,12 +176,12 @@ public class LuaModuleMetadata {
         return description;
     }
 
-    public List<String> getGroups() {
-        return Collections.unmodifiableList(groups);
+    public Set<String> getGroups() {
+        return Collections.unmodifiableSet(groups);
     }
 
-    public List<String> getModifies() {
-        return Collections.unmodifiableList(modifies);
+    public Set<String> getModifies() {
+        return Collections.unmodifiableSet(modifies);
     }
 
     public List<ArgumentDefinition> getArguments() {
@@ -195,7 +243,8 @@ public class LuaModuleMetadata {
     @Override
     public String toString() {
         return String.format(
-                "LuaModuleMetadata{name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, seedOffset=%d, when='%s', filePath='%s', author='%s', version='%s'}",
+                "LuaModule{name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, "
+                        + "seedOffset=%d, when='%s', filePath='%s', author='%s', version='%s'}",
                 name, groups, modifies, description, arguments.size(), defaultSeedOffset, when,
                 filePath, author, version);
     }

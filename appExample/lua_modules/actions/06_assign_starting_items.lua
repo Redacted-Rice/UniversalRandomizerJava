@@ -7,7 +7,7 @@ local randomizer = require("randomizer")
 return {
 	name = "06_assign_starting_items",
 	description = "Two-phase assignment: weighted rarity, then grouped item selection",
-	group = "players",
+	groups = { "players" },
 	modifies = { "startingItem", "startingItemRarity" },
 	author = "Redacted Rice",
 	version = "1.0.0",

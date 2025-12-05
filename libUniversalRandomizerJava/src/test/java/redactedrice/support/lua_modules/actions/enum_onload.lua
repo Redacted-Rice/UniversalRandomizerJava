@@ -6,7 +6,7 @@ local randomizer = require("randomizer")
 return {
 	name = "Enum OnLoad",
 	description = "Registers test enums in onLoad for use by other modules",
-	group = "utils",
+	groups = { "utils" },
 	modifies = { "context" },
 	author = "Test Author",
 	version = "0.1",

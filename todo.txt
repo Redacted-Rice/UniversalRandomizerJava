@@ -7,6 +7,7 @@ A list of things to do in no particular order:
   - Separate execution request/results classes?
 
 Coding cleanliness tasks
+- Refactor and rename to better align with where files have been going
 - Look into null annotations
 - get gradle sonarlint working. I know some functions are too complex ATM and I'm sure there are other issues
 
@@ -19,3 +20,4 @@ Potential things:
 - Make it so it can abort if a module fails or have some dependcies structure to say what requires what or what needs to be run before hand?
 - Add a way to allow testing/validating modules without a full run?
 - Allow nested groups/modifies
+- Make logger & tracker non-static?

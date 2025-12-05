@@ -10,6 +10,7 @@ import redactedrice.support.test.FlagEnum;
 import redactedrice.randomizer.wrapper.LuaRandomizerWrapper;
 import redactedrice.randomizer.wrapper.ExecutionResult;
 import redactedrice.randomizer.wrapper.ExecutionRequest;
+import redactedrice.randomizer.wrapper.LuaModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -77,10 +78,9 @@ public class EnhancedFeaturesTest {
 
     @Test
     public void testModuleGrouping() {
-        List<redactedrice.randomizer.metadata.LuaModuleMetadata> modules =
-                wrapper.getAvailableModules();
+        List<LuaModule> modules = wrapper.getAvailableModules();
         Map<String, List<String>> modulesByGroup = new HashMap<>();
-        for (redactedrice.randomizer.metadata.LuaModuleMetadata module : modules) {
+        for (LuaModule module : modules) {
             for (String group : module.getGroups()) {
                 modulesByGroup.putIfAbsent(group, new ArrayList<>());
                 modulesByGroup.get(group).add(module.getName());
@@ -122,12 +122,12 @@ public class EnhancedFeaturesTest {
         wrapper.loadModules();
 
         // Check that the Enum OnLoad module was loaded
-        LuaModuleMetadata onLoadModule = wrapper.getModule("Enum OnLoad");
+        LuaModule onLoadModule = wrapper.getModule("Enum OnLoad");
         assertNotNull(onLoadModule, "Enum OnLoad module should be loaded");
         assertTrue(onLoadModule.hasOnLoad(), "Enum OnLoad module should have onLoad function");
 
         // Check that the Enum Usage module was loaded
-        LuaModuleMetadata usageModule = wrapper.getModule("Enum Usage");
+        LuaModule usageModule = wrapper.getModule("Enum Usage");
         assertNotNull(usageModule, "Enum Usage module should be loaded");
 
         // Create a context and execute the usage module

@@ -2,8 +2,8 @@ package redactedrice.randomizer.wrapper;
 
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.logger.Logger;
+import redactedrice.randomizer.logger.ErrorTracker;
 import redactedrice.randomizer.metadata.ArgumentDefinition;
-import redactedrice.randomizer.metadata.LuaModuleMetadata;
 import redactedrice.randomizer.wrapper.sandbox.LuaSandbox;
 
 import org.luaj.vm2.LuaError;
@@ -18,7 +18,6 @@ import java.util.*;
 // runs lua modules with the given context and arguments
 public class ModuleExecutor {
     LuaSandbox sandbox;
-    List<String> errors;
     List<ExecutionResult> results;
 
     public ModuleExecutor(LuaSandbox sandbox) {
@@ -26,11 +25,10 @@ public class ModuleExecutor {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
         this.sandbox = sandbox;
-        this.errors = new ArrayList<>();
         this.results = new ArrayList<>();
     }
 
-    private ExecutionResult executeLuaModule(ExecutionRequest request, LuaModuleMetadata metadata,
+    private ExecutionResult executeLuaModule(ExecutionRequest request, LuaModule metadata,
             JavaContext context) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
@@ -60,12 +58,12 @@ public class ModuleExecutor {
             execResult = ExecutionResult.success(request, result);
         } catch (LuaError e) {
             String errorMsg = formatLuaError(metadata, e);
-            addError(errorMsg, "Lua execution error: " + e.getMessage());
+            ErrorTracker.addError(errorMsg);
             execResult = ExecutionResult.failure(request, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = formatJavaError(metadata, e);
-            addError(errorMsg, "Java exception: " + e.getMessage());
+            ErrorTracker.addError(errorMsg);
             execResult = ExecutionResult.failure(request, errorMsg);
         } finally {
             // Always set the module name back to support recursive calls
@@ -75,7 +73,7 @@ public class ModuleExecutor {
         return execResult;
     }
 
-    private ExecutionResult executeLuaScript(LuaModuleMetadata script, JavaContext context,
+    private ExecutionResult executeLuaScript(LuaModule script, JavaContext context,
             String scriptTiming, String scriptWhen) {
         if (script == null) {
             throw new IllegalArgumentException("Script metadata cannot be null");
@@ -96,12 +94,12 @@ public class ModuleExecutor {
             execResult = ExecutionResult.scriptSuccess(moduleName, result);
         } catch (LuaError e) {
             String errorMsg = formatLuaError(script, e);
-            addError(errorMsg, "Lua execution error: " + e.getMessage());
+            ErrorTracker.addError(errorMsg);
             execResult = ExecutionResult.scriptFailure(moduleName, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = formatJavaError(script, e);
-            addError(errorMsg, "Java exception: " + e.getMessage());
+            ErrorTracker.addError(errorMsg);
             execResult = ExecutionResult.scriptFailure(moduleName, errorMsg);
         } finally {
             // Always set the module name back to support recursive calls
@@ -111,13 +109,13 @@ public class ModuleExecutor {
         return execResult;
     }
 
-    public ExecutionResult executeModule(LuaModuleMetadata metadata, JavaContext context,
-            List<LuaModuleMetadata> preModuleScripts, List<LuaModuleMetadata> postModuleScripts,
+    public ExecutionResult executeModule(LuaModule metadata, JavaContext context,
+            List<LuaModule> preModuleScripts, List<LuaModule> postModuleScripts,
             ExecutionRequest request) {
 
         // Execute pre module script(s)
         if (preModuleScripts != null) {
-            for (LuaModuleMetadata script : preModuleScripts) {
+            for (LuaModule script : preModuleScripts) {
                 try {
                     executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_PRE,
                             ModuleRegistry.SCRIPT_WHEN_MODULE);
@@ -133,7 +131,7 @@ public class ModuleExecutor {
 
         // Execute post module script(s)
         if (postModuleScripts != null) {
-            for (LuaModuleMetadata script : postModuleScripts) {
+            for (LuaModule script : postModuleScripts) {
                 try {
                     executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_POST,
                             ModuleRegistry.SCRIPT_WHEN_MODULE);
@@ -147,7 +145,7 @@ public class ModuleExecutor {
         return result;
     }
 
-    private LuaValue executeWithTraceback(LuaModuleMetadata metadata, LuaTable contextTable,
+    private LuaValue executeWithTraceback(LuaModule metadata, LuaTable contextTable,
             LuaTable argsTable) {
         try {
             // get xpcall and debug table from lua sandbox
@@ -170,7 +168,7 @@ public class ModuleExecutor {
         return metadata.getExecuteFunction().call(contextTable, argsTable);
     }
 
-    private LuaValue executeWithXpcall(LuaModuleMetadata metadata, LuaTable contextTable,
+    private LuaValue executeWithXpcall(LuaModule metadata, LuaTable contextTable,
             LuaTable argsTable, LuaValue xpcall, LuaValue traceback) {
         // make an error handler that captures the full stack trace
         // the 2 skips the error handler and xpcall frames
@@ -210,10 +208,10 @@ public class ModuleExecutor {
         }
     }
 
-    public void executeScripts(List<LuaModuleMetadata> scripts, JavaContext context,
-            String scriptTiming, String scriptWhen) {
+    public void executeScripts(List<LuaModule> scripts, JavaContext context, String scriptTiming,
+            String scriptWhen) {
         if (scripts != null) {
-            for (LuaModuleMetadata script : scripts) {
+            for (LuaModule script : scripts) {
                 try {
                     executeLuaScript(script, context, scriptTiming, scriptWhen);
                 } catch (Exception e) {
@@ -226,16 +224,16 @@ public class ModuleExecutor {
 
     // Execute multiple modules with pre/post module scripts for each
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
-            ModuleRegistry moduleRegistry, JavaContext context,
-            List<LuaModuleMetadata> preModuleScripts, List<LuaModuleMetadata> postModuleScripts) {
+            ModuleRegistry moduleRegistry, JavaContext context, List<LuaModule> preModuleScripts,
+            List<LuaModule> postModuleScripts) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
         for (ExecutionRequest request : requests) {
             // Look up the module metadata from the registry
-            LuaModuleMetadata module = moduleRegistry.getModule(request.getModuleName());
+            LuaModule module = moduleRegistry.getModule(request.getModuleName());
             if (module == null) {
                 String errorMsg = "Module not found: " + request.getModuleName();
-                addError(errorMsg, errorMsg);
+                ErrorTracker.addError(errorMsg);
                 ExecutionResult errorResult = ExecutionResult.failure(request, errorMsg);
                 execResults.add(errorResult);
                 continue;
@@ -250,8 +248,8 @@ public class ModuleExecutor {
         return execResults;
     }
 
-    private Map<String, Object> validateArguments(LuaModuleMetadata metadata,
-            Map<String, Object> arguments, redactedrice.randomizer.context.JavaContext context) {
+    private Map<String, Object> validateArguments(LuaModule metadata, Map<String, Object> arguments,
+            redactedrice.randomizer.context.JavaContext context) {
         Map<String, Object> validated = new HashMap<>();
 
         if (arguments == null) {
@@ -291,8 +289,7 @@ public class ModuleExecutor {
         return validated;
     }
 
-    private LuaTable convertArgumentsToLuaTable(LuaModuleMetadata metadata,
-            Map<String, Object> arguments) {
+    private LuaTable convertArgumentsToLuaTable(LuaModule metadata, Map<String, Object> arguments) {
         LuaTable table = new LuaTable();
 
         if (arguments != null) {
@@ -376,29 +373,17 @@ public class ModuleExecutor {
         }
     }
 
-    private void addError(String error, String loggerErrorMsg) {
-        errors.add(error);
-        Logger.error(loggerErrorMsg);
-    }
-
-    public List<String> getErrors() {
-        return new ArrayList<>(errors);
-    }
-
     public List<ExecutionResult> getResults() {
         return new ArrayList<>(results);
     }
 
-    public boolean hasErrors() {
-        return !errors.isEmpty();
-    }
-
     public void clearResults() {
-        errors.clear();
+        // TODO: Handle this better - probably means making non static
+        ErrorTracker.clearErrors();
         results.clear();
     }
 
-    private String formatLuaError(LuaModuleMetadata metadata, LuaError e) {
+    private String formatLuaError(LuaModule metadata, LuaError e) {
         StringBuilder sb = new StringBuilder();
         sb.append("Lua error in module '").append(metadata.getName()).append("'");
 
@@ -516,9 +501,9 @@ public class ModuleExecutor {
         }
     }
 
-    private String formatJavaError(LuaModuleMetadata metadata, Exception e) {
+    private String formatJavaError(LuaModule metadata, Exception e) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Error executing module '").append(metadata.getName()).append("'");
+        sb.append("Java error executing module '").append(metadata.getName()).append("'");
 
         // add the file name if available
         String filePath = metadata.getFilePath();

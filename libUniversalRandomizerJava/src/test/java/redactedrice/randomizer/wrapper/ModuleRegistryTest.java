@@ -1,6 +1,6 @@
 package redactedrice.randomizer.wrapper;
 
-import redactedrice.randomizer.metadata.LuaModuleMetadata;
+import redactedrice.randomizer.wrapper.LuaModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,11 +43,11 @@ public class ModuleRegistryTest {
         assertTrue(loaded > 0);
 
         // Only health group modules should be loaded
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByGroup("health");
+        List<LuaModule> healthModules = wrapper.getModulesByGroup("health");
         assertEquals(2, healthModules.size());
 
         // Damage group should be empty (was filtered out)
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByGroup("damage");
+        List<LuaModule> damageModules = wrapper.getModulesByGroup("damage");
         assertEquals(0, damageModules.size());
 
         // Verify specific modules
@@ -70,7 +70,7 @@ public class ModuleRegistryTest {
         assertTrue(loaded > 0);
 
         // Only modules that modify damage should be loaded
-        List<LuaModuleMetadata> damageModules = wrapper.getModulesByModifies("damage");
+        List<LuaModule> damageModules = wrapper.getModulesByModifies("damage");
         assertTrue(damageModules.size() > 0);
 
         // Verify specific modules
@@ -194,15 +194,25 @@ public class ModuleRegistryTest {
         wrapper.loadModules();
 
         // Health Randomizer should be loaded since it has health modifies
-        LuaModuleMetadata module = wrapper.getModule("Health Randomizer");
+        LuaModule module = wrapper.getModule("Health Randomizer");
         assertNotNull(module);
 
         // It should appear in health category
-        List<LuaModuleMetadata> healthModules = wrapper.getModulesByModifies("health");
+        List<LuaModule> healthModules = wrapper.getModulesByModifies("health");
         assertTrue(healthModules.stream().anyMatch(m -> m.getName().equals("Health Randomizer")));
 
         // It should not appear in stats category since it was not defined ahead of time
-        List<LuaModuleMetadata> statsModules = wrapper.getModulesByModifies("stats");
+        List<LuaModule> statsModules = wrapper.getModulesByModifies("stats");
         assertFalse(statsModules.stream().anyMatch(m -> m.getName().equals("Health Randomizer")));
+    }
+
+    @Test
+    public void testModifiesFieldIsOptional() {
+        // Modules should allow empty/missing modifies
+        wrapper.loadModules();
+        LuaModule module = wrapper.getModule("No Modifies Test");
+        assertNotNull(module);
+        assertTrue(module.getModifies().isEmpty());
+        assertFalse(module.getGroups().isEmpty());
     }
 }

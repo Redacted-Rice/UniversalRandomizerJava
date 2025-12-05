@@ -6,7 +6,7 @@ local randomizer = require("randomizer")
 return {
 	name = "Damage Randomizer",
 	description = "Randomizes entity damage",
-	group = "damage",
+	groups = { "damage" },
 	modifies = { "damage", "stats" },
 	seedOffset = 20,
 	author = "Test Author",

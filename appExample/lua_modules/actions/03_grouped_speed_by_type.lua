@@ -6,7 +6,7 @@ local randomizer = require("randomizer")
 return {
 	name = "03_grouped_speed_by_type",
 	description = "Randomizes speed values based on entity type using min/max ranges",
-	group = "players",
+	groups = { "players" },
 	modifies = { "speed" },
 	author = "Redacted Rice",
 	version = "1.0.0",
