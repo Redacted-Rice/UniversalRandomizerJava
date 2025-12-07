@@ -7,6 +7,7 @@ import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.utils.ManifestResourceExtractor;
+import redactedrice.randomizer.utils.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -96,10 +97,8 @@ public class ExampleApp {
         // Warn and Error to randomizer_warn_err.log
         wrapper.setLogEnabled(true);
         wrapper.addStreamForAllLogLevels(logFileStream); // All logs to main log file
-        wrapper.addStreamForLogLevels(warnErrFileStream,
-                redactedrice.randomizer.logger.Logger.LogLevel.WARN,
-                redactedrice.randomizer.logger.Logger.LogLevel.ERROR); // Warnings and errors to
-                                                                       // separate file
+        wrapper.addStreamForLogLevels(warnErrFileStream, Logger.LogLevel.WARN,
+                Logger.LogLevel.ERROR); // Warnings and errors to separate file
         wrapper.setShowLogTimestamp(false);
         wrapper.setShowLogModuleName(true);
         // wrapper.setLogMinLevel(redactedrice.randomizer.debug.Logger.LogLevel.INFO);

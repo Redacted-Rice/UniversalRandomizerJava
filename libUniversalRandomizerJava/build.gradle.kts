@@ -75,21 +75,24 @@ tasks.register<Sync>("copyRandomizerFiles") {
     group = "build"
     description = "Syncs randomizer Lua files from UniversalRandomizerCore into resources"
 
-    from("${rootProject.projectDir}/UniversalRandomizerCore/randomizer") {
+    val randomizerSourceDir = rootProject.layout.projectDirectory.dir("UniversalRandomizerCore/randomizer")
+    val randomizerDestDir = layout.projectDirectory.dir("src/main/resources/randomizer")
+    val manifestFile = layout.projectDirectory.file("src/main/resources/randomizer/.manifest")
+
+    from(randomizerSourceDir) {
         include("*.lua")
     }
-    into("${projectDir}/src/main/resources/randomizer")
+    into(randomizerDestDir)
 
     doLast {
         // Generate manifest file listing all copied files. We use this in our
         // resource extractor to extract everything out without having to
         // list everything manually
-        val manifestFile = file("${projectDir}/src/main/resources/randomizer/.manifest")
-        val files = fileTree("${projectDir}/src/main/resources/randomizer") {
-            include("*.lua")
-            exclude(".manifest")
-        }.files.map { it.name }.sorted()
-        manifestFile.writeText(files.joinToString("\n"))
+        val destDirFile = randomizerDestDir.asFile
+        val files = destDirFile.listFiles { file ->
+            file.isFile && file.name.endsWith(".lua") && file.name != ".manifest"
+        }?.map { it.name }?.sorted() ?: emptyList()
+        manifestFile.asFile.writeText(files.joinToString("\n"))
     }
 }
 

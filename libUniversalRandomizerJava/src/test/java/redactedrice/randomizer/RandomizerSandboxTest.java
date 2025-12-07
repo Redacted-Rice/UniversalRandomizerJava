@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
 
 import java.io.File;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -382,6 +383,17 @@ public class RandomizerSandboxTest {
 
             assertTrue(exception.getMessage().contains("Access denied")
                     || exception.getMessage().contains("not in allowed directories"));
+        } catch (FileSystemException e) {
+            // On windows this means we don't have permission so warn and skip
+            String osName = System.getProperty("os.name").toLowerCase();
+            if (osName.contains("windows")) {
+                System.out
+                        .println("Skipping symlink test for windows as it needs admin privileges");
+                return;
+            } else {
+                // Non windows should work so throw the exception
+                throw e;
+            }
         } finally {
             // Always clean up symlink
             if (Files.exists(symlinkPath)) {
