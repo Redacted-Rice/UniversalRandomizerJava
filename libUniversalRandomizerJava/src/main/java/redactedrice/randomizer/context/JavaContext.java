@@ -108,7 +108,7 @@ public class JavaContext {
 
         // Add regular objects with proper conversion
         for (Map.Entry<String, Object> entry : objects.entrySet()) {
-            LuaValue luaValue = javaToLuaValue(entry.getValue());
+            LuaValue luaValue = convertJavaValueForContext(entry.getValue());
             table.set(entry.getKey(), luaValue);
         }
 
@@ -116,7 +116,7 @@ public class JavaContext {
         if (!config.isEmpty()) {
             LuaTable configTable = new LuaTable();
             for (Map.Entry<String, Object> entry : config.entrySet()) {
-                LuaValue luaValue = javaToLuaValue(entry.getValue());
+                LuaValue luaValue = convertJavaValueForContext(entry.getValue());
                 configTable.set(entry.getKey(), luaValue);
             }
             table.set("config", configTable);
@@ -247,34 +247,16 @@ public class JavaContext {
         return table;
     }
 
-    // This only runs when adding to context
-    private LuaValue javaToLuaValue(Object value) {
+    private LuaValue convertJavaValueForContext(Object value) {
         if (value == null) {
             return LuaValue.NIL;
-        } else if (value instanceof List) {
-            // Convert List to Lua table (1-indexed)
-            List<?> list = (List<?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (int i = 0; i < list.size(); i++) {
-                luaTable.set(i + 1, javaToLuaValue(list.get(i)));
-            }
-            return luaTable;
-        } else if (value instanceof Map) {
-            // Convert Map to Lua table
-            Map<?, ?> map = (Map<?, ?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                LuaValue key = javaToLuaValue(entry.getKey());
-                LuaValue val = javaToLuaValue(entry.getValue());
-                luaTable.set(key, val);
-            }
-            return luaTable;
         } else if (value instanceof Enum) {
             // Convert enum to string (using name()) for primary string-based handling
             return LuaValue.valueOf(((Enum<?>) value).name());
-        } else if (isPrimitiveOrWrapper(value) || value instanceof String) {
-            // Primitives and strings: use direct coercion
-            return CoerceJavaToLua.coerce(value);
+        } else if (isPrimitiveOrWrapper(value) || value instanceof String || value instanceof List
+                || value instanceof Map) {
+            // Use standard converter for primitives, strings, and collections
+            return JavaToLuaConverter.convert(value);
         } else {
             // Wrap Java objects in extensible Lua tables
             return wrapJavaObjectInLuaTable(value);
@@ -412,7 +394,14 @@ public class JavaContext {
 
                     Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
                     // Convert return value if it's a Java object
-                    return convertReturnValue(result);
+                    LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
+                    if (firstValue.isuserdata()) {
+                        Object javaObject = firstValue.touserdata();
+                        if (javaObject instanceof List || javaObject instanceof Map) {
+                            return JavaToLuaConverter.convert(javaObject);
+                        }
+                    }
+                    return result;
                 } else {
                     // Method not found via reflection, call original method as-is
                     LuaValue[] newArgs = new LuaValue[args.narg()];
@@ -421,30 +410,18 @@ public class JavaContext {
                         newArgs[i] = args.arg(i + 1);
                     }
                     Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
-                    // convert return value if it's a Java object
-                    return convertReturnValue(result);
+                    // Convert return value if it's a Java object
+                    LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
+                    if (firstValue.isuserdata()) {
+                        Object javaObject = firstValue.touserdata();
+                        if (javaObject instanceof List || javaObject instanceof Map) {
+                            return JavaToLuaConverter.convert(javaObject);
+                        }
+                    }
+                    return result;
                 }
             }
         };
-    }
-
-    // Converts from java map or list to lua table
-    private Varargs convertReturnValue(Varargs result) {
-        if (result.narg() == 0) {
-            return result;
-        }
-
-        LuaValue firstValue = result.arg1();
-
-        // convert java maps and lists to lua tables
-        if (firstValue.isuserdata()) {
-            Object javaObject = firstValue.touserdata();
-            if (javaObject instanceof List || javaObject instanceof Map) {
-                return javaToLuaValue(javaObject);
-            }
-        }
-
-        return result;
     }
 
     // Cache for method lookups to avoid repeated reflection

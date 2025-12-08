@@ -1,6 +1,7 @@
 package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.context.JavaContext;
+import redactedrice.randomizer.context.JavaToLuaConverter;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
@@ -12,7 +13,6 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.util.*;
 
@@ -313,7 +313,7 @@ public class ModuleExecutor {
                     // for group types convert the map to a lua table then wrap it with randomizer
                     // group
                     try {
-                        LuaValue mapTable = javaToLuaValue(value);
+                        LuaValue mapTable = JavaToLuaConverter.convert(value);
 
                         // get the randomizer module and group function
                         LuaValue randomizerModule = sandbox.getGlobals().get("require")
@@ -334,43 +334,13 @@ public class ModuleExecutor {
                     }
                 } else {
                     // regular conversion for non group types
-                    LuaValue luaValue = javaToLuaValue(value);
+                    LuaValue luaValue = JavaToLuaConverter.convert(value);
                     table.set(argName, luaValue);
                 }
             }
         }
 
         return table;
-    }
-
-    // convert java object to lua value handling collections
-    private LuaValue javaToLuaValue(Object value) {
-        if (value == null) {
-            return LuaValue.NIL;
-        } else if (value instanceof List) {
-            // convert list to lua table with 1 based indexing
-            List<?> list = (List<?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (int i = 0; i < list.size(); i++) {
-                // recursively convert list elements
-                luaTable.set(i + 1, javaToLuaValue(list.get(i)));
-            }
-            return luaTable;
-        } else if (value instanceof Map) {
-            // convert Map to Lua table
-            Map<?, ?> map = (Map<?, ?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                // recursively convert map keys and values
-                LuaValue key = javaToLuaValue(entry.getKey());
-                LuaValue val = javaToLuaValue(entry.getValue());
-                luaTable.set(key, val);
-            }
-            return luaTable;
-        } else {
-            // use standard coercion for primitives and strings
-            return CoerceJavaToLua.coerce(value);
-        }
     }
 
     public List<ExecutionResult> getResults() {

@@ -1,8 +1,6 @@
 package redactedrice.randomizer.context;
 
 import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -173,44 +171,17 @@ public class EnumContext {
     public Map<String, LuaTable> toLuaTables() {
         Map<String, LuaTable> luaEnums = new HashMap<>();
 
-        for (Map.Entry<String, EnumDefinition> entry : enums.entrySet()) {
-            LuaTable enumTable = new LuaTable();
-            EnumDefinition enumDef = entry.getValue();
-            List<String> values = enumDef.getValues();
-            Map<String, Integer> valueMap = enumDef.getValueMap();
-
-            // Create sequential array of strings
-            for (int i = 0; i < values.size(); i++) {
-                String value = values.get(i);
-                enumTable.set(i + 1, LuaValue.valueOf(value));
-            }
-
-            // Create values subtable mapping name -> integer value
-            if (!valueMap.isEmpty()) {
-                LuaTable valuesTable = new LuaTable();
-                for (Map.Entry<String, Integer> valueEntry : valueMap.entrySet()) {
-                    valuesTable.set(valueEntry.getKey(), LuaValue.valueOf(valueEntry.getValue()));
+        for (String enumName : getEnumNames()) {
+            EnumDefinition enumDef = getEnum(enumName);
+            if (enumDef != null) {
+                LuaTable enumTable = JavaToLuaConverter.enumDefinitionToLuaTable(enumName, enumDef);
+                if (enumTable != null) {
+                    luaEnums.put(enumName, enumTable);
                 }
-                enumTable.set("values", valuesTable);
             }
-
-            // Add metadata
-            enumTable.set("_name", LuaValue.valueOf(entry.getKey()));
-
-            // Make the table read-only (best effort in LuaJ)
-            enumTable.setmetatable(createReadOnlyMetatable());
-
-            luaEnums.put(entry.getKey(), enumTable);
         }
 
         return luaEnums;
-    }
-
-    private LuaTable createReadOnlyMetatable() {
-        LuaTable mt = new LuaTable();
-        // Prevent modifications
-        mt.set("__newindex", LuaValue.valueOf("Enums are read-only"));
-        return mt;
     }
 
 }

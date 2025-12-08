@@ -28,37 +28,4 @@ public enum ArgumentType {
                 throw new IllegalArgumentException("Unsupported type: " + luaType);
         }
     }
-
-    public Object convertValue(Object value) {
-        if (value == null) {
-            return null;
-        }
-
-        try {
-            switch (this) {
-                case STRING:
-                    return value.toString();
-                case INTEGER:
-                    if (value instanceof Number) {
-                        return ((Number) value).intValue();
-                    }
-                    return Integer.parseInt(value.toString());
-                case DOUBLE:
-                    if (value instanceof Number) {
-                        return ((Number) value).doubleValue();
-                    }
-                    return Double.parseDouble(value.toString());
-                case BOOLEAN:
-                    if (value instanceof Boolean) {
-                        return value;
-                    }
-                    return Boolean.parseBoolean(value.toString());
-                default:
-                    throw new IllegalArgumentException("Unknown type: " + this);
-            }
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Cannot convert value '" + value + "' to " + this,
-                    e);
-        }
-    }
 }
