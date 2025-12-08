@@ -12,7 +12,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TypeValidatorTest {
+public class ArgumentConverterTest {
 
     private EnumContext createTestEnumContext() {
         EnumContext context = new EnumContext();
@@ -23,26 +23,26 @@ public class TypeValidatorTest {
     @Test
     public void testConvertAndValidateString() {
         TypeDefinition typeDef = TypeDefinition.string();
-        Object result = TypeValidator.convertAndValidate("test", typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate("test", typeDef, null);
         assertEquals("test", result);
 
-        result = TypeValidator.convertAndValidate(123, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(123, typeDef, null);
         assertEquals("123", result);
     }
 
     @Test
     public void testConvertAndValidateInteger() {
         TypeDefinition typeDef = TypeDefinition.integer();
-        Object result = TypeValidator.convertAndValidate(42, typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate(42, typeDef, null);
         assertEquals(42, result);
 
-        result = TypeValidator.convertAndValidate(42.5, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(42.5, typeDef, null);
         assertEquals(42, result);
 
-        result = TypeValidator.convertAndValidate("42", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("42", typeDef, null);
         assertEquals(42, result);
 
-        result = TypeValidator.convertAndValidate(LuaInteger.valueOf(42), typeDef, null);
+        result = ArgumentConverter.convertAndValidate(LuaInteger.valueOf(42), typeDef, null);
         assertEquals(42, result);
     }
 
@@ -50,23 +50,23 @@ public class TypeValidatorTest {
     public void testConvertAndValidateIntegerInvalidThrows() {
         TypeDefinition typeDef = TypeDefinition.integer();
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("not a number", typeDef, null);
+            ArgumentConverter.convertAndValidate("not a number", typeDef, null);
         });
     }
 
     @Test
     public void testConvertAndValidateDouble() {
         TypeDefinition typeDef = TypeDefinition.doubleType();
-        Object result = TypeValidator.convertAndValidate(42.5, typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate(42.5, typeDef, null);
         assertEquals(42.5, result);
 
-        result = TypeValidator.convertAndValidate(42, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(42, typeDef, null);
         assertEquals(42.0, result);
 
-        result = TypeValidator.convertAndValidate("42.5", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("42.5", typeDef, null);
         assertEquals(42.5, result);
 
-        result = TypeValidator.convertAndValidate(LuaNumber.valueOf(42.5), typeDef, null);
+        result = ArgumentConverter.convertAndValidate(LuaNumber.valueOf(42.5), typeDef, null);
         assertEquals(42.5, result);
     }
 
@@ -74,41 +74,41 @@ public class TypeValidatorTest {
     public void testConvertAndValidateDoubleInvalidThrows() {
         TypeDefinition typeDef = TypeDefinition.doubleType();
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("not a number", typeDef, null);
+            ArgumentConverter.convertAndValidate("not a number", typeDef, null);
         });
     }
 
     @Test
     public void testConvertAndValidateBoolean() {
         TypeDefinition typeDef = TypeDefinition.bool();
-        Object result = TypeValidator.convertAndValidate(true, typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate(true, typeDef, null);
         assertEquals(true, result);
 
-        result = TypeValidator.convertAndValidate("true", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("true", typeDef, null);
         assertEquals(true, result);
 
-        result = TypeValidator.convertAndValidate("yes", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("yes", typeDef, null);
         assertEquals(true, result);
 
-        result = TypeValidator.convertAndValidate("1", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("1", typeDef, null);
         assertEquals(true, result);
 
-        result = TypeValidator.convertAndValidate("false", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("false", typeDef, null);
         assertEquals(false, result);
 
-        result = TypeValidator.convertAndValidate("no", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("no", typeDef, null);
         assertEquals(false, result);
 
-        result = TypeValidator.convertAndValidate("0", typeDef, null);
+        result = ArgumentConverter.convertAndValidate("0", typeDef, null);
         assertEquals(false, result);
 
-        result = TypeValidator.convertAndValidate(1, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(1, typeDef, null);
         assertEquals(true, result);
 
-        result = TypeValidator.convertAndValidate(0, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(0, typeDef, null);
         assertEquals(false, result);
 
-        result = TypeValidator.convertAndValidate(LuaValue.TRUE, typeDef, null);
+        result = ArgumentConverter.convertAndValidate(LuaValue.TRUE, typeDef, null);
         assertEquals(true, result);
     }
 
@@ -116,7 +116,7 @@ public class TypeValidatorTest {
     public void testConvertAndValidateBooleanInvalidThrows() {
         TypeDefinition typeDef = TypeDefinition.bool();
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("maybe", typeDef, null);
+            ArgumentConverter.convertAndValidate("maybe", typeDef, null);
         });
     }
 
@@ -125,10 +125,10 @@ public class TypeValidatorTest {
         EnumContext enumContext = createTestEnumContext();
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty");
 
-        Object result = TypeValidator.convertAndValidate("EASY", typeDef, enumContext);
+        Object result = ArgumentConverter.convertAndValidate("EASY", typeDef, enumContext);
         assertEquals("EASY", result);
 
-        result = TypeValidator.convertAndValidate("NORMAL", typeDef, enumContext);
+        result = ArgumentConverter.convertAndValidate("NORMAL", typeDef, enumContext);
         assertEquals("NORMAL", result);
     }
 
@@ -136,7 +136,7 @@ public class TypeValidatorTest {
     public void testConvertAndValidateEnumNullContextThrows() {
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty");
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("EASY", typeDef, null);
+            ArgumentConverter.convertAndValidate("EASY", typeDef, null);
         });
     }
 
@@ -145,7 +145,7 @@ public class TypeValidatorTest {
         EnumContext enumContext = createTestEnumContext();
         TypeDefinition typeDef = TypeDefinition.enumType("NonExistent");
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("EASY", typeDef, enumContext);
+            ArgumentConverter.convertAndValidate("EASY", typeDef, enumContext);
         });
     }
 
@@ -154,7 +154,7 @@ public class TypeValidatorTest {
         EnumContext enumContext = createTestEnumContext();
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty");
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("INVALID", typeDef, enumContext);
+            ArgumentConverter.convertAndValidate("INVALID", typeDef, enumContext);
         });
     }
 
@@ -164,7 +164,7 @@ public class TypeValidatorTest {
         TypeDefinition listType = TypeDefinition.listOf(elementType);
 
         List<Integer> input = Arrays.asList(1, 2, 3);
-        Object result = TypeValidator.convertAndValidate(input, listType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, listType, null);
         assertNotNull(result);
         assertTrue(result instanceof List);
         List<?> resultList = (List<?>) result;
@@ -181,7 +181,7 @@ public class TypeValidatorTest {
         table.set(2, LuaString.valueOf("value2"));
         table.set(3, LuaString.valueOf("value3"));
 
-        Object result = TypeValidator.convertAndValidate(table, listType, null);
+        Object result = ArgumentConverter.convertAndValidate(table, listType, null);
         assertNotNull(result);
         assertTrue(result instanceof List);
         List<?> resultList = (List<?>) result;
@@ -194,7 +194,7 @@ public class TypeValidatorTest {
         TypeDefinition listType = TypeDefinition.listOf(elementType);
 
         Object[] array = new Object[] {1, 2, 3};
-        Object result = TypeValidator.convertAndValidate(array, listType, null);
+        Object result = ArgumentConverter.convertAndValidate(array, listType, null);
         assertNotNull(result);
         assertTrue(result instanceof List);
     }
@@ -205,7 +205,7 @@ public class TypeValidatorTest {
         TypeDefinition listType = TypeDefinition.listOf(elementType);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("not a list", listType, null);
+            ArgumentConverter.convertAndValidate("not a list", listType, null);
         });
     }
 
@@ -219,7 +219,7 @@ public class TypeValidatorTest {
         input.put("key1", 1);
         input.put("key2", 2);
 
-        Object result = TypeValidator.convertAndValidate(input, mapType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, mapType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
         Map<?, ?> resultMap = (Map<?, ?>) result;
@@ -236,7 +236,7 @@ public class TypeValidatorTest {
         table.set("key1", LuaInteger.valueOf(1));
         table.set("key2", LuaInteger.valueOf(2));
 
-        Object result = TypeValidator.convertAndValidate(table, mapType, null);
+        Object result = ArgumentConverter.convertAndValidate(table, mapType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
         Map<?, ?> resultMap = (Map<?, ?>) result;
@@ -250,7 +250,7 @@ public class TypeValidatorTest {
         TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("not a map", mapType, null);
+            ArgumentConverter.convertAndValidate("not a map", mapType, null);
         });
     }
 
@@ -264,7 +264,7 @@ public class TypeValidatorTest {
         input.put("key1", Arrays.asList(1, 2, 3));
         input.put("key2", Arrays.asList(4, 5));
 
-        Object result = TypeValidator.convertAndValidate(input, groupType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, groupType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
     }
@@ -274,15 +274,15 @@ public class TypeValidatorTest {
         ArgumentConstraint constraint = ArgumentConstraint.range(1, 100);
         TypeDefinition typeDef = TypeDefinition.integer(constraint);
 
-        Object result = TypeValidator.convertAndValidate(50, typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate(50, typeDef, null);
         assertEquals(50, result);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate(150, typeDef, null);
+            ArgumentConverter.convertAndValidate(150, typeDef, null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate(0, typeDef, null);
+            ArgumentConverter.convertAndValidate(0, typeDef, null);
         });
     }
 
@@ -291,11 +291,11 @@ public class TypeValidatorTest {
         ArgumentConstraint constraint = ArgumentConstraint.discreteRange(0, 100, 10);
         TypeDefinition typeDef = TypeDefinition.integer(constraint);
 
-        Object result = TypeValidator.convertAndValidate(50, typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate(50, typeDef, null);
         assertEquals(50, result);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate(55, typeDef, null); // Not a multiple of 10
+            ArgumentConverter.convertAndValidate(55, typeDef, null); // Not a multiple of 10
         });
     }
 
@@ -305,11 +305,11 @@ public class TypeValidatorTest {
         ArgumentConstraint constraint = ArgumentConstraint.enumValues(allowedValues);
         TypeDefinition typeDef = TypeDefinition.string(constraint);
 
-        Object result = TypeValidator.convertAndValidate("A", typeDef, null);
+        Object result = ArgumentConverter.convertAndValidate("A", typeDef, null);
         assertEquals("A", result);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("D", typeDef, null);
+            ArgumentConverter.convertAndValidate("D", typeDef, null);
         });
     }
 
@@ -317,7 +317,7 @@ public class TypeValidatorTest {
     public void testConvertAndValidateNullThrows() {
         TypeDefinition typeDef = TypeDefinition.string();
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate(null, typeDef, null);
+            ArgumentConverter.convertAndValidate(null, typeDef, null);
         });
     }
 
@@ -328,7 +328,7 @@ public class TypeValidatorTest {
         // by testing with a complex type that might fail
         TypeDefinition typeDef = TypeDefinition.listOf(TypeDefinition.integer());
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeValidator.convertAndValidate("not a list", typeDef, null);
+            ArgumentConverter.convertAndValidate("not a list", typeDef, null);
         });
     }
 
@@ -336,22 +336,22 @@ public class TypeValidatorTest {
     public void testIntegerConversionFromVariousTypes() {
         TypeDefinition typeDef = TypeDefinition.integer();
 
-        assertEquals(42, TypeValidator.convertAndValidate((byte) 42, typeDef, null));
-        assertEquals(42, TypeValidator.convertAndValidate((short) 42, typeDef, null));
-        assertEquals(42, TypeValidator.convertAndValidate(42L, typeDef, null));
-        assertEquals(42, TypeValidator.convertAndValidate(42.0f, typeDef, null));
-        assertEquals(42, TypeValidator.convertAndValidate(42.0, typeDef, null));
+        assertEquals(42, ArgumentConverter.convertAndValidate((byte) 42, typeDef, null));
+        assertEquals(42, ArgumentConverter.convertAndValidate((short) 42, typeDef, null));
+        assertEquals(42, ArgumentConverter.convertAndValidate(42L, typeDef, null));
+        assertEquals(42, ArgumentConverter.convertAndValidate(42.0f, typeDef, null));
+        assertEquals(42, ArgumentConverter.convertAndValidate(42.0, typeDef, null));
     }
 
     @Test
     public void testDoubleConversionFromVariousTypes() {
         TypeDefinition typeDef = TypeDefinition.doubleType();
 
-        assertEquals(42.0, TypeValidator.convertAndValidate((byte) 42, typeDef, null));
-        assertEquals(42.0, TypeValidator.convertAndValidate((short) 42, typeDef, null));
-        assertEquals(42.0, TypeValidator.convertAndValidate(42, typeDef, null));
-        assertEquals(42.0, TypeValidator.convertAndValidate(42L, typeDef, null));
-        assertEquals(42.0, TypeValidator.convertAndValidate(42.0f, typeDef, null));
+        assertEquals(42.0, ArgumentConverter.convertAndValidate((byte) 42, typeDef, null));
+        assertEquals(42.0, ArgumentConverter.convertAndValidate((short) 42, typeDef, null));
+        assertEquals(42.0, ArgumentConverter.convertAndValidate(42, typeDef, null));
+        assertEquals(42.0, ArgumentConverter.convertAndValidate(42L, typeDef, null));
+        assertEquals(42.0, ArgumentConverter.convertAndValidate(42.0f, typeDef, null));
     }
 
     @Test
@@ -361,7 +361,7 @@ public class TypeValidatorTest {
 
         List<List<Integer>> input = Arrays.asList(Arrays.asList(1, 2), Arrays.asList(3, 4));
 
-        Object result = TypeValidator.convertAndValidate(input, nestedListType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, nestedListType, null);
         assertNotNull(result);
         assertTrue(result instanceof List);
     }
@@ -376,7 +376,7 @@ public class TypeValidatorTest {
         inner.put("key", 1);
         input.put("outer", inner);
 
-        Object result = TypeValidator.convertAndValidate(input, nestedMapType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, nestedMapType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
     }
@@ -387,7 +387,7 @@ public class TypeValidatorTest {
         TypeDefinition enumListType = TypeDefinition.listOf(TypeDefinition.enumType("Difficulty"));
 
         List<String> input = Arrays.asList("EASY", "NORMAL", "HARD");
-        Object result = TypeValidator.convertAndValidate(input, enumListType, enumContext);
+        Object result = ArgumentConverter.convertAndValidate(input, enumListType, enumContext);
         assertNotNull(result);
         assertTrue(result instanceof List);
     }

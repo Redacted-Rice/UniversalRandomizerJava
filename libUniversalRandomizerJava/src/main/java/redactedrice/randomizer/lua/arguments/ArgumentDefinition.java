@@ -33,7 +33,8 @@ public class ArgumentDefinition {
 
         // try to convert and validate the value
         try {
-            Object converted = TypeValidator.convertAndValidate(value, typeDefinition, enumContext);
+            Object converted =
+                    ArgumentConverter.convertAndValidate(value, typeDefinition, enumContext);
             return converted != null;
         } catch (Exception e) {
             // any exception during validation means the value is invalid
@@ -48,7 +49,7 @@ public class ArgumentDefinition {
         }
 
         // convert and validate using typevalidator
-        return TypeValidator.convertAndValidate(value, typeDefinition, enumContext);
+        return ArgumentConverter.convertAndValidate(value, typeDefinition, enumContext);
     }
 
     // Getters
