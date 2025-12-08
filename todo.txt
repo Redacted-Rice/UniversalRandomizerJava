@@ -21,3 +21,4 @@ Potential things:
 - Add a way to allow testing/validating modules without a full run?
 - Allow nested groups/modifies
 - Make logger & tracker non-static?
+- Remove psuedo enum registry? Think it may be OBE with latest changes to support grouping

@@ -75,68 +75,6 @@ public class LuaToJavaConverter {
         return map;
     }
 
-    // ---------------- Specific primitives conversion ----------------
-
-    public static String convertToString(Object value) {
-        return value.toString();
-    }
-
-    public static Integer convertToInteger(Object value) {
-        if (value instanceof Integer) {
-            return (Integer) value;
-        } else if (value instanceof Number) {
-            return ((Number) value).intValue();
-        } else if (value instanceof String) {
-            try {
-                return Integer.parseInt((String) value);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Cannot convert '" + value + "' to integer");
-            }
-        } else if (value instanceof LuaValue) {
-            return ((LuaValue) value).toint();
-        }
-        throw new IllegalArgumentException(
-                "Cannot convert " + value.getClass().getSimpleName() + " to integer");
-    }
-
-    public static Double convertToDouble(Object value) {
-        if (value instanceof Double) {
-            return (Double) value;
-        } else if (value instanceof Number) {
-            return ((Number) value).doubleValue();
-        } else if (value instanceof String) {
-            try {
-                return Double.parseDouble((String) value);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Cannot convert '" + value + "' to double");
-            }
-        } else if (value instanceof LuaValue) {
-            return ((LuaValue) value).todouble();
-        }
-        throw new IllegalArgumentException(
-                "Cannot convert " + value.getClass().getSimpleName() + " to double");
-    }
-
-    public static Boolean convertToBoolean(Object value) {
-        if (value instanceof Boolean) {
-            return (Boolean) value;
-        } else if (value instanceof String) {
-            String str = ((String) value).toLowerCase();
-            if (str.equals("true") || str.equals("yes") || str.equals("1")) {
-                return true;
-            } else if (str.equals("false") || str.equals("no") || str.equals("0")) {
-                return false;
-            }
-            throw new IllegalArgumentException("Cannot convert '" + value + "' to boolean");
-        } else if (value instanceof Number) {
-            return ((Number) value).intValue() != 0;
-        } else if (value instanceof LuaValue) {
-            return ((LuaValue) value).toboolean();
-        }
-        throw new IllegalArgumentException(
-                "Cannot convert " + value.getClass().getSimpleName() + " to boolean");
-    }
-
     // ---------------- Extract values from tables ----------------
 
     public static String tryGetStringFromTable(LuaTable table, String fieldName,

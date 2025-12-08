@@ -8,8 +8,11 @@ import org.luaj.vm2.LuaValue;
 
 import java.util.*;
 
-// handles converting and validating argument values based on their type definitions
-public class TypeValidator {
+/**
+ * Converts and validates argument values based on their type definitions. Handles type conversion
+ * from Lua or Java for parsing and passing arguments
+ */
+public class ArgumentConverter {
     public static Object convertAndValidate(Object value, TypeDefinition typeDef,
             EnumContext enumContext) {
         if (value == null) {
@@ -17,7 +20,7 @@ public class TypeValidator {
         }
 
         // convert the value to the right type
-        Object converted = convertValue(value, typeDef, enumContext);
+        Object converted = convertToType(value, typeDef, enumContext);
 
         // check constraints for primitive types
         if (typeDef.isPrimitive()) {
@@ -32,21 +35,21 @@ public class TypeValidator {
         return converted;
     }
 
-    private static Object convertValue(Object value, TypeDefinition typeDef,
+    private static Object convertToType(Object value, TypeDefinition typeDef,
             EnumContext enumContext) {
         // call the right converter based on type
         switch (typeDef.getBaseType()) {
             case STRING:
-                return LuaToJavaConverter.convertToString(value);
+                return convertToString(value);
 
             case INTEGER:
-                return LuaToJavaConverter.convertToInteger(value);
+                return convertToInteger(value);
 
             case DOUBLE:
-                return LuaToJavaConverter.convertToDouble(value);
+                return convertToDouble(value);
 
             case BOOLEAN:
-                return LuaToJavaConverter.convertToBoolean(value);
+                return convertToBoolean(value);
 
             case ENUM:
                 // need enumcontext to look up valid enum values
@@ -70,6 +73,66 @@ public class TypeValidator {
             default:
                 throw new IllegalArgumentException("Unknown type: " + typeDef.getBaseType());
         }
+    }
+
+    private static String convertToString(Object value) {
+        return value.toString();
+    }
+
+    private static Integer convertToInteger(Object value) {
+        if (value instanceof Integer) {
+            return (Integer) value;
+        } else if (value instanceof Number) {
+            return ((Number) value).intValue();
+        } else if (value instanceof String) {
+            try {
+                return Integer.parseInt((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Cannot convert '" + value + "' to integer");
+            }
+        } else if (value instanceof LuaValue) {
+            return ((LuaValue) value).toint();
+        }
+        throw new IllegalArgumentException(
+                "Cannot convert " + value.getClass().getSimpleName() + " to integer");
+    }
+
+    private static Double convertToDouble(Object value) {
+        if (value instanceof Double) {
+            return (Double) value;
+        } else if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        } else if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Cannot convert '" + value + "' to double");
+            }
+        } else if (value instanceof LuaValue) {
+            return ((LuaValue) value).todouble();
+        }
+        throw new IllegalArgumentException(
+                "Cannot convert " + value.getClass().getSimpleName() + " to double");
+    }
+
+    private static Boolean convertToBoolean(Object value) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else if (value instanceof String) {
+            String str = ((String) value).toLowerCase();
+            if (str.equals("true") || str.equals("yes") || str.equals("1")) {
+                return true;
+            } else if (str.equals("false") || str.equals("no") || str.equals("0")) {
+                return false;
+            }
+            throw new IllegalArgumentException("Cannot convert '" + value + "' to boolean");
+        } else if (value instanceof Number) {
+            return ((Number) value).intValue() != 0;
+        } else if (value instanceof LuaValue) {
+            return ((LuaValue) value).toboolean();
+        }
+        throw new IllegalArgumentException(
+                "Cannot convert " + value.getClass().getSimpleName() + " to boolean");
     }
 
     private static String convertToEnum(Object value, String enumName, EnumContext enumContext) {
@@ -119,7 +182,7 @@ public class TypeValidator {
         if (value instanceof List) {
             List<?> sourceList = (List<?>) value;
             for (Object element : sourceList) {
-                Object converted = convertValue(element, elementType, enumContext);
+                Object converted = convertToType(element, elementType, enumContext);
                 result.add(converted);
             }
         } else if (value instanceof LuaTable) {
@@ -130,7 +193,7 @@ public class TypeValidator {
             for (int i = 1; i <= len; i++) {
                 LuaValue element = table.get(i);
                 if (!element.isnil()) {
-                    Object converted = convertValue(LuaToJavaConverter.convert(element, true),
+                    Object converted = convertToType(LuaToJavaConverter.convert(element, true),
                             elementType, enumContext);
                     result.add(converted);
                 }
@@ -139,7 +202,7 @@ public class TypeValidator {
             // handle java arrays
             Object[] array = (Object[]) value;
             for (Object element : array) {
-                Object converted = convertValue(element, elementType, enumContext);
+                Object converted = convertToType(element, elementType, enumContext);
                 result.add(converted);
             }
         } else {
@@ -159,8 +222,8 @@ public class TypeValidator {
             // convert java maps
             Map<?, ?> sourceMap = (Map<?, ?>) value;
             for (Map.Entry<?, ?> entry : sourceMap.entrySet()) {
-                Object convertedKey = convertValue(entry.getKey(), keyType, enumContext);
-                Object convertedValue = convertValue(entry.getValue(), valueType, enumContext);
+                Object convertedKey = convertToType(entry.getKey(), keyType, enumContext);
+                Object convertedValue = convertToType(entry.getValue(), valueType, enumContext);
                 result.put(convertedKey, convertedValue);
             }
         } else if (value instanceof LuaTable) {
@@ -170,9 +233,9 @@ public class TypeValidator {
             for (LuaValue key : keys) {
                 LuaValue val = table.get(key);
                 Object convertedKey =
-                        convertValue(LuaToJavaConverter.convert(key, true), keyType, enumContext);
-                Object convertedValue =
-                        convertValue(LuaToJavaConverter.convert(val, true), valueType, enumContext);
+                        convertToType(LuaToJavaConverter.convert(key, true), keyType, enumContext);
+                Object convertedValue = convertToType(LuaToJavaConverter.convert(val, true),
+                        valueType, enumContext);
                 result.put(convertedKey, convertedValue);
             }
         } else {
