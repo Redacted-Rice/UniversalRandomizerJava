@@ -2,11 +2,7 @@ package redactedrice.randomizer.utils;
 
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -43,26 +39,6 @@ public class Logger {
             } else {
                 levelStreams.get(level).add(System.out);
             }
-        }
-    }
-
-    public enum LogLevel {
-        DEBUG(0, "DEBUG"), INFO(1, "INFO "), WARN(2, "WARN "), ERROR(3, "ERROR");
-
-        int level;
-        String displayName;
-
-        LogLevel(int level, String displayName) {
-            this.level = level;
-            this.displayName = displayName;
-        }
-
-        public int getLevel() {
-            return level;
-        }
-
-        public String getDisplayName() {
-            return displayName;
         }
     }
 

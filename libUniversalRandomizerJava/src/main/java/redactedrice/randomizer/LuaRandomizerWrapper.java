@@ -2,8 +2,8 @@ package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.utils.Logger;
+import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.ErrorTracker;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import redactedrice.randomizer.lua.Module;
@@ -21,12 +21,10 @@ public class LuaRandomizerWrapper {
     LuaSandbox sandbox;
     ModuleRegistry moduleRegistry;
     ModuleExecutor moduleExecutor;
-    PseudoEnumRegistry pseudoEnumRegistry;
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
-            Set<String> definedGroups, Set<String> definedModifies,
-            PseudoEnumRegistry pseudoEnumRegistry) {
+            Set<String> definedGroups, Set<String> definedModifies) {
         if (allowedDirectories == null || allowedDirectories.isEmpty()) {
             throw new IllegalArgumentException("At least one allowed directory must be provided");
         }
@@ -36,23 +34,11 @@ public class LuaRandomizerWrapper {
         this.sandbox = new LuaSandbox(allowedDirectories);
         this.moduleRegistry = new ModuleRegistry(sandbox, definedGroups, definedModifies);
         this.moduleExecutor = new ModuleExecutor(sandbox);
-        this.pseudoEnumRegistry =
-                pseudoEnumRegistry != null ? pseudoEnumRegistry : new PseudoEnumRegistry();
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
 
-    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
-            PseudoEnumRegistry pseudoEnumRegistry) {
-        this(allowedDirectories, searchPaths, null, null, pseudoEnumRegistry);
-    }
-
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths) {
-        this(allowedDirectories, searchPaths, null, null, null);
-    }
-
-    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
-            Set<String> definedGroups, Set<String> definedModifies) {
-        this(allowedDirectories, searchPaths, definedGroups, definedModifies, null);
+        this(allowedDirectories, searchPaths, null, null);
     }
 
     public void addSearchPath(String path) {
@@ -265,10 +251,6 @@ public class LuaRandomizerWrapper {
         }
     }
 
-    public PseudoEnumRegistry getPseudoEnumRegistry() {
-        return pseudoEnumRegistry;
-    }
-
     public EnumDefinition getEnumDefinition(String enumName) {
         if (enumName == null || enumName.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
@@ -294,11 +276,11 @@ public class LuaRandomizerWrapper {
         return Logger.isEnabled();
     }
 
-    public void addStreamForLogLevel(Logger.LogLevel level, OutputStream stream) {
+    public void addStreamForLogLevel(LogLevel level, OutputStream stream) {
         Logger.addStreamForLevel(level, stream);
     }
 
-    public void addStreamForLogLevels(OutputStream stream, Logger.LogLevel... levels) {
+    public void addStreamForLogLevels(OutputStream stream, LogLevel... levels) {
         Logger.addStreamForLevels(stream, levels);
     }
 
@@ -306,7 +288,7 @@ public class LuaRandomizerWrapper {
         Logger.addStreamForAllLevels(stream);
     }
 
-    public void removeAllStreamsForLogLevel(Logger.LogLevel level) {
+    public void removeAllStreamsForLogLevel(LogLevel level) {
         Logger.removeAllStreamsForLevel(level);
     }
 
@@ -318,11 +300,11 @@ public class LuaRandomizerWrapper {
         Logger.setShowModuleName(show);
     }
 
-    public void setLogMinLevel(Logger.LogLevel level) {
+    public void setLogMinLevel(LogLevel level) {
         Logger.setMinLogLevel(level);
     }
 
-    public Logger.LogLevel getLogMinLevel() {
+    public LogLevel getLogMinLevel() {
         return Logger.getMinLogLevel();
     }
 

@@ -43,7 +43,7 @@ public class EnhancedFeaturesTest {
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(testModulesPath);
 
-        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths, null);
+        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths);
         wrapper.loadModules();
     }
 
@@ -90,7 +90,6 @@ public class EnhancedFeaturesTest {
         assertTrue(modulesByGroup.containsKey("gameplay"));
         assertTrue(modulesByGroup.get("gameplay").contains("Enhanced Entity Randomizer"));
     }
-
 
     private static class TestEntityWithFlagEnum {
         private FlagEnum flag;
