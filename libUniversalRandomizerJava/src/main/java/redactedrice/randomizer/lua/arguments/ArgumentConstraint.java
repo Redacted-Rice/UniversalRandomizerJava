@@ -47,7 +47,7 @@ public class ArgumentConstraint {
         return constraint;
     }
 
-    public boolean validate(Object value, ArgumentType argumentType) {
+    public boolean validate(Object value, ArgumentType baseType) {
         // null values always fail validation
         if (value == null) {
             return false;

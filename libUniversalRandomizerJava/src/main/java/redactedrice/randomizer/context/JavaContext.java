@@ -8,7 +8,6 @@ import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -140,98 +139,12 @@ public class JavaContext {
                     throw new RuntimeException("registerEnum: values must be a table");
                 }
 
-                LuaTable values = valuesTable.checktable();
-
-                // Check if it's a simple array or has a values subtable
-                LuaValue valuesSubtable = values.get("values");
-                Map<String, Integer> valueMap = new LinkedHashMap<>();
-                List<String> valueNames = new ArrayList<>();
-
-                // First, extract the sequential array part (indices 1, 2, 3, etc.)
-                // Iterate through array indices until we find nil or non-string
-                // This ensures we only get the array part, not the hash part
-                for (int i = 1;; i++) {
-                    LuaValue value = values.get(i);
-                    if (value.isnil() || (!value.isstring() && i == 1)) {
-                        // Reached end of array part or first element is not a string
-                        break;
-                    }
-                    if (value.isstring()) {
-                        String enumValueName = value.tojstring();
-                        // Skip "values" if it appears in the array part (shouldn't happen, but be
-                        // safe)
-                        if (!"values".equals(enumValueName)) {
-                            valueNames.add(enumValueName);
-                        }
-                    } else {
-                        // Found non-string at array index, stop here
-                        break;
-                    }
-                }
-
-                // If we have array elements, process them
-                if (!valueNames.isEmpty()) {
-                    // Then, if there's a values subtable, extract integer values from it
-                    if (!valuesSubtable.isnil() && valuesSubtable.istable()) {
-                        // Has values subtable - extract integer values
-                        LuaTable valuesMapTable = valuesSubtable.checktable();
-                        LuaValue key = LuaValue.NIL;
-                        while (true) {
-                            key = valuesMapTable.next(key).arg1();
-                            if (key.isnil()) {
-                                break;
-                            }
-                            if (key.isstring()) {
-                                String enumValueName = key.tojstring();
-                                LuaValue intValue = valuesMapTable.get(key);
-                                if (intValue.isint() || intValue.isnumber()) {
-                                    valueMap.put(enumValueName, intValue.toint());
-                                }
-                            }
-                        }
-                    } else {
-                        // No values subtable - use 0-based indices as integer values
-                        for (int i = 0; i < valueNames.size(); i++) {
-                            valueMap.put(valueNames.get(i), i);
-                        }
-                    }
-                } else {
-                    // No array elements - check if it's a map-based enum (case 3)
-                    // Iterate through all hash keys to find string keys with integer values
-                    LuaValue key = LuaValue.NIL;
-                    while (true) {
-                        key = values.next(key).arg1();
-                        if (key.isnil()) {
-                            break;
-                        }
-
-                        // Skip the "values" key if present
-                        if (key.isstring() && "values".equals(key.tojstring())) {
-                            continue;
-                        }
-
-                        if (key.isstring()) {
-                            String enumValueName = key.tojstring();
-                            LuaValue intValue = values.get(key);
-                            if (intValue.isint() || intValue.isnumber()) {
-                                valueNames.add(enumValueName);
-                                valueMap.put(enumValueName, intValue.toint());
-                            }
-                        }
-                    }
-
-                    // If we still don't have any values, throw an error
-                    if (valueNames.isEmpty()) {
-                        throw new RuntimeException(
-                                "registerEnum: enum must have at least one value. "
-                                        + "Provide either an array of strings, or a map of string keys to integer values.");
-                    }
-                }
-
-                // Register the enum using the List<String> overload to preserve order
-                // Use LinkedHashMap to preserve insertion order when converting back to Lua
-                Map<String, Integer> orderedValueMap = new LinkedHashMap<>(valueMap);
-                enumContext.registerEnum(enumName, valueNames, orderedValueMap);
+                // Pares & register enum
+                ParsedEnumData parsedEnum =
+                        LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
+                Map<String, Integer> orderedValueMap =
+                        new LinkedHashMap<>(parsedEnum.getValueMap());
+                enumContext.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap);
 
                 // Return the enum table (convert back to Lua format)
                 Map<String, LuaTable> luaEnums = enumContext.toLuaTables();

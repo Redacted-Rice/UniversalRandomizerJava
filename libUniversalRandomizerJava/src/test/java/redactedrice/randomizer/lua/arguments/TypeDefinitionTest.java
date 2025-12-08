@@ -12,35 +12,35 @@ public class TypeDefinitionTest {
     @Test
     public void testStringType() {
         TypeDefinition type = TypeDefinition.string();
-        assertEquals(TypeDefinition.BaseType.STRING, type.getBaseType());
+        assertEquals(ArgumentType.STRING, type.getBaseType());
         assertTrue(type.isPrimitive());
     }
 
     @Test
     public void testIntegerType() {
         TypeDefinition type = TypeDefinition.integer();
-        assertEquals(TypeDefinition.BaseType.INTEGER, type.getBaseType());
+        assertEquals(ArgumentType.INTEGER, type.getBaseType());
         assertTrue(type.isPrimitive());
     }
 
     @Test
     public void testDoubleType() {
         TypeDefinition type = TypeDefinition.doubleType();
-        assertEquals(TypeDefinition.BaseType.DOUBLE, type.getBaseType());
+        assertEquals(ArgumentType.DOUBLE, type.getBaseType());
         assertTrue(type.isPrimitive());
     }
 
     @Test
     public void testBooleanType() {
         TypeDefinition type = TypeDefinition.bool();
-        assertEquals(TypeDefinition.BaseType.BOOLEAN, type.getBaseType());
+        assertEquals(ArgumentType.BOOLEAN, type.getBaseType());
         assertTrue(type.isPrimitive());
     }
 
     @Test
     public void testEnumType() {
         TypeDefinition type = TypeDefinition.enumType("EntityType");
-        assertEquals(TypeDefinition.BaseType.ENUM, type.getBaseType());
+        assertEquals(ArgumentType.ENUM, type.getBaseType());
         assertEquals("EntityType", type.getEnumName());
         assertTrue(type.isEnum());
     }
@@ -49,7 +49,7 @@ public class TypeDefinitionTest {
     public void testListType() {
         TypeDefinition elementType = TypeDefinition.integer();
         TypeDefinition listType = TypeDefinition.listOf(elementType);
-        assertEquals(TypeDefinition.BaseType.LIST, listType.getBaseType());
+        assertEquals(ArgumentType.LIST, listType.getBaseType());
         assertEquals(elementType, listType.getElementType());
         assertTrue(listType.isList());
         assertTrue(listType.isComplex());
@@ -60,7 +60,7 @@ public class TypeDefinitionTest {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.integer();
         TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
-        assertEquals(TypeDefinition.BaseType.MAP, mapType.getBaseType());
+        assertEquals(ArgumentType.MAP, mapType.getBaseType());
         assertEquals(keyType, mapType.getKeyType());
         assertEquals(valueType, mapType.getValueType());
         assertTrue(mapType.isMap());
@@ -72,7 +72,7 @@ public class TypeDefinitionTest {
         TypeDefinition keyType = TypeDefinition.enumType("EntityType");
         TypeDefinition listValueType = TypeDefinition.listOf(TypeDefinition.integer());
         TypeDefinition groupType = TypeDefinition.groupOf(keyType, listValueType);
-        assertEquals(TypeDefinition.BaseType.GROUP, groupType.getBaseType());
+        assertEquals(ArgumentType.GROUP, groupType.getBaseType());
         assertEquals(keyType, groupType.getKeyType());
         assertEquals(listValueType, groupType.getValueType());
     }
@@ -80,13 +80,13 @@ public class TypeDefinitionTest {
     @Test
     public void testParseSimpleType() {
         TypeDefinition stringType = TypeDefinition.parse("string");
-        assertEquals(TypeDefinition.BaseType.STRING, stringType.getBaseType());
+        assertEquals(ArgumentType.STRING, stringType.getBaseType());
 
         TypeDefinition intType = TypeDefinition.parse("integer");
-        assertEquals(TypeDefinition.BaseType.INTEGER, intType.getBaseType());
+        assertEquals(ArgumentType.INTEGER, intType.getBaseType());
 
         TypeDefinition intType2 = TypeDefinition.parse("int");
-        assertEquals(TypeDefinition.BaseType.INTEGER, intType2.getBaseType());
+        assertEquals(ArgumentType.INTEGER, intType2.getBaseType());
     }
 
     @Test
@@ -95,7 +95,7 @@ public class TypeDefinitionTest {
         enumSpec.put("type", "enum");
         enumSpec.put("enumName", "EntityType");
         TypeDefinition enumType = TypeDefinition.parse(enumSpec);
-        assertEquals(TypeDefinition.BaseType.ENUM, enumType.getBaseType());
+        assertEquals(ArgumentType.ENUM, enumType.getBaseType());
         assertEquals("EntityType", enumType.getEnumName());
     }
 
@@ -105,8 +105,8 @@ public class TypeDefinitionTest {
         listSpec.put("type", "list");
         listSpec.put("elementDefinition", "integer");
         TypeDefinition listType = TypeDefinition.parse(listSpec);
-        assertEquals(TypeDefinition.BaseType.LIST, listType.getBaseType());
-        assertEquals(TypeDefinition.BaseType.INTEGER, listType.getElementType().getBaseType());
+        assertEquals(ArgumentType.LIST, listType.getBaseType());
+        assertEquals(ArgumentType.INTEGER, listType.getElementType().getBaseType());
     }
 
     @Test
@@ -116,9 +116,9 @@ public class TypeDefinitionTest {
         mapSpec.put("keyDefinition", "string");
         mapSpec.put("valueDefinition", "integer");
         TypeDefinition mapType = TypeDefinition.parse(mapSpec);
-        assertEquals(TypeDefinition.BaseType.MAP, mapType.getBaseType());
-        assertEquals(TypeDefinition.BaseType.STRING, mapType.getKeyType().getBaseType());
-        assertEquals(TypeDefinition.BaseType.INTEGER, mapType.getValueType().getBaseType());
+        assertEquals(ArgumentType.MAP, mapType.getBaseType());
+        assertEquals(ArgumentType.STRING, mapType.getKeyType().getBaseType());
+        assertEquals(ArgumentType.INTEGER, mapType.getValueType().getBaseType());
     }
 
     @Test
@@ -210,7 +210,7 @@ public class TypeDefinitionTest {
         enumSpec.put("type", "enum");
         enumSpec.put("constraint", "EntityType");
         TypeDefinition enumType = TypeDefinition.parse(enumSpec);
-        assertEquals(TypeDefinition.BaseType.ENUM, enumType.getBaseType());
+        assertEquals(ArgumentType.ENUM, enumType.getBaseType());
     }
 
     @Test
@@ -415,15 +415,13 @@ public class TypeDefinitionTest {
 
     @Test
     public void testParseAllSimpleTypes() {
-        assertEquals(TypeDefinition.BaseType.STRING, TypeDefinition.parse("string").getBaseType());
-        assertEquals(TypeDefinition.BaseType.INTEGER,
-                TypeDefinition.parse("integer").getBaseType());
-        assertEquals(TypeDefinition.BaseType.INTEGER, TypeDefinition.parse("int").getBaseType());
-        assertEquals(TypeDefinition.BaseType.DOUBLE, TypeDefinition.parse("double").getBaseType());
-        assertEquals(TypeDefinition.BaseType.DOUBLE, TypeDefinition.parse("number").getBaseType());
-        assertEquals(TypeDefinition.BaseType.BOOLEAN,
-                TypeDefinition.parse("boolean").getBaseType());
-        assertEquals(TypeDefinition.BaseType.BOOLEAN, TypeDefinition.parse("bool").getBaseType());
+        assertEquals(ArgumentType.STRING, TypeDefinition.parse("string").getBaseType());
+        assertEquals(ArgumentType.INTEGER, TypeDefinition.parse("integer").getBaseType());
+        assertEquals(ArgumentType.INTEGER, TypeDefinition.parse("int").getBaseType());
+        assertEquals(ArgumentType.DOUBLE, TypeDefinition.parse("double").getBaseType());
+        assertEquals(ArgumentType.DOUBLE, TypeDefinition.parse("number").getBaseType());
+        assertEquals(ArgumentType.BOOLEAN, TypeDefinition.parse("boolean").getBaseType());
+        assertEquals(ArgumentType.BOOLEAN, TypeDefinition.parse("bool").getBaseType());
     }
 }
 

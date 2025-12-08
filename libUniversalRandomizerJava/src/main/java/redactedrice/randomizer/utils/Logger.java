@@ -373,45 +373,4 @@ public class Logger {
         // Reset streams to defaults (clearAllStreams already ensures System.out/err remain)
         clearAllStreams();
     }
-
-    static class MultiOutputStream extends OutputStream {
-        List<OutputStream> streams;
-
-        public MultiOutputStream(OutputStream... streams) {
-            this.streams = new ArrayList<>();
-            for (OutputStream stream : streams) {
-                if (stream != null) {
-                    this.streams.add(stream);
-                }
-            }
-        }
-
-        @Override
-        public void write(int b) throws java.io.IOException {
-            for (OutputStream stream : streams) {
-                stream.write(b);
-            }
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) throws java.io.IOException {
-            for (OutputStream stream : streams) {
-                stream.write(b, off, len);
-            }
-        }
-
-        @Override
-        public void flush() throws java.io.IOException {
-            for (OutputStream stream : streams) {
-                stream.flush();
-            }
-        }
-
-        @Override
-        public void close() throws java.io.IOException {
-            for (OutputStream stream : streams) {
-                stream.close();
-            }
-        }
-    }
 }

@@ -5,18 +5,14 @@ import java.util.*;
 // type definition that supports primitives lists maps and enums
 // can handle nested types like list of maps or map of lists
 public class TypeDefinition {
-    public enum BaseType {
-        STRING, INTEGER, DOUBLE, BOOLEAN, ENUM, LIST, MAP, GROUP
-    }
+    private final ArgumentType baseType;
+    private final String enumName;
+    private final TypeDefinition elementType;
+    private final TypeDefinition keyType;
+    private final TypeDefinition valueType;
+    private final ArgumentConstraint constraint;
 
-    BaseType baseType;
-    String enumName;
-    TypeDefinition elementType;
-    TypeDefinition keyType;
-    TypeDefinition valueType;
-    ArgumentConstraint constraint;
-
-    private TypeDefinition(BaseType baseType, String enumName, TypeDefinition elementType,
+    private TypeDefinition(ArgumentType baseType, String enumName, TypeDefinition elementType,
             TypeDefinition keyType, TypeDefinition valueType, ArgumentConstraint constraint) {
         this.baseType = baseType;
         this.enumName = enumName;
@@ -28,35 +24,35 @@ public class TypeDefinition {
 
     // Factory methods for primitive types
     public static TypeDefinition string() {
-        return new TypeDefinition(BaseType.STRING, null, null, null, null, null);
+        return new TypeDefinition(ArgumentType.STRING, null, null, null, null, null);
     }
 
     public static TypeDefinition string(ArgumentConstraint constraint) {
-        return new TypeDefinition(BaseType.STRING, null, null, null, null, constraint);
+        return new TypeDefinition(ArgumentType.STRING, null, null, null, null, constraint);
     }
 
     public static TypeDefinition integer() {
-        return new TypeDefinition(BaseType.INTEGER, null, null, null, null, null);
+        return new TypeDefinition(ArgumentType.INTEGER, null, null, null, null, null);
     }
 
     public static TypeDefinition integer(ArgumentConstraint constraint) {
-        return new TypeDefinition(BaseType.INTEGER, null, null, null, null, constraint);
+        return new TypeDefinition(ArgumentType.INTEGER, null, null, null, null, constraint);
     }
 
     public static TypeDefinition doubleType() {
-        return new TypeDefinition(BaseType.DOUBLE, null, null, null, null, null);
+        return new TypeDefinition(ArgumentType.DOUBLE, null, null, null, null, null);
     }
 
     public static TypeDefinition doubleType(ArgumentConstraint constraint) {
-        return new TypeDefinition(BaseType.DOUBLE, null, null, null, null, constraint);
+        return new TypeDefinition(ArgumentType.DOUBLE, null, null, null, null, constraint);
     }
 
     public static TypeDefinition bool() {
-        return new TypeDefinition(BaseType.BOOLEAN, null, null, null, null, null);
+        return new TypeDefinition(ArgumentType.BOOLEAN, null, null, null, null, null);
     }
 
     public static TypeDefinition bool(ArgumentConstraint constraint) {
-        return new TypeDefinition(BaseType.BOOLEAN, null, null, null, null, constraint);
+        return new TypeDefinition(ArgumentType.BOOLEAN, null, null, null, null, constraint);
     }
 
     // Factory method for enum type
@@ -64,7 +60,7 @@ public class TypeDefinition {
         if (enumName == null || enumName.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
-        return new TypeDefinition(BaseType.ENUM, enumName.trim(), null, null, null, null);
+        return new TypeDefinition(ArgumentType.ENUM, enumName.trim(), null, null, null, null);
     }
 
     // Factory method for list type
@@ -72,14 +68,14 @@ public class TypeDefinition {
         if (elementType == null) {
             throw new IllegalArgumentException("Element type cannot be null");
         }
-        return new TypeDefinition(BaseType.LIST, null, elementType, null, null, null);
+        return new TypeDefinition(ArgumentType.LIST, null, elementType, null, null, null);
     }
 
     public static TypeDefinition mapOf(TypeDefinition keyType, TypeDefinition valueType) {
         if (keyType == null || valueType == null) {
             throw new IllegalArgumentException("Key and value types cannot be null");
         }
-        return new TypeDefinition(BaseType.MAP, null, null, keyType, valueType, null);
+        return new TypeDefinition(ArgumentType.MAP, null, null, keyType, valueType, null);
     }
 
     public static TypeDefinition groupOf(TypeDefinition keyType, TypeDefinition listValueType) {
@@ -87,7 +83,7 @@ public class TypeDefinition {
             throw new IllegalArgumentException("Key and value types cannot be null");
         }
         // value type should be a list
-        return new TypeDefinition(BaseType.GROUP, null, null, keyType, listValueType, null);
+        return new TypeDefinition(ArgumentType.GROUP, null, null, keyType, listValueType, null);
     }
 
     public static TypeDefinition parse(Object typeSpec) {
@@ -123,7 +119,6 @@ public class TypeDefinition {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static TypeDefinition parseComplexType(Map<?, ?> typeMap) {
         // complex types are maps with a type field and other type specific fields
         String baseTypeStr = (String) typeMap.get("type");
@@ -266,7 +261,7 @@ public class TypeDefinition {
     }
 
     // Getters
-    public BaseType getBaseType() {
+    public ArgumentType getBaseType() {
         return baseType;
     }
 
@@ -287,20 +282,20 @@ public class TypeDefinition {
     }
 
     public boolean isPrimitive() {
-        return baseType == BaseType.STRING || baseType == BaseType.INTEGER
-                || baseType == BaseType.DOUBLE || baseType == BaseType.BOOLEAN;
+        return baseType == ArgumentType.STRING || baseType == ArgumentType.INTEGER
+                || baseType == ArgumentType.DOUBLE || baseType == ArgumentType.BOOLEAN;
     }
 
     public boolean isEnum() {
-        return baseType == BaseType.ENUM;
+        return baseType == ArgumentType.ENUM;
     }
 
     public boolean isList() {
-        return baseType == BaseType.LIST;
+        return baseType == ArgumentType.LIST;
     }
 
     public boolean isMap() {
-        return baseType == BaseType.MAP;
+        return baseType == ArgumentType.MAP;
     }
 
     public boolean isComplex() {
