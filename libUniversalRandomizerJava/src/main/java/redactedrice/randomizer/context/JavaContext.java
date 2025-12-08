@@ -166,10 +166,27 @@ public class JavaContext {
         } else if (value instanceof Enum) {
             // Convert enum to string (using name()) for primary string-based handling
             return LuaValue.valueOf(((Enum<?>) value).name());
-        } else if (isPrimitiveOrWrapper(value) || value instanceof String || value instanceof List
-                || value instanceof Map) {
-            // Use standard converter for primitives, strings, and collections
-            return JavaToLuaConverter.convert(value);
+        } else if (isPrimitiveOrWrapper(value) || value instanceof String) {
+            // Use LuaJ's built-in coercion for primitives and strings
+            return CoerceJavaToLua.coerce(value);
+        } else if (value instanceof List) {
+            // Recursively convert list elements, wrapping objects as needed
+            List<?> list = (List<?>) value;
+            LuaTable luaTable = new LuaTable();
+            for (int i = 0; i < list.size(); i++) {
+                luaTable.set(i + 1, convertJavaValueForContext(list.get(i)));
+            }
+            return luaTable;
+        } else if (value instanceof Map) {
+            // Recursively convert map entries, wrapping objects as needed
+            Map<?, ?> map = (Map<?, ?>) value;
+            LuaTable luaTable = new LuaTable();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                LuaValue key = convertJavaValueForContext(entry.getKey());
+                LuaValue val = convertJavaValueForContext(entry.getValue());
+                luaTable.set(key, val);
+            }
+            return luaTable;
         } else {
             // Wrap Java objects in extensible Lua tables
             return wrapJavaObjectInLuaTable(value);
