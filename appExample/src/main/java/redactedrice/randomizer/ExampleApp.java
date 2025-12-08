@@ -2,12 +2,11 @@ package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.context.PseudoEnumRegistry;
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.utils.ManifestResourceExtractor;
-import redactedrice.randomizer.utils.Logger;
+import redactedrice.randomizer.utils.LogLevel;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -61,11 +60,6 @@ public class ExampleApp {
         String randomizerExtractionPath = new File("randomizer").getAbsolutePath();
         String modulesPath = new File("lua_modules").getAbsolutePath();
 
-        PseudoEnumRegistry pseudoEnums = new PseudoEnumRegistry();
-        pseudoEnums.registerEnum("ModuleGroup", "players", "enemies", "utils");
-        pseudoEnums.registerEnum("ModuleModifies", "name", "health", "damage", "speed", "defense",
-                "type", "startingItem");
-
         // Extract bundled randomizer file
         try {
             // Overwrite existing files. Normally I would probably not do this so the files can be
@@ -88,8 +82,7 @@ public class ExampleApp {
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(modulesPath);
 
-        LuaRandomizerWrapper wrapper =
-                new LuaRandomizerWrapper(allowedDirectories, searchPaths, pseudoEnums);
+        LuaRandomizerWrapper wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths);
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)
@@ -97,11 +90,11 @@ public class ExampleApp {
         // Warn and Error to randomizer_warn_err.log
         wrapper.setLogEnabled(true);
         wrapper.addStreamForAllLogLevels(logFileStream); // All logs to main log file
-        wrapper.addStreamForLogLevels(warnErrFileStream, Logger.LogLevel.WARN,
-                Logger.LogLevel.ERROR); // Warnings and errors to separate file
+        // Warnings and errors to separate file
+        wrapper.addStreamForLogLevels(warnErrFileStream, LogLevel.WARN, LogLevel.ERROR);
         wrapper.setShowLogTimestamp(false);
         wrapper.setShowLogModuleName(true);
-        // wrapper.setLogMinLevel(redactedrice.randomizer.debug.Logger.LogLevel.INFO);
+        // wrapper.setLogMinLevel(LogLevel.INFO);
 
         System.out.println("Logging configuration:");
         System.out.println("  All levels → Console + " + logFile.getName());

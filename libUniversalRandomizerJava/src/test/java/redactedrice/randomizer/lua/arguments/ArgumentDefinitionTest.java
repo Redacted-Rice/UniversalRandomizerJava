@@ -191,7 +191,7 @@ public class ArgumentDefinitionTest {
 
         ArgumentConstraint constraint = argDef.getConstraint();
         assertNotNull(constraint);
-        assertEquals(ArgumentConstraint.ConstraintType.ANY, constraint.getType());
+        assertEquals(ConstraintType.ANY, constraint.getType());
     }
 
     @Test

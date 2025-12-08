@@ -11,7 +11,7 @@ public class ArgumentConstraintTest {
     @Test
     public void testAnyConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.any();
-        assertEquals(ArgumentConstraint.ConstraintType.ANY, constraint.getType());
+        assertEquals(ConstraintType.ANY, constraint.getType());
         assertTrue(constraint.validate(42, ArgumentType.INTEGER));
         assertTrue(constraint.validate("test", ArgumentType.STRING));
     }
@@ -19,7 +19,7 @@ public class ArgumentConstraintTest {
     @Test
     public void testRangeConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.range(1, 100);
-        assertEquals(ArgumentConstraint.ConstraintType.RANGE, constraint.getType());
+        assertEquals(ConstraintType.RANGE, constraint.getType());
         assertEquals(1.0, constraint.getMin());
         assertEquals(100.0, constraint.getMax());
 
@@ -33,7 +33,7 @@ public class ArgumentConstraintTest {
     @Test
     public void testDiscreteRangeConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.discreteRange(0, 20, 5);
-        assertEquals(ArgumentConstraint.ConstraintType.DISCRETE_RANGE, constraint.getType());
+        assertEquals(ConstraintType.DISCRETE_RANGE, constraint.getType());
         assertEquals(5.0, constraint.getStep());
 
         // valid values
@@ -50,7 +50,7 @@ public class ArgumentConstraintTest {
     @Test
     public void testEnumConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList("A", "B", "C"));
-        assertEquals(ArgumentConstraint.ConstraintType.ENUM, constraint.getType());
+        assertEquals(ConstraintType.ENUM, constraint.getType());
 
         assertTrue(constraint.validate("A", ArgumentType.STRING));
         assertTrue(constraint.validate("B", ArgumentType.STRING));

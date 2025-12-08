@@ -5,13 +5,6 @@ import java.util.List;
 
 // holds constraints on argument values like ranges or allowed values
 public class ArgumentConstraint {
-    public enum ConstraintType {
-        ANY, // Any value allowed
-        RANGE, // Numeric range with min/max
-        DISCRETE_RANGE, // Numeric range with min/max/step
-        ENUM // Enumerated values
-    }
-
     ConstraintType type;
     Double min;
     Double max;

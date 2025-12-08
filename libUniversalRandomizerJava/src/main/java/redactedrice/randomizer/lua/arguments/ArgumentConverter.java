@@ -247,7 +247,7 @@ public class ArgumentConverter {
     }
 
     private static boolean validateConstraint(Object value, ArgumentConstraint constraint) {
-        if (constraint == null || constraint.getType() == ArgumentConstraint.ConstraintType.ANY) {
+        if (constraint == null || constraint.getType() == ConstraintType.ANY) {
             return true;
         }
 

@@ -37,7 +37,7 @@ public class RandomizerWrapperTest {
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(modulesPath);
 
-        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths, null);
+        wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths);
     }
 
     @Test
