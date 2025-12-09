@@ -1,7 +1,7 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.context.EnumContext;
+import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.lua.arguments.*;
 import redactedrice.support.test.TestEntity;
@@ -44,6 +44,11 @@ public class EnhancedFeaturesTest {
         searchPaths.add(testModulesPath);
 
         wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths);
+
+        // Register EntityType enum in shared context before loading modules
+        // This allows enum_expansion_test.lua to expand it during onLoad
+        wrapper.getSharedContext().registerEnum("EntityType", EntityType.class);
+
         wrapper.loadModules();
     }
 
@@ -141,7 +146,7 @@ public class EnhancedFeaturesTest {
                 "Module execution should succeed: " + result.getErrorMessage());
 
         // Verify all three enum types are available in the context after execution
-        EnumContext enumContext = context.getEnumContext();
+        EnumRegistry enumContext = context.getEnumRegistry();
 
         // Test TestPriority (case 1: array with explicit values subtable)
         assertTrue(enumContext.hasEnum("TestPriority"), "TestPriority enum should be registered");
@@ -191,7 +196,7 @@ public class EnhancedFeaturesTest {
                 "Module execution should succeed: " + result.getErrorMessage());
 
         // Verify FlagEnum is available in the context
-        EnumContext enumContext = execContext.getEnumContext();
+        EnumRegistry enumContext = execContext.getEnumRegistry();
         assertTrue(enumContext.hasEnum("FlagEnum"), "FlagEnum should be registered");
 
         EnumDefinition flagEnumDef = enumContext.getEnum("FlagEnum");
@@ -230,7 +235,7 @@ public class EnhancedFeaturesTest {
                 "Module execution should succeed: " + result.getErrorMessage());
 
         // Verify the enum is available in Java after execution
-        EnumContext enumContext = context.getEnumContext();
+        EnumRegistry enumContext = context.getEnumRegistry();
         assertTrue(enumContext.hasEnum("TestPriority"),
                 "TestPriority enum should be available in Java");
 
@@ -250,6 +255,90 @@ public class EnhancedFeaturesTest {
                 "TestPriority value should have been set by Lua module");
         assertEquals("MEDIUM", testEntity.getPriority(),
                 "TestPriority should be 'MEDIUM' (passed as string from Lua)");
+    }
+
+    @Test
+    public void testEnumExtensionFromJava() {
+        // Create a new registry for this test because the original enum will already be extended
+        // by the lua version of this test on loading the file
+        EnumRegistry testRegistry = new EnumRegistry();
+        testRegistry.registerEnum("EntityType", EntityType.class);
+
+        // Verify initial enum has only the original Java values
+        EnumDefinition initialEnumDef = testRegistry.getEnum("EntityType");
+        assertNotNull(initialEnumDef);
+        assertEquals(5, initialEnumDef.getValues().size());
+        assertTrue(initialEnumDef.hasValue("WARRIOR"));
+        assertTrue(initialEnumDef.hasValue("MAGE"));
+        assertTrue(initialEnumDef.hasValue("ROGUE"));
+        assertTrue(initialEnumDef.hasValue("CLERIC"));
+        assertTrue(initialEnumDef.hasValue("RANGER"));
+        // Shouldn't exist yet
+        assertFalse(initialEnumDef.hasValue("PALADIN"));
+        assertFalse(initialEnumDef.hasValue("NECROMANCER"));
+
+        // Extend the enum using the extendEnum method
+        testRegistry.extendEnum("EntityType", Arrays.asList("PALADIN", "NECROMANCER"),
+                Map.of("PALADIN", 100, "NECROMANCER", 101));
+
+        // Verify the enum was extended
+        EnumDefinition extendedEnumDef = testRegistry.getEnum("EntityType");
+        assertNotNull(extendedEnumDef);
+        assertEquals(7, extendedEnumDef.getValues().size());
+
+        // Original values should still exist
+        assertTrue(extendedEnumDef.hasValue("WARRIOR"));
+        assertTrue(extendedEnumDef.hasValue("MAGE"));
+        assertTrue(extendedEnumDef.hasValue("ROGUE"));
+        assertTrue(extendedEnumDef.hasValue("CLERIC"));
+        assertTrue(extendedEnumDef.hasValue("RANGER"));
+
+        // New extended values should exist
+        assertTrue(extendedEnumDef.hasValue("PALADIN"));
+        assertTrue(extendedEnumDef.hasValue("NECROMANCER"));
+
+        // Verify the custom value mappings
+        assertEquals(100, extendedEnumDef.getValue("PALADIN").intValue());
+        assertEquals(101, extendedEnumDef.getValue("NECROMANCER").intValue());
+
+        // Verify the values list maintains the expected order
+        List<String> allValues = extendedEnumDef.getValues();
+        assertEquals(Arrays.asList("WARRIOR", "MAGE", "ROGUE", "CLERIC", "RANGER", "PALADIN",
+                "NECROMANCER"), allValues);
+    }
+
+    @Test
+    public void testEnumExtensionFromLua() {
+        EnumRegistry sharedRegistry = wrapper.getSharedContext().getEnumRegistry();
+        EnumDefinition entityTypeDef = sharedRegistry.getEnum("EntityType");
+
+        // Enum is extended on load which already occurred by the time this test runs
+        assertNotNull(entityTypeDef);
+        assertEquals(7, entityTypeDef.getValues().size());
+
+        assertTrue(entityTypeDef.hasValue("WARRIOR"));
+        assertTrue(entityTypeDef.hasValue("MAGE"));
+        assertTrue(entityTypeDef.hasValue("ROGUE"));
+        assertTrue(entityTypeDef.hasValue("CLERIC"));
+        assertTrue(entityTypeDef.hasValue("RANGER"));
+        assertTrue(entityTypeDef.hasValue("PALADIN"));
+        assertTrue(entityTypeDef.hasValue("NECROMANCER"));
+        assertEquals(100, entityTypeDef.getValue("PALADIN").intValue());
+        assertEquals(101, entityTypeDef.getValue("NECROMANCER").intValue());
+
+        // Now execute the module with an extended enum value
+        TestEntity entity = new TestEntity("TestEntity", 100, 10.0, false);
+        JavaContext context = new JavaContext();
+        context.register("entity", entity);
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("entityType", "PALADIN");
+
+        ExecutionRequest request = ExecutionRequest.withSeed("Enum Expansion Test", args, 12345);
+        ExecutionResult result = wrapper.executeModule(request, context);
+
+        // Will fail an assert and not return true if it does not work
+        assertTrue(result.isSuccess());
     }
 
     @Test

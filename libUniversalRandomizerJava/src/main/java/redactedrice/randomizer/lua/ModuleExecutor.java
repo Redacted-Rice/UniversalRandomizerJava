@@ -1,7 +1,7 @@
 package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.context.JavaToLuaConverter;
+import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
@@ -259,9 +259,9 @@ public class ModuleExecutor {
             arguments = new HashMap<>();
         }
 
-        // need enum context for validating enum arguments
-        redactedrice.randomizer.context.EnumContext enumContext =
-                context != null ? context.getEnumContext() : null;
+        // need enum registry for validating enum arguments
+        redactedrice.randomizer.context.EnumRegistry enumRegistry =
+                context != null ? context.getEnumRegistry() : null;
 
         // go through each argument the module expects
         for (ArgumentDefinition argDef : metadata.getArguments()) {
@@ -276,7 +276,7 @@ public class ModuleExecutor {
 
             // convert and validate the value
             try {
-                Object convertedValue = argDef.convertAndValidate(value, enumContext);
+                Object convertedValue = argDef.convertAndValidate(value, enumRegistry);
                 validated.put(argName, convertedValue);
             } catch (IllegalArgumentException e) {
                 // add module and arg name to error message
@@ -315,7 +315,7 @@ public class ModuleExecutor {
                     // for group types convert the map to a lua table then wrap it with randomizer
                     // group
                     try {
-                        LuaValue mapTable = JavaToLuaConverter.convert(value);
+                        LuaValue mapTable = LuaJavaConverter.javaToLua(value);
 
                         // get the randomizer module and group function
                         LuaValue randomizerModule = sandbox.getGlobals().get("require")
@@ -336,7 +336,7 @@ public class ModuleExecutor {
                     }
                 } else {
                     // regular conversion for non group types
-                    LuaValue luaValue = JavaToLuaConverter.convert(value);
+                    LuaValue luaValue = LuaJavaConverter.javaToLua(value);
                     table.set(argName, luaValue);
                 }
             }

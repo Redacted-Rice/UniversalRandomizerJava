@@ -1,6 +1,6 @@
 package redactedrice.randomizer.lua.arguments;
 
-import redactedrice.randomizer.context.EnumContext;
+import redactedrice.randomizer.context.EnumRegistry;
 
 // defines a single argument for a lua module including its type and default value
 public class ArgumentDefinition {
@@ -21,7 +21,7 @@ public class ArgumentDefinition {
         this.defaultValue = defaultValue;
     }
 
-    public boolean validate(Object value, EnumContext enumContext) {
+    public boolean validate(Object value, EnumRegistry enumRegistry) {
         // if value is null but we have a default we will use the default
         if (value == null && defaultValue != null) {
             return true;
@@ -34,7 +34,7 @@ public class ArgumentDefinition {
         // try to convert and validate the value
         try {
             Object converted =
-                    ArgumentConverter.convertAndValidate(value, typeDefinition, enumContext);
+                    ArgumentConverter.convertAndValidate(value, typeDefinition, enumRegistry);
             return converted != null;
         } catch (Exception e) {
             // any exception during validation means the value is invalid
@@ -42,14 +42,14 @@ public class ArgumentDefinition {
         }
     }
 
-    public Object convertAndValidate(Object value, EnumContext enumContext) {
+    public Object convertAndValidate(Object value, EnumRegistry enumRegistry) {
         // if no value provided use the default
         if (value == null && defaultValue != null) {
             return defaultValue;
         }
 
         // convert and validate using typevalidator
-        return ArgumentConverter.convertAndValidate(value, typeDefinition, enumContext);
+        return ArgumentConverter.convertAndValidate(value, typeDefinition, enumRegistry);
     }
 
     // Getters

@@ -6,7 +6,7 @@ import org.luaj.vm2.LuaNumber;
 import org.luaj.vm2.LuaString;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import redactedrice.randomizer.context.EnumContext;
+import redactedrice.randomizer.context.EnumRegistry;
 
 import java.util.*;
 
@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ArgumentConverterTest {
 
-    private EnumContext createTestEnumContext() {
-        EnumContext context = new EnumContext();
+    private EnumRegistry createTestEnumRegistry() {
+        EnumRegistry context = new EnumRegistry();
         context.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
         return context;
     }
@@ -122,7 +122,7 @@ public class ArgumentConverterTest {
 
     @Test
     public void testConvertAndValidateEnum() {
-        EnumContext enumContext = createTestEnumContext();
+        EnumRegistry enumContext = createTestEnumRegistry();
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty");
 
         Object result = ArgumentConverter.convertAndValidate("EASY", typeDef, enumContext);
@@ -142,7 +142,7 @@ public class ArgumentConverterTest {
 
     @Test
     public void testConvertAndValidateEnumNotFoundThrows() {
-        EnumContext enumContext = createTestEnumContext();
+        EnumRegistry enumContext = createTestEnumRegistry();
         TypeDefinition typeDef = TypeDefinition.enumType("NonExistent");
         assertThrows(IllegalArgumentException.class, () -> {
             ArgumentConverter.convertAndValidate("EASY", typeDef, enumContext);
@@ -151,7 +151,7 @@ public class ArgumentConverterTest {
 
     @Test
     public void testConvertAndValidateEnumInvalidValueThrows() {
-        EnumContext enumContext = createTestEnumContext();
+        EnumRegistry enumContext = createTestEnumRegistry();
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty");
         assertThrows(IllegalArgumentException.class, () -> {
             ArgumentConverter.convertAndValidate("INVALID", typeDef, enumContext);
@@ -383,7 +383,7 @@ public class ArgumentConverterTest {
 
     @Test
     public void testListWithEnumElements() {
-        EnumContext enumContext = createTestEnumContext();
+        EnumRegistry enumContext = createTestEnumRegistry();
         TypeDefinition enumListType = TypeDefinition.listOf(TypeDefinition.enumType("Difficulty"));
 
         List<String> input = Arrays.asList("EASY", "NORMAL", "HARD");

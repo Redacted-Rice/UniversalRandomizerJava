@@ -1,6 +1,6 @@
 package redactedrice.randomizer.lua.arguments;
 
-import redactedrice.randomizer.context.EnumContext;
+import redactedrice.randomizer.context.EnumRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -58,7 +58,7 @@ public class ArgumentDefinitionTest {
 
     @Test
     public void testConvertAndValidateEnum() {
-        EnumContext enumContext = new EnumContext();
+        EnumRegistry enumContext = new EnumRegistry();
         enumContext.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
 
         TypeDefinition enumType = TypeDefinition.enumType("Difficulty");
@@ -164,7 +164,7 @@ public class ArgumentDefinitionTest {
 
     @Test
     public void testValidateWithEnum() {
-        EnumContext enumContext = new EnumContext();
+        EnumRegistry enumContext = new EnumRegistry();
         enumContext.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
 
         TypeDefinition enumType = TypeDefinition.enumType("Difficulty");

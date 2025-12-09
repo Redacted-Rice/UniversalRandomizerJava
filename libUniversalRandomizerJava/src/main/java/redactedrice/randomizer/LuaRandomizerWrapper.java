@@ -1,6 +1,7 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.EnumDefinition;
+import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.LogLevel;
@@ -104,8 +105,14 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModule(name);
     }
 
+    // TODO: Keep these exposed and remove delegating fns or remove these and add more
+    // delegating fns?
     public ModuleRegistry getModuleRegistry() {
         return moduleRegistry;
+    }
+
+    public JavaContext getSharedContext() {
+        return sharedEnumContext;
     }
 
     public void executePreRandomizeScripts(JavaContext context) {
@@ -114,7 +121,7 @@ public class LuaRandomizerWrapper {
         }
 
         // Ensure enums are up to date
-        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
         // Clear previous results
         moduleExecutor.clearResults();
@@ -131,7 +138,7 @@ public class LuaRandomizerWrapper {
         }
 
         // Ensure enums are up to date
-        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
         // get the post randomize scripts and run them
         List<Module> postRandomizeScripts = moduleRegistry.getScripts(
@@ -150,8 +157,8 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Requests list cannot be null or empty");
         }
 
-        // add the shared enum context from onLoad to the execution context
-        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+        // add the shared enum registry from onLoad to the execution context
+        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
         // get scripts by timing and when
         List<Module> preRandomizeScripts = moduleRegistry
@@ -188,8 +195,8 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Request cannot be null");
         }
 
-        // add the shared enum context from onLoad to the execution context
-        context.mergeEnumContext(sharedEnumContext.getEnumContext());
+        // add the shared enum registry from onLoad to the execution context
+        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
         // get only module level scripts. Randomize level must be called by the caller
         List<Module> preModuleScripts = moduleRegistry.getScripts(ModuleRegistry.SCRIPT_TIMING_PRE,
@@ -255,11 +262,11 @@ public class LuaRandomizerWrapper {
         if (enumName == null || enumName.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
-        return sharedEnumContext.getEnumContext().getEnum(enumName);
+        return sharedEnumContext.getEnumRegistry().getEnum(enumName);
     }
 
     public Set<String> getRegisteredEnumNames() {
-        return sharedEnumContext.getEnumContext().getEnumNames();
+        return sharedEnumContext.getEnumRegistry().getEnumNames();
     }
 
     public LuaSandbox getSandbox() {

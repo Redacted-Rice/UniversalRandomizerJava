@@ -5,6 +5,8 @@ A list of things to do in no particular order:
   - Would they use seeds? They shouldn't but how do we handle this 
   - Make modules when = "user" and have explicit pre/post field or have the pre/post field include the user equvalent?
   - Separate execution request/results classes?
+- Exposing component classes in randomization wrapper vs having delegate fns. Decide and implement consistent approach
+  - Also applicable for Java Context and components like EnumRegistry
 
 Coding cleanliness tasks
 - Refactor and rename to better align with where files have been going
@@ -21,4 +23,3 @@ Potential things:
 - Add a way to allow testing/validating modules without a full run?
 - Allow nested groups/modifies
 - Make logger & tracker non-static?
-- Remove psuedo enum registry? Think it may be OBE with latest changes to support grouping

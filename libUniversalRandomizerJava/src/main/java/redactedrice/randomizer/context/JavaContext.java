@@ -7,6 +7,7 @@ import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.VarArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+import redactedrice.randomizer.utils.LuaJavaConverter;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,12 +20,12 @@ import java.util.Map;
 public class JavaContext {
     Map<String, Object> objects;
     Map<String, Object> config;
-    EnumContext enumContext;
+    EnumRegistry enumRegistry;
 
     public JavaContext() {
         this.objects = new HashMap<>();
         this.config = new HashMap<>();
-        this.enumContext = new EnumContext();
+        this.enumRegistry = new EnumRegistry();
     }
 
     public void register(String name, Object object) {
@@ -49,7 +50,7 @@ public class JavaContext {
         if (enumClass == null) {
             throw new IllegalArgumentException("Enum class cannot be null");
         }
-        enumContext.registerEnum(enumClass);
+        enumRegistry.registerEnum(enumClass);
     }
 
     public <E extends Enum<E>> void registerEnum(String name, Class<E> enumClass) {
@@ -59,7 +60,7 @@ public class JavaContext {
         if (enumClass == null) {
             throw new IllegalArgumentException("Enum class cannot be null");
         }
-        enumContext.registerEnum(name, enumClass);
+        enumRegistry.registerEnum(name, enumClass);
     }
 
     public void registerEnum(String name, String... values) {
@@ -69,16 +70,16 @@ public class JavaContext {
         if (values == null || values.length == 0) {
             throw new IllegalArgumentException("Enum values cannot be null or empty");
         }
-        enumContext.registerEnum(name, Arrays.asList(values));
+        enumRegistry.registerEnum(name, Arrays.asList(values));
     }
 
-    public EnumContext getEnumContext() {
-        return enumContext;
+    public EnumRegistry getEnumRegistry() {
+        return enumRegistry;
     }
 
-    public void mergeEnumContext(EnumContext source) {
+    public void mergeEnumRegistry(EnumRegistry source) {
         if (source != null) {
-            enumContext.mergeFrom(source);
+            enumRegistry.mergeFrom(source);
         }
     }
 
@@ -107,7 +108,17 @@ public class JavaContext {
 
         // Add regular objects with proper conversion
         for (Map.Entry<String, Object> entry : objects.entrySet()) {
-            LuaValue luaValue = convertJavaValueForContext(entry.getValue());
+            Object value = entry.getValue();
+            LuaValue luaValue;
+
+            // Wrap complex objects for method access
+            if (value != null && !isPrimitiveOrWrapper(value) && !(value instanceof String)
+                    && !(value instanceof List) && !(value instanceof Map)
+                    && !(value instanceof Enum)) {
+                luaValue = wrapJavaObjectInLuaTable(value);
+            } else {
+                luaValue = LuaJavaConverter.javaToLua(value);
+            }
             table.set(entry.getKey(), luaValue);
         }
 
@@ -115,15 +126,14 @@ public class JavaContext {
         if (!config.isEmpty()) {
             LuaTable configTable = new LuaTable();
             for (Map.Entry<String, Object> entry : config.entrySet()) {
-                LuaValue luaValue = convertJavaValueForContext(entry.getValue());
-                configTable.set(entry.getKey(), luaValue);
+                configTable.set(entry.getKey(), LuaJavaConverter.javaToLua(entry.getValue()));
             }
             table.set("config", configTable);
         }
 
         // Add enums directly to root (not nested)
-        if (!enumContext.getEnumNames().isEmpty()) {
-            Map<String, LuaTable> luaEnums = enumContext.toLuaTables();
+        if (!enumRegistry.getEnumNames().isEmpty()) {
+            Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
             for (Map.Entry<String, LuaTable> enumEntry : luaEnums.entrySet()) {
                 table.set(enumEntry.getKey(), enumEntry.getValue());
             }
@@ -139,15 +149,16 @@ public class JavaContext {
                     throw new RuntimeException("registerEnum: values must be a table");
                 }
 
-                // Pares & register enum
+                // Parse & register enum
                 ParsedEnumData parsedEnum =
                         LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
                 Map<String, Integer> orderedValueMap =
                         new LinkedHashMap<>(parsedEnum.getValueMap());
-                enumContext.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap);
+                
+                enumRegistry.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap);
 
                 // Return the enum table (convert back to Lua format)
-                Map<String, LuaTable> luaEnums = enumContext.toLuaTables();
+                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
                 LuaTable newEnumTable = luaEnums.get(enumName);
 
                 // Also add it to the context table for immediate access
@@ -157,40 +168,43 @@ public class JavaContext {
             }
         });
 
-        return table;
-    }
+        // Add extendEnum function for extending existing enums from Lua
+        table.set("extendEnum", new TwoArgFunction() {
+            @Override
+            public LuaValue call(LuaValue name, LuaValue valuesTable) {
+                String enumName = name.checkjstring();
 
-    private LuaValue convertJavaValueForContext(Object value) {
-        if (value == null) {
-            return LuaValue.NIL;
-        } else if (value instanceof Enum) {
-            // Convert enum to string (using name()) for primary string-based handling
-            return LuaValue.valueOf(((Enum<?>) value).name());
-        } else if (isPrimitiveOrWrapper(value) || value instanceof String) {
-            // Use LuaJ's built-in coercion for primitives and strings
-            return CoerceJavaToLua.coerce(value);
-        } else if (value instanceof List) {
-            // Recursively convert list elements, wrapping objects as needed
-            List<?> list = (List<?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (int i = 0; i < list.size(); i++) {
-                luaTable.set(i + 1, convertJavaValueForContext(list.get(i)));
+                if (!valuesTable.istable()) {
+                    throw new RuntimeException("extendEnum: values must be a table");
+                }
+
+                // Parse the values to add as an enum
+                ParsedEnumData parsedEnum =
+                        LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
+                Map<String, Integer> orderedValueMap =
+                        new LinkedHashMap<>(parsedEnum.getValueMap());
+
+                // Extend the enum with the parsed values
+                EnumDefinition extended = enumRegistry.extendEnum(enumName,
+                        parsedEnum.getValueNames(), orderedValueMap);
+
+                // Convert null if extend failed because target enum didn't exist
+                if (extended == null) {
+                    return LuaValue.NIL;
+                }
+
+                // Return the updated enum
+                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
+                LuaTable extendedEnumTable = luaEnums.get(enumName);
+
+                // Also update the context
+                table.set(enumName, extendedEnumTable);
+
+                return extendedEnumTable != null ? extendedEnumTable : LuaValue.NIL;
             }
-            return luaTable;
-        } else if (value instanceof Map) {
-            // Recursively convert map entries, wrapping objects as needed
-            Map<?, ?> map = (Map<?, ?>) value;
-            LuaTable luaTable = new LuaTable();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                LuaValue key = convertJavaValueForContext(entry.getKey());
-                LuaValue val = convertJavaValueForContext(entry.getValue());
-                luaTable.set(key, val);
-            }
-            return luaTable;
-        } else {
-            // Wrap Java objects in extensible Lua tables
-            return wrapJavaObjectInLuaTable(value);
-        }
+        });
+
+        return table;
     }
 
     private boolean isPrimitiveOrWrapper(Object value) {
@@ -204,6 +218,8 @@ public class JavaContext {
 
         // Create an extensible wrapper table
         LuaTable wrapper = new LuaTable();
+
+        Map<String, Method> methodCache = new HashMap<>();
 
         // Create metatable for forwarding to Java object
         LuaTable metatable = new LuaTable();
@@ -225,7 +241,7 @@ public class JavaContext {
                     // If it's a function, wrap it to convert string enum parameters
                     if (userdataValue.isfunction()) {
                         return wrapMethodForEnumConversion(javaObject, key.toString(),
-                                userdataValue, userdata);
+                                userdataValue, userdata, methodCache);
                     }
 
                     return userdataValue;
@@ -260,13 +276,13 @@ public class JavaContext {
     }
 
     private LuaValue wrapMethodForEnumConversion(Object javaObject, String methodName,
-            LuaValue originalMethod, LuaValue userdata) {
+            LuaValue originalMethod, LuaValue userdata, Map<String, Method> methodCache) {
         return new VarArgFunction() {
             @Override
             public Varargs invoke(Varargs args) {
                 // Try to find the Java method using reflection
-                Method javaMethod =
-                        findJavaMethod(javaObject.getClass(), methodName, args.narg() - 1);
+                Method javaMethod = findJavaMethod(javaObject.getClass(), methodName,
+                        args.narg() - 1, methodCache);
 
                 // Always use userdata as 'self' (first argument)
                 LuaValue self = userdata;
@@ -297,12 +313,13 @@ public class JavaContext {
                             // This parameter is an enum - try to convert string to enum
                             if (arg.isstring()) {
                                 String stringValue = arg.tojstring();
-                                Object enumValue = enumContext.stringToEnum(
+                                Object enumValue = enumRegistry.stringToEnum(
                                         paramTypes[paramIndex].getSimpleName(), stringValue);
                                 if (enumValue == null) {
-                                    // Try with custom enum names registered in EnumContext
-                                    for (String enumName : enumContext.getEnumNames()) {
-                                        enumValue = enumContext.stringToEnum(enumName, stringValue);
+                                    // Try with custom enum names registered in EnumRegistry
+                                    for (String enumName : enumRegistry.getEnumNames()) {
+                                        enumValue =
+                                                enumRegistry.stringToEnum(enumName, stringValue);
                                         if (enumValue != null
                                                 && enumValue.getClass() == paramTypes[paramIndex]) {
                                             break;
@@ -323,15 +340,7 @@ public class JavaContext {
                     }
 
                     Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
-                    // Convert return value if it's a Java object
-                    LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
-                    if (firstValue.isuserdata()) {
-                        Object javaObject = firstValue.touserdata();
-                        if (javaObject instanceof List || javaObject instanceof Map) {
-                            return JavaToLuaConverter.convert(javaObject);
-                        }
-                    }
-                    return result;
+                    return convertReturnValue(result);
                 } else {
                     // Method not found via reflection, call original method as-is
                     LuaValue[] newArgs = new LuaValue[args.narg()];
@@ -340,24 +349,26 @@ public class JavaContext {
                         newArgs[i] = args.arg(i + 1);
                     }
                     Varargs result = originalMethod.invoke(LuaValue.varargsOf(newArgs));
-                    // Convert return value if it's a Java object
-                    LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
-                    if (firstValue.isuserdata()) {
-                        Object javaObject = firstValue.touserdata();
-                        if (javaObject instanceof List || javaObject instanceof Map) {
-                            return JavaToLuaConverter.convert(javaObject);
-                        }
-                    }
-                    return result;
+                    return convertReturnValue(result);
                 }
+            }
+
+            private Varargs convertReturnValue(Varargs result) {
+                // Convert return value if it's a Java collection
+                LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
+                if (firstValue.isuserdata()) {
+                    Object javaObject = firstValue.touserdata();
+                    if (javaObject instanceof List || javaObject instanceof Map) {
+                        return LuaJavaConverter.javaToLua(javaObject);
+                    }
+                }
+                return result;
             }
         };
     }
 
-    // Cache for method lookups to avoid repeated reflection
-    private static final Map<String, Method> methodCache = new HashMap<>();
-
-    private Method findJavaMethod(Class<?> clazz, String methodName, int paramCount) {
+    private Method findJavaMethod(Class<?> clazz, String methodName, int paramCount,
+            Map<String, Method> methodCache) {
         String cacheKey = clazz.getName() + "#" + methodName + "#" + paramCount;
         Method cached = methodCache.get(cacheKey);
         if (cached != null) {
@@ -384,6 +395,7 @@ public class JavaContext {
     @Override
     public String toString() {
         return "JavaContext{" + objects.size() + " objects: " + objects.keySet() + ", "
-                + enumContext.getEnumNames().size() + " enums: " + enumContext.getEnumNames() + "}";
+                + enumRegistry.getEnumNames().size() + " enums: " + enumRegistry.getEnumNames()
+                + "}";
     }
 }

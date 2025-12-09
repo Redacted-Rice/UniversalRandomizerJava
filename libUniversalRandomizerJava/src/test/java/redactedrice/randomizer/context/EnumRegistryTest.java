@@ -1,238 +1,228 @@
 package redactedrice.randomizer.context;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class EnumRegistryTest {
 
-    private EnumRegistry registry;
+    enum TestEnum {
+        VALUE1, VALUE2, VALUE3
+    }
 
-    @BeforeEach
-    public void setUp() {
-        // Use lowercase to match how predefined registries work
-        registry = new EnumRegistry("TestRegistry", "value1", "value2", "value3");
+    enum TestEnumWithValue implements EnumValueProvider {
+        LOW(1), MEDIUM(10), HIGH(100);
+
+        private final int value;
+
+        TestEnumWithValue(int value) {
+            this.value = value;
+        }
+
+        @Override
+        public int getIntValue() {
+            return value;
+        }
     }
 
     @Test
-    public void testConstructor() {
-        assertEquals("TestRegistry", registry.getRegistryName());
-        Set<String> coreValues = registry.getCoreValues();
-        assertEquals(3, coreValues.size());
-        // Core values are stored with original case
-        assertTrue(coreValues.contains("value1"));
-        assertTrue(coreValues.contains("value2"));
-        assertTrue(coreValues.contains("value3"));
+    public void testRegisterEnumFromClass() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum(TestEnum.class);
+
+        assertTrue(context.hasEnum("TestEnum"));
+        EnumDefinition def = context.getEnum("TestEnum");
+        assertNotNull(def);
+        assertTrue(def.hasValue("VALUE1"));
+        assertTrue(def.hasValue("VALUE2"));
+        assertTrue(def.hasValue("VALUE3"));
     }
 
     @Test
-    public void testRegisterCustomValue() {
-        registry.registerCustomValue("CUSTOM1", "Custom description");
+    public void testRegisterEnumWithCustomName() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("CustomName", TestEnum.class);
 
-        assertTrue(registry.isRegistered("CUSTOM1"));
-        assertTrue(registry.isRegistered("custom1")); // Case insensitive
-        Set<String> customValues = registry.getCustomValues();
-        assertEquals(1, customValues.size());
-        assertTrue(customValues.contains("custom1"));
+        assertTrue(context.hasEnum("CustomName"));
+        assertFalse(context.hasEnum("TestEnum"));
     }
 
     @Test
-    public void testRegisterCustomValueWithoutDescription() {
-        registry.registerCustomValue("CUSTOM1");
+    public void testRegisterEnumWithValues() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"), null);
 
-        assertTrue(registry.isRegistered("CUSTOM1"));
-        String description = registry.getDescription("CUSTOM1");
-        assertNotNull(description);
-        assertTrue(description.contains("Custom"));
+        assertTrue(context.hasEnum("Difficulty"));
+        EnumDefinition def = context.getEnum("Difficulty");
+        assertTrue(def.hasValue("EASY"));
+        assertTrue(def.hasValue("NORMAL"));
+        assertTrue(def.hasValue("HARD"));
     }
 
     @Test
-    public void testRegisterCustomValueWithDescription() {
-        registry.registerCustomValue("CUSTOM1", "My custom description");
+    public void testRegisterEnumWithValueMap() {
+        EnumRegistry context = new EnumRegistry();
+        Map<String, Integer> valueMap = new LinkedHashMap<>();
+        valueMap.put("LOW", 1);
+        valueMap.put("MEDIUM", 10);
+        valueMap.put("HIGH", 100);
+        context.registerEnum("Priority", valueMap);
 
-        assertEquals("My custom description", registry.getDescription("CUSTOM1"));
+        EnumDefinition def = context.getEnum("Priority");
+        assertEquals(1, def.getValue("LOW").intValue());
+        assertEquals(10, def.getValue("MEDIUM").intValue());
+        assertEquals(100, def.getValue("HIGH").intValue());
     }
 
     @Test
-    public void testRegisterCustomValueWithNullDescription() {
-        registry.registerCustomValue("CUSTOM1", null);
+    public void testEnumWithValueProvider() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("Priority", TestEnumWithValue.class);
 
-        String description = registry.getDescription("CUSTOM1");
-        assertNotNull(description);
-        assertTrue(description.contains("Custom"));
+        EnumDefinition def = context.getEnum("Priority");
+        assertEquals(1, def.getValue("LOW").intValue());
+        assertEquals(10, def.getValue("MEDIUM").intValue());
+        assertEquals(100, def.getValue("HIGH").intValue());
     }
 
     @Test
-    public void testRegisterCustomValueWithEmptyDescription() {
-        registry.registerCustomValue("CUSTOM1", "");
+    public void testStringToEnum() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("TestEnum", TestEnum.class);
 
-        String description = registry.getDescription("CUSTOM1");
-        assertNotNull(description);
-        assertTrue(description.contains("Custom"));
+        Object result = context.stringToEnum("TestEnum", "VALUE1");
+        assertEquals(TestEnum.VALUE1, result);
+
+        Object result2 = context.stringToEnum("TestEnum", "INVALID");
+        assertNull(result2);
     }
 
     @Test
-    public void testRegisterCustomValueNullThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerCustomValue(null);
+    public void testIsValidEnumValue() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
+
+        assertTrue(context.isValidEnumValue("Difficulty", "EASY"));
+        assertTrue(context.isValidEnumValue("Difficulty", "NORMAL"));
+        assertFalse(context.isValidEnumValue("Difficulty", "INVALID"));
+    }
+
+    @Test
+    public void testMergeFrom() {
+        EnumRegistry source = new EnumRegistry();
+        source.registerEnum("Enum1", Arrays.asList("A", "B"));
+
+        EnumRegistry target = new EnumRegistry();
+        target.registerEnum("Enum2", Arrays.asList("C", "D"));
+
+        target.mergeFrom(source);
+        assertTrue(target.hasEnum("Enum1"));
+        assertTrue(target.hasEnum("Enum2"));
+    }
+
+    @Test
+    public void testToLuaTables() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
+
+        Map<String, org.luaj.vm2.LuaTable> tables = context.toLuaTables();
+        assertTrue(tables.containsKey("Difficulty"));
+
+        org.luaj.vm2.LuaTable table = tables.get("Difficulty");
+        assertEquals("EASY", table.get(1).tojstring());
+        assertEquals("NORMAL", table.get(2).tojstring());
+        assertEquals("HARD", table.get(3).tojstring());
+    }
+
+    @Test
+    public void testGetEnumNames() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum("Enum1", Arrays.asList("A"));
+        context.registerEnum("Enum2", Arrays.asList("B"));
+
+        Set<String> names = context.getEnumNames();
+        assertEquals(2, names.size());
+        assertTrue(names.contains("Enum1"));
+        assertTrue(names.contains("Enum2"));
+    }
+
+    @Test
+    public void testExtendEnumOnExisting() {
+        EnumRegistry registry = new EnumRegistry();
+        registry.registerEnum(TestEnum.class);
+
+        // Extend with new values
+        EnumDefinition extended = registry.extendEnum("TestEnum", Arrays.asList("VALUE4", "VALUE5"),
+                Map.of("VALUE4", 10, "VALUE5", 20));
+
+        assertNotNull(extended);
+        assertEquals(5, extended.getValues().size());
+        assertTrue(extended.hasValue("VALUE1"));
+        assertTrue(extended.hasValue("VALUE2"));
+        assertTrue(extended.hasValue("VALUE3"));
+        assertTrue(extended.hasValue("VALUE4"));
+        assertTrue(extended.hasValue("VALUE5"));
+        assertEquals(10, extended.getValue("VALUE4").intValue());
+        assertEquals(20, extended.getValue("VALUE5").intValue());
+    }
+
+    @Test
+    public void testExtendEnumOnNonExistingReturnsNull() {
+        EnumRegistry registry = new EnumRegistry();
+
+        // Extend on non-existing enum should return null
+        EnumDefinition result = registry.extendEnum("NewEnum", Arrays.asList("A", "B"),
+                Map.of("A", 1, "B", 2));
+
+        assertNull(result);
+        assertFalse(registry.hasEnum("NewEnum"));
+    }
+
+    @Test
+    public void testRegisterEnumThrowsIfAlreadyExists() {
+        EnumRegistry registry = new EnumRegistry();
+        
+        // First registration should succeed
+        registry.registerEnum(TestEnum.class);
+        
+        // Second registration should throw
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            registry.registerEnum(TestEnum.class);
         });
+        assertTrue(exception.getMessage().contains("already registered"));
     }
 
     @Test
-    public void testRegisterCustomValueEmptyThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerCustomValue("");
+    public void testRegisterEnumWithCustomNameThrowsIfExists() {
+        EnumRegistry registry = new EnumRegistry();
+        
+        registry.registerEnum("CustomName", TestEnum.class);
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            registry.registerEnum("CustomName", TestEnum.class);
         });
+        assertTrue(exception.getMessage().contains("already registered"));
     }
 
     @Test
-    public void testRegisterCustomValueWhitespaceThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerCustomValue("   ");
+    public void testRegisterEnumWithValuesThrowsIfExists() {
+        EnumRegistry registry = new EnumRegistry();
+        
+        registry.registerEnum("Test", Arrays.asList("A", "B"));
+        
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            registry.registerEnum("Test", Arrays.asList("C", "D"));
         });
-    }
-
-    @Test
-    public void testRegisterCoreValueAsCustom() {
-        // Registering a core value as custom should not add it to custom values
-        registry.registerCustomValue("value1");
-
-        Set<String> customValues = registry.getCustomValues();
-        // Since value1 is already a core value (normalized check), it won't be added to custom
-        assertFalse(customValues.contains("value1"));
-        assertTrue(registry.isRegistered("value1")); // Should still be registered as core
-    }
-
-    @Test
-    public void testIsRegistered() {
-        assertTrue(registry.isRegistered("value1"));
-        assertTrue(registry.isRegistered("VALUE1")); // Case insensitive
-        assertTrue(registry.isRegistered("VaLuE1")); // Case insensitive
-        assertFalse(registry.isRegistered("invalid"));
-        assertFalse(registry.isRegistered(null));
-    }
-
-    @Test
-    public void testGetAllValues() {
-        Set<String> allValues = registry.getAllValues();
-        assertEquals(3, allValues.size());
-        // Core values are stored with original case
-        assertTrue(allValues.contains("value1"));
-        assertTrue(allValues.contains("value2"));
-        assertTrue(allValues.contains("value3"));
-
-        registry.registerCustomValue("CUSTOM1");
-        allValues = registry.getAllValues();
-        assertEquals(4, allValues.size());
-        // Custom values are normalized to lowercase when stored
-        assertTrue(allValues.contains("custom1"));
-    }
-
-    @Test
-    public void testGetCoreValues() {
-        Set<String> coreValues = registry.getCoreValues();
-        assertEquals(3, coreValues.size());
-        assertTrue(coreValues.contains("value1"));
-
-        registry.registerCustomValue("CUSTOM1");
-        // Core values should not change
-        assertEquals(3, registry.getCoreValues().size());
-    }
-
-    @Test
-    public void testGetCustomValues() {
-        Set<String> customValues = registry.getCustomValues();
-        assertTrue(customValues.isEmpty());
-
-        registry.registerCustomValue("CUSTOM1");
-        registry.registerCustomValue("CUSTOM2");
-        customValues = registry.getCustomValues();
-        assertEquals(2, customValues.size());
-        assertTrue(customValues.contains("custom1"));
-        assertTrue(customValues.contains("custom2"));
-    }
-
-    @Test
-    public void testGetDescription() {
-        // Descriptions are stored with original case but lookup normalizes to lowercase
-        // Since we're using lowercase values, this should work
-        assertEquals("Core TestRegistry value", registry.getDescription("value1"));
-        assertNull(registry.getDescription("invalid"));
-        assertNull(registry.getDescription(null));
-
-        registry.registerCustomValue("CUSTOM1", "Custom description");
-        // Custom values are normalized, so this should work
-        assertEquals("Custom description", registry.getDescription("CUSTOM1"));
-    }
-
-    @Test
-    public void testClearCustomValues() {
-        registry.registerCustomValue("CUSTOM1");
-        registry.registerCustomValue("CUSTOM2");
-        assertEquals(2, registry.getCustomValues().size());
-
-        registry.clearCustomValues();
-        assertTrue(registry.getCustomValues().isEmpty());
-        assertEquals(3, registry.getCoreValues().size()); // Core values unchanged
-    }
-
-    @Test
-    public void testToString() {
-        String str = registry.toString();
-        assertTrue(str.contains("TestRegistry"));
-        assertTrue(str.contains("3 values"));
-        assertTrue(str.contains("3 core"));
-        assertTrue(str.contains("0 custom"));
-
-        registry.registerCustomValue("CUSTOM1");
-        str = registry.toString();
-        assertTrue(str.contains("4 values"));
-        assertTrue(str.contains("1 custom"));
-    }
-
-    @Test
-    public void testGetModuleGroups() {
-        EnumRegistry moduleGroups = EnumRegistry.getModuleGroups();
-        assertNotNull(moduleGroups);
-        assertEquals("ModuleGroup", moduleGroups.getRegistryName());
-        assertTrue(moduleGroups.isRegistered("gameplay"));
-        assertTrue(moduleGroups.isRegistered("visual"));
-        assertTrue(moduleGroups.isRegistered("audio"));
-        assertTrue(moduleGroups.isRegistered("balance"));
-        assertTrue(moduleGroups.isRegistered("content"));
-        assertTrue(moduleGroups.isRegistered("utility"));
-        assertTrue(moduleGroups.isRegistered("experimental"));
-    }
-
-    @Test
-    public void testGetModuleModifies() {
-        EnumRegistry moduleModifies = EnumRegistry.getModuleModifies();
-        assertNotNull(moduleModifies);
-        assertEquals("ModuleModifies", moduleModifies.getRegistryName());
-        assertTrue(moduleModifies.isRegistered("stats"));
-        assertTrue(moduleModifies.isRegistered("appearance"));
-        assertTrue(moduleModifies.isRegistered("behavior"));
-        assertTrue(moduleModifies.isRegistered("loot"));
-        assertTrue(moduleModifies.isRegistered("difficulty"));
-        assertTrue(moduleModifies.isRegistered("progression"));
-        assertTrue(moduleModifies.isRegistered("economy"));
-        assertTrue(moduleModifies.isRegistered("environment"));
-    }
-
-    @Test
-    public void testValueNormalization() {
-        // Test that values are normalized to lowercase
-        registry.registerCustomValue("  CUSTOM_VALUE  ", "Description");
-
-        assertTrue(registry.isRegistered("custom_value"));
-        assertTrue(registry.isRegistered("CUSTOM_VALUE"));
-        assertTrue(registry.isRegistered("  custom_value  "));
-
-        String description = registry.getDescription("  CUSTOM_VALUE  ");
-        assertNotNull(description);
+        assertTrue(exception.getMessage().contains("already registered"));
+        
+        // Original should be unchanged
+        EnumDefinition original = registry.getEnum("Test");
+        assertEquals(2, original.getValues().size());
+        assertTrue(original.hasValue("A"));
+        assertTrue(original.hasValue("B"));
+        assertFalse(original.hasValue("C"));
     }
 }
 

@@ -1,8 +1,8 @@
 package redactedrice.randomizer.lua.arguments;
 
-import redactedrice.randomizer.context.EnumContext;
+import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.context.EnumDefinition;
-import redactedrice.randomizer.lua.LuaToJavaConverter;
+import redactedrice.randomizer.utils.LuaJavaConverter;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
@@ -14,13 +14,13 @@ import java.util.*;
  */
 public class ArgumentConverter {
     public static Object convertAndValidate(Object value, TypeDefinition typeDef,
-            EnumContext enumContext) {
+            EnumRegistry enumRegistry) {
         if (value == null) {
             throw new IllegalArgumentException("Value cannot be null");
         }
 
         // convert the value to the right type
-        Object converted = convertToType(value, typeDef, enumContext);
+        Object converted = convertToType(value, typeDef, enumRegistry);
 
         // check constraints for primitive types
         if (typeDef.isPrimitive()) {
@@ -36,7 +36,7 @@ public class ArgumentConverter {
     }
 
     private static Object convertToType(Object value, TypeDefinition typeDef,
-            EnumContext enumContext) {
+            EnumRegistry enumRegistry) {
         // call the right converter based on type
         switch (typeDef.getBaseType()) {
             case STRING:
@@ -52,23 +52,23 @@ public class ArgumentConverter {
                 return convertToBoolean(value);
 
             case ENUM:
-                // need enumcontext to look up valid enum values
-                return convertToEnum(value, typeDef.getEnumName(), enumContext);
+                // need enum registry to look up valid enum values
+                return convertToEnum(value, typeDef.getEnumName(), enumRegistry);
 
             case LIST:
                 // recursively convert each element
-                return convertToList(value, typeDef.getElementType(), enumContext);
+                return convertToList(value, typeDef.getElementType(), enumRegistry);
 
             case MAP:
                 // recursively convert keys and values
                 return convertToMap(value, typeDef.getKeyType(), typeDef.getValueType(),
-                        enumContext);
+                        enumRegistry);
 
             case GROUP:
                 // groups are just maps where values are lists
                 // actual group object creation happens later in convertArgumentsToLuaTable
                 return convertToMap(value, typeDef.getKeyType(), typeDef.getValueType(),
-                        enumContext);
+                        enumRegistry);
 
             default:
                 throw new IllegalArgumentException("Unknown type: " + typeDef.getBaseType());
@@ -135,28 +135,28 @@ public class ArgumentConverter {
                 "Cannot convert " + value.getClass().getSimpleName() + " to boolean");
     }
 
-    private static String convertToEnum(Object value, String enumName, EnumContext enumContext) {
-        if (enumContext == null) {
-            throw new IllegalArgumentException("EnumContext required for enum type validation. "
+    private static String convertToEnum(Object value, String enumName, EnumRegistry enumRegistry) {
+        if (enumRegistry == null) {
+            throw new IllegalArgumentException("EnumRegistry required for enum type validation. "
                     + "This typically means the context was not properly initialized or passed to validation.");
         }
 
         // lookup the enum definition
-        EnumDefinition enumDef = enumContext.getEnum(enumName);
+        EnumDefinition enumDef = enumRegistry.getEnum(enumName);
         if (enumDef == null) {
             // build helpful error message with available enums
-            Set<String> availableEnumsSet = enumContext.getEnumNames();
+            Set<String> availableEnumsSet = enumRegistry.getEnumNames();
             List<String> availableEnums = new ArrayList<>(availableEnumsSet);
             Collections.sort(availableEnums);
 
             StringBuilder errorMsg = new StringBuilder();
-            errorMsg.append("Enum '").append(enumName).append("' not found in context");
+            errorMsg.append("Enum '").append(enumName).append("' not found in registry");
             if (!availableEnums.isEmpty()) {
                 errorMsg.append(". Available enums: ").append(availableEnums);
             } else {
-                errorMsg.append(". No enums are registered in the context");
+                errorMsg.append(". No enums are registered in the registry");
             }
-            errorMsg.append(". This is likely due to mispelling enum name or not correctly ");
+            errorMsg.append(". This is likely due to misspelling enum name or not correctly ");
             errorMsg.append("registering the enum with context.registerEnum() in the onLoad() ");
             errorMsg.append("function of the module");
             throw new IllegalArgumentException(errorMsg.toString());
@@ -175,14 +175,14 @@ public class ArgumentConverter {
 
     @SuppressWarnings("unchecked")
     private static List<Object> convertToList(Object value, TypeDefinition elementType,
-            EnumContext enumContext) {
+            EnumRegistry enumRegistry) {
         List<Object> result = new ArrayList<>();
 
         // handle java lists
         if (value instanceof List) {
             List<?> sourceList = (List<?>) value;
             for (Object element : sourceList) {
-                Object converted = convertToType(element, elementType, enumContext);
+                Object converted = convertToType(element, elementType, enumRegistry);
                 result.add(converted);
             }
         } else if (value instanceof LuaTable) {
@@ -193,8 +193,8 @@ public class ArgumentConverter {
             for (int i = 1; i <= len; i++) {
                 LuaValue element = table.get(i);
                 if (!element.isnil()) {
-                    Object converted = convertToType(LuaToJavaConverter.convert(element, true),
-                            elementType, enumContext);
+                    Object converted = convertToType(LuaJavaConverter.luaToJava(element, true),
+                            elementType, enumRegistry);
                     result.add(converted);
                 }
             }
@@ -202,7 +202,7 @@ public class ArgumentConverter {
             // handle java arrays
             Object[] array = (Object[]) value;
             for (Object element : array) {
-                Object converted = convertToType(element, elementType, enumContext);
+                Object converted = convertToType(element, elementType, enumRegistry);
                 result.add(converted);
             }
         } else {
@@ -215,15 +215,15 @@ public class ArgumentConverter {
 
     @SuppressWarnings("unchecked")
     private static Map<Object, Object> convertToMap(Object value, TypeDefinition keyType,
-            TypeDefinition valueType, EnumContext enumContext) {
+            TypeDefinition valueType, EnumRegistry enumRegistry) {
         Map<Object, Object> result = new LinkedHashMap<>();
 
         if (value instanceof Map) {
             // convert java maps
             Map<?, ?> sourceMap = (Map<?, ?>) value;
             for (Map.Entry<?, ?> entry : sourceMap.entrySet()) {
-                Object convertedKey = convertToType(entry.getKey(), keyType, enumContext);
-                Object convertedValue = convertToType(entry.getValue(), valueType, enumContext);
+                Object convertedKey = convertToType(entry.getKey(), keyType, enumRegistry);
+                Object convertedValue = convertToType(entry.getValue(), valueType, enumRegistry);
                 result.put(convertedKey, convertedValue);
             }
         } else if (value instanceof LuaTable) {
@@ -233,9 +233,9 @@ public class ArgumentConverter {
             for (LuaValue key : keys) {
                 LuaValue val = table.get(key);
                 Object convertedKey =
-                        convertToType(LuaToJavaConverter.convert(key, true), keyType, enumContext);
-                Object convertedValue = convertToType(LuaToJavaConverter.convert(val, true),
-                        valueType, enumContext);
+                        convertToType(LuaJavaConverter.luaToJava(key, true), keyType, enumRegistry);
+                Object convertedValue = convertToType(LuaJavaConverter.luaToJava(val, true),
+                        valueType, enumRegistry);
                 result.put(convertedKey, convertedValue);
             }
         } else {
