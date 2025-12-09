@@ -41,7 +41,7 @@ public class JavaContextTest {
         }
 
         context.registerEnum("TestEnum", TestEnum.class);
-        EnumContext enumContext = context.getEnumContext();
+        EnumRegistry enumContext = context.getEnumRegistry();
         assertTrue(enumContext.hasEnum("TestEnum"));
     }
 
@@ -52,24 +52,24 @@ public class JavaContextTest {
         }
 
         context.registerEnum("CustomName", TestEnum.class);
-        EnumContext enumContext = context.getEnumContext();
+        EnumRegistry enumContext = context.getEnumRegistry();
         assertTrue(enumContext.hasEnum("CustomName"));
     }
 
     @Test
     public void testRegisterCustomEnum() {
         context.registerEnum("Difficulty", "EASY", "NORMAL", "HARD");
-        EnumContext enumContext = context.getEnumContext();
+        EnumRegistry enumContext = context.getEnumRegistry();
         assertTrue(enumContext.hasEnum("Difficulty"));
     }
 
     @Test
-    public void testMergeEnumContext() {
-        EnumContext source = new EnumContext();
+    public void testMergeEnumRegistry() {
+        EnumRegistry source = new EnumRegistry();
         source.registerEnum("Enum1", Arrays.asList("A", "B"));
 
-        context.mergeEnumContext(source);
-        EnumContext enumContext = context.getEnumContext();
+        context.mergeEnumRegistry(source);
+        EnumRegistry enumContext = context.getEnumRegistry();
         assertTrue(enumContext.hasEnum("Enum1"));
     }
 

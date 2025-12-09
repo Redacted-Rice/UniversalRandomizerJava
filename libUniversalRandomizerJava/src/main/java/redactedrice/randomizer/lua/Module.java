@@ -2,6 +2,7 @@ package redactedrice.randomizer.lua;
 
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
+import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
 import redactedrice.randomizer.lua.arguments.ArgumentParser;
 import redactedrice.randomizer.utils.ErrorTracker;
@@ -72,40 +73,40 @@ public class Module {
     public static Module parseFromFile(LuaTable moduleTable, File file) {
         String fileName = file.getName();
 
-        String name = LuaToJavaConverter.tryGetStringFromTable(moduleTable, "name", null, fileName);
+        String name = LuaJavaConverter.tryGetStringFromTable(moduleTable, "name", null, fileName);
         String description =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "description", "", fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "description", "", fileName);
         Set<String> groups =
-                LuaToJavaConverter.tryGetStringSetFromTable(moduleTable, "groups", fileName);
+                LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "groups", fileName);
         Set<String> modifies =
-                LuaToJavaConverter.tryGetStringSetFromTable(moduleTable, "modifies", fileName);
+                LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "modifies", fileName);
 
         Integer seedOffsetInt =
-                LuaToJavaConverter.tryGetIntFromTable(moduleTable, "seedOffset", fileName);
+                LuaJavaConverter.tryGetIntFromTable(moduleTable, "seedOffset", fileName);
         // Default to 0
         int seedOffset = (seedOffsetInt != null) ? seedOffsetInt : 0;
         LuaFunction executeFunction =
-                LuaToJavaConverter.tryGetFunctionFromTable(moduleTable, "execute", fileName);
+                LuaJavaConverter.tryGetFunctionFromTable(moduleTable, "execute", fileName);
         LuaFunction onLoadFunction =
-                LuaToJavaConverter.tryGetFunctionFromTable(moduleTable, "onLoad", fileName);
+                LuaJavaConverter.tryGetFunctionFromTable(moduleTable, "onLoad", fileName);
 
         // Parse arguments - handled separately due to complexity
         List<ArgumentDefinition> arguments =
                 ArgumentParser.parseArgumentsFromTable(moduleTable, fileName);
 
-        String when = LuaToJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
+        String when = LuaJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
         String author =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "author", null, fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "author", null, fileName);
         String version =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "version", null, fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "version", null, fileName);
         Map<String, String> requires =
-                LuaToJavaConverter.tryGetStringMapFromTable(moduleTable, "requires", fileName);
+                LuaJavaConverter.tryGetStringMapFromTable(moduleTable, "requires", fileName);
         String source =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "source", null, fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "source", null, fileName);
         String license =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "license", null, fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "license", null, fileName);
         String about =
-                LuaToJavaConverter.tryGetStringFromTable(moduleTable, "about", null, fileName);
+                LuaJavaConverter.tryGetStringFromTable(moduleTable, "about", null, fileName);
 
         // Create the module. This will validate and throw if there are issues
         try {

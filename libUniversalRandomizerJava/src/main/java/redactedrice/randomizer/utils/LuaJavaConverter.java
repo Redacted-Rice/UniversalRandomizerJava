@@ -1,21 +1,105 @@
-package redactedrice.randomizer.lua;
+package redactedrice.randomizer.utils;
 
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
-import redactedrice.randomizer.utils.ErrorTracker;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+import redactedrice.randomizer.context.EnumDefinition;
 
 import java.util.*;
 
-public class LuaToJavaConverter {
 
-    // ---------------- Generic/Auto conversion & helpers ----------------
+public class LuaJavaConverter {
 
-    public static Object convert(LuaValue value) {
-        return convert(value, false);
+    // ----------- Java to Lua Conversion ------------------
+
+    public static LuaValue javaToLua(Object value) {
+        if (value == null) {
+            return LuaValue.NIL;
+        } else if (value instanceof LuaValue) {
+            return (LuaValue) value;
+        } else if (value instanceof Enum) {
+            // Convert enum to string (using name())
+            return LuaValue.valueOf(((Enum<?>) value).name());
+        } else if (isPrimitiveOrWrapper(value) || value instanceof String) {
+            // Use LuaJ's built-in coercion for primitives and strings
+            return CoerceJavaToLua.coerce(value);
+        } else if (value instanceof List) {
+            return listToLuaTable((List<?>) value);
+        } else if (value instanceof Map) {
+            return mapToLuaTable((Map<?, ?>) value);
+        } else {
+            // For complex objects, use LuaJ's coercion (will become userdata)
+            return CoerceJavaToLua.coerce(value);
+        }
     }
 
-    public static Object convert(LuaValue value, boolean skipTables) {
+    public static LuaTable listToLuaTable(List<?> list) {
+        LuaTable luaTable = new LuaTable();
+        for (int i = 0; i < list.size(); i++) {
+            // Lua arrays are 1-indexed
+            luaTable.set(i + 1, javaToLua(list.get(i)));
+        }
+        return luaTable;
+    }
+
+    public static LuaTable mapToLuaTable(Map<?, ?> map) {
+        LuaTable luaTable = new LuaTable();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            LuaValue key = javaToLua(entry.getKey());
+            LuaValue val = javaToLua(entry.getValue());
+            luaTable.set(key, val);
+        }
+        return luaTable;
+    }
+
+    public static LuaTable enumDefinitionToLuaTable(String enumName, EnumDefinition enumDef) {
+        if (enumDef == null) {
+            return null;
+        }
+
+        LuaTable enumTable = new LuaTable();
+        List<String> values = enumDef.getValues();
+        Map<String, Integer> valueMap = enumDef.getValueMap();
+
+        // Create sequential array of strings (1-indexed)
+        for (int i = 0; i < values.size(); i++) {
+            String value = values.get(i);
+            enumTable.set(i + 1, LuaValue.valueOf(value));
+        }
+
+        // Create values subtable mapping name -> integer value
+        if (valueMap != null && !valueMap.isEmpty()) {
+            LuaTable valuesTable = new LuaTable();
+            for (Map.Entry<String, Integer> valueEntry : valueMap.entrySet()) {
+                valuesTable.set(valueEntry.getKey(), LuaValue.valueOf(valueEntry.getValue()));
+            }
+            enumTable.set("values", valuesTable);
+        }
+
+        // Add metadata
+        enumTable.set("_name", LuaValue.valueOf(enumName));
+
+        // Make the table read-only (best effort in LuaJ)
+        enumTable.setmetatable(createReadOnlyEnumMetatable());
+
+        return enumTable;
+    }
+
+    private static LuaTable createReadOnlyEnumMetatable() {
+        LuaTable mt = new LuaTable();
+        // Prevent modifications
+        mt.set("__newindex", LuaValue.valueOf("Enums are read-only"));
+        return mt;
+    }
+
+    // ----------- Lua to Java Conversion ------------------
+
+    public static Object luaToJava(LuaValue value) {
+        return luaToJava(value, false);
+    }
+
+    public static Object luaToJava(LuaValue value, boolean skipTables) {
         if (value.isnil()) {
             return null;
         } else if (value.isboolean()) {
@@ -58,24 +142,24 @@ public class LuaToJavaConverter {
         List<Object> list = new ArrayList<>();
         int length = table.length();
         for (int i = 1; i <= length; i++) {
-            list.add(convert(table.get(i)));
+            list.add(luaToJava(table.get(i)));
         }
         return list;
     }
 
     private static Map<String, Object> luaTableToMap(LuaTable table) {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new LinkedHashMap<>();
         LuaValue[] keys = table.keys();
         for (LuaValue key : keys) {
             if (key.isstring()) {
                 LuaValue value = table.get(key);
-                map.put(key.tojstring(), convert(value));
+                map.put(key.tojstring(), luaToJava(value));
             }
         }
         return map;
     }
 
-    // ---------------- Extract values from tables ----------------
+    // ----------- Lua Table Field Extraction Utilities (Lua to Java) ------------------
 
     public static String tryGetStringFromTable(LuaTable table, String fieldName,
             String defaultValue, String context) {
@@ -192,5 +276,13 @@ public class LuaToJavaConverter {
         }
 
         return result;
+    }
+
+    // ----------- Helper Methods ------------------
+
+    private static boolean isPrimitiveOrWrapper(Object value) {
+        return value instanceof Boolean || value instanceof Byte || value instanceof Character
+                || value instanceof Short || value instanceof Integer || value instanceof Long
+                || value instanceof Float || value instanceof Double;
     }
 }
