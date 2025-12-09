@@ -1,4 +1,4 @@
-package redactedrice.randomizer.lua.sandbox;
+package redactedrice.randomizer.lua.sandbox.security;
 
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -6,6 +6,7 @@ import org.luaj.vm2.LuaValue;
 import java.util.Set;
 
 // Creates a table that blocks certain modules from being accessed or modified
+// Used by the package policy to block dangerous modules
 public class ModuleFilteredLuaTable extends DelegatingLuaTable {
     private final Set<String> blockedModules;
 

@@ -1,9 +1,9 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
-import redactedrice.randomizer.lua.sandbox.ResourceMonitor;
-import redactedrice.randomizer.lua.sandbox.MemoryLimitExceededException;
-import redactedrice.randomizer.lua.sandbox.TimeoutException;
+import redactedrice.randomizer.lua.sandbox.monitoring.ResourceMonitor;
+import redactedrice.randomizer.lua.sandbox.monitoring.MemoryLimitExceededException;
+import redactedrice.randomizer.lua.sandbox.monitoring.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
