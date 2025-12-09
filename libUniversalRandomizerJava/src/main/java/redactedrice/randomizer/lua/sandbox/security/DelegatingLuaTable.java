@@ -1,4 +1,4 @@
-package redactedrice.randomizer.lua.sandbox;
+package redactedrice.randomizer.lua.sandbox.security;
 
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
