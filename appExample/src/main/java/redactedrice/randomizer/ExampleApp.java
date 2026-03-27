@@ -7,6 +7,7 @@ import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.utils.ManifestResourceExtractor;
 import redactedrice.randomizer.utils.LogLevel;
+import redactedrice.randomizer.utils.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -88,13 +89,13 @@ public class ExampleApp {
         // All levels to system out (default setting)
         // All levels to randomizer.log
         // Warn and Error to randomizer_warn_err.log
-        wrapper.setLogEnabled(true);
-        wrapper.addStreamForAllLogLevels(logFileStream); // All logs to main log file
+        Logger.setEnabled(true);
+        Logger.addStreamForAllLevels(logFileStream); // All logs to main log file
         // Warnings and errors to separate file
-        wrapper.addStreamForLogLevels(warnErrFileStream, LogLevel.WARN, LogLevel.ERROR);
-        wrapper.setShowLogTimestamp(false);
-        wrapper.setShowLogModuleName(true);
-        // wrapper.setLogMinLevel(LogLevel.INFO);
+        Logger.addStreamForLevels(warnErrFileStream, LogLevel.WARN, LogLevel.ERROR);
+        Logger.setShowTimestamp(false);
+        Logger.setShowModuleName(true);
+        // Logger.setMinLogLevel(LogLevel.INFO);
 
         System.out.println("Logging configuration:");
         System.out.println("  All levels → Console + " + logFile.getName());
