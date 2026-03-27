@@ -3,37 +3,24 @@ package redactedrice.randomizer.lua;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
-import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 // loads lua modules from directories, parses their metadata, and stores them providing lookup
 // mechanisms for them/their metadata
 public class ModuleRegistry {
-    LuaSandbox sandbox;
-    // Modules are the core randomization that are manually specified and run
-    // This is a map from the module name to its metadata
-    Map<String, Module> modules;
-    // Modules organized by their group metadata field
-    Map<String, List<Module>> modulesByGroup;
-    // Modules organized by what they modify. Modules can be in more than one key/list here
-    Map<String, List<Module>> modulesByModifies;
-    // Scripts are automatically run before and after triggers. Name may change
-    Map<String, Map<String, List<Module>>> scriptsByType;
-    // If set, this will restrict the groups that are loaded to only specified values. Null to
-    // autodetermine from loading
-    Set<String> definedGroups;
-    // If set, this will restrict the modifies that are loaded to only specified values. Null to
-    // autodetermine from loading
-    Set<String> definedModifies;
+    private final ModuleLoader loader;
+    private final ModuleRepository repository;
+    private final ModuleFilter moduleFilter;
 
-    public static final String SCRIPT_TIMING_PRE = "pre";
-    public static final String SCRIPT_TIMING_POST = "post";
+    public static final String SCRIPT_TIMING_PRE = ModuleRepository.SCRIPT_TIMING_PRE;
+    public static final String SCRIPT_TIMING_POST = ModuleRepository.SCRIPT_TIMING_POST;
 
-    public static final String SCRIPT_WHEN_RANDOMIZE = "randomize";
-    public static final String SCRIPT_WHEN_MODULE = "module";
+    public static final String SCRIPT_WHEN_RANDOMIZE = ModuleRepository.SCRIPT_WHEN_RANDOMIZE;
+    public static final String SCRIPT_WHEN_MODULE = ModuleRepository.SCRIPT_WHEN_MODULE;
 
     public ModuleRegistry(LuaSandbox sandbox) {
         this(sandbox, null, null);
@@ -44,24 +31,10 @@ public class ModuleRegistry {
         if (sandbox == null) {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
-        this.sandbox = sandbox;
-        this.modules = new HashMap<>();
-        this.modulesByGroup = new HashMap<>();
-        this.modulesByModifies = new HashMap<>();
-        this.scriptsByType = new HashMap<>();
-        this.definedGroups = normalizeStringSet(definedGroups);
-        this.definedModifies = normalizeStringSet(definedModifies);
-
-        // Initialize the scripts maps
-        Map<String, List<Module>> preScripts = new HashMap<>();
-        preScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
-        preScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
-        scriptsByType.put(SCRIPT_TIMING_PRE, preScripts);
-
-        Map<String, List<Module>> postScripts = new HashMap<>();
-        postScripts.put(SCRIPT_WHEN_RANDOMIZE, new ArrayList<>());
-        postScripts.put(SCRIPT_WHEN_MODULE, new ArrayList<>());
-        scriptsByType.put(SCRIPT_TIMING_POST, postScripts);
+        this.loader = new ModuleLoader(sandbox);
+        this.repository = new ModuleRepository(definedGroups, definedModifies);
+        this.moduleFilter = new CompositeFilter(new GroupFilter(definedGroups),
+                new ModifiesFilter(definedModifies));
     }
 
     public int loadModulesFromDirectory(String directoryPath) {
@@ -91,126 +64,57 @@ public class ModuleRegistry {
         return loadedCount;
     }
 
-
-    private List<File> getScriptsFromSubdirectory(String directoryPath, String subfolder) {
+    private List<Path> getScriptsFromSubdirectory(String directoryPath, String subfolder) {
         if (directoryPath == null || directoryPath.trim().isEmpty()) {
             return new ArrayList<>();
         }
 
-        File targetDir;
+        Path targetDir;
         if (subfolder == null || subfolder.trim().isEmpty()) {
-            targetDir = new File(directoryPath);
+            targetDir = new File(directoryPath).toPath();
         } else {
-            targetDir = new File(directoryPath, subfolder);
+            targetDir = new File(directoryPath, subfolder).toPath();
         }
 
-        if (!targetDir.exists() || !targetDir.isDirectory()) {
-            return new ArrayList<>();
-        }
-
-        return findLuaFiles(targetDir);
+        return loader.findLuaFiles(targetDir);
     }
 
     private int loadModulesFromSubfolder(String directoryPath) {
-        List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, "actions");
-        return loadModulesFromScripts(luaFiles, modules, "module", (metadata) -> {
-            if (!isAllowedGrouping(metadata.getGroups(), definedGroups, metadata.getName(),
-                    "groups", "group")) {
-                return;
-            } else if (!isAllowedGrouping(metadata.getModifies(), definedModifies,
-                    metadata.getName(), "modifies", "modifies")) {
-                return;
-            }
-
-            modules.put(metadata.getName(), metadata);
-
-            // Add to group indices
-            addModuleToCategoryIndices(metadata, metadata.getGroups(), modulesByGroup,
-                    definedGroups);
-
-            // Add to modifies indices
-            addModuleToCategoryIndices(metadata, metadata.getModifies(), modulesByModifies,
-                    definedModifies);
-        });
-    }
-
-    private boolean isAllowedGrouping(Set<String> metadataValues, Set<String> definedValues,
-            String moduleName, String fieldName, String singularName) {
-        if (definedValues == null || definedValues.isEmpty()) {
-            return true;
-        }
-
-        boolean hasMatch = false;
-        if (metadataValues != null && !metadataValues.isEmpty()) {
-            for (String value : metadataValues) {
-                if (value != null && !value.trim().isEmpty()) {
-                    if (definedValues.contains(value)) {
-                        hasMatch = true;
-                    } else {
-                        Logger.warn("Module '" + moduleName + "' has " + singularName + " '" + value
-                                + "' which is not in defined " + fieldName + " values");
-                    }
-                }
-            }
-        }
-        if (!hasMatch) {
-            Logger.warn("Ignoring module '" + moduleName + "' - no " + fieldName
-                    + " values in defined list");
-        }
-        return hasMatch;
-    }
-
-    private void addModuleToCategoryIndices(Module metadata, Set<String> categories,
-            Map<String, List<Module>> indexMap, Set<String> definedCategories) {
-        if (categories == null || categories.isEmpty()) {
-            return;
-        }
-        for (String category : categories) {
-            if (category != null && !category.trim().isEmpty()) {
-                // Only add if not filtering or if in defined list
-                if (definedCategories == null || definedCategories.isEmpty()
-                        || definedCategories.contains(category)) {
-                    indexMap.computeIfAbsent(category, k -> new ArrayList<>()).add(metadata);
-                }
-            }
-        }
-    }
-
-    private int loadScriptsFromSubfolder(String directoryPath, String subfolder, String timing) {
-        List<File> luaFiles = getScriptsFromSubdirectory(directoryPath, subfolder);
-        return loadModulesFromScripts(luaFiles, null, directoryPath, (metadata) -> {
-            // Determine the when it should be run
-            String when = metadata.getWhen();
-            String whenKey;
-
-            if (when != null && when.equals(SCRIPT_WHEN_MODULE)) {
-                whenKey = SCRIPT_WHEN_MODULE;
-            } else {
-                // Default to randomize
-                whenKey = SCRIPT_WHEN_RANDOMIZE;
-            }
-
-            // Add to the appropriate list in the nested map
-            scriptsByType.get(timing).get(whenKey).add(metadata);
-        });
-    }
-
-    private int loadModulesFromScripts(List<File> luaFiles, Object targetCollection,
-            String scriptType, java.util.function.Consumer<Module> onSuccess) {
+        List<Path> luaFiles = getScriptsFromSubdirectory(directoryPath, "actions");
         int loadedCount = 0;
 
-        for (File file : luaFiles) {
+        for (Path file : luaFiles) {
             try {
-                Module metadata = loadModule(file);
-                if (metadata != null) {
-                    onSuccess.accept(metadata);
+                Module module = loadAndParseModule(file);
+                if (module != null) {
+                    repository.registerModule(module, moduleFilter);
                     loadedCount++;
-                    Logger.info("Loaded from " + scriptType + ": " + metadata.getName());
+                    Logger.info("Loaded from module: " + module.getName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                ErrorTracker.addError(
-                        "Error loading script from " + file.getPath() + ": " + e.getMessage());
+                ErrorTracker.addError("Error loading script from " + file + ": " + e.getMessage());
+            }
+        }
+
+        return loadedCount;
+    }
+
+    private int loadScriptsFromSubfolder(String directoryPath, String subfolder, String timing) {
+        List<Path> luaFiles = getScriptsFromSubdirectory(directoryPath, subfolder);
+        int loadedCount = 0;
+
+        for (Path file : luaFiles) {
+            try {
+                Module script = loadAndParseModule(file);
+                if (script != null) {
+                    repository.registerScript(script, timing);
+                    loadedCount++;
+                    Logger.info("Loaded from " + directoryPath + ": " + script.getName());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                ErrorTracker.addError("Error loading script from " + file + ": " + e.getMessage());
             }
         }
 
@@ -225,125 +129,50 @@ public class ModuleRegistry {
         return loadScriptsFromSubfolder(directoryPath, "postscripts", SCRIPT_TIMING_POST);
     }
 
-    private Module loadModule(File file) {
-        Logger.info("Loading module: " + file.getName());
-        try {
-            LuaValue result = sandbox.executeFile(file.getAbsolutePath());
-            if (!result.istable()) {
-                ErrorTracker.addError(
-                        file.getName() + " did not return a table (got " + result.typename() + ")");
-                return null;
-            }
-            return Module.parseFromFile(result.checktable(), file);
-        } catch (LuaError e) {
-            ErrorTracker.addError("Lua error in " + file.getName() + ": " + e.getMessage());
-            return null;
-        } catch (Exception e) {
-            ErrorTracker.addError("Error loading " + file.getName() + ": " + e.getMessage());
+    private Module loadAndParseModule(Path filePath) {
+        Logger.info("Loading module: " + filePath.getFileName());
+        LuaValue luaTable = loader.loadFile(filePath);
+        if (luaTable == null || !luaTable.istable()) {
             return null;
         }
-    }
-
-    private List<File> findLuaFiles(File directory) {
-        List<File> luaFiles = new ArrayList<>();
-        File[] files = directory.listFiles();
-
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    // recurse into subdirectories
-                    luaFiles.addAll(findLuaFiles(file));
-                } else if (file.isFile() && file.getName().toLowerCase().endsWith(".lua")) {
-                    luaFiles.add(file);
-                }
-            }
-        }
-
-        return luaFiles;
+        return ModuleParser.parse(luaTable.checktable(), filePath);
     }
 
 
     public Module getModule(String name) {
-        return modules.get(name);
+        return repository.getModule(name);
     }
 
     public Set<String> getDefinedGroupValues() {
-        // Return defined groups if set. Otherwise return dynamically loaded values
-        if (definedGroups != null && !definedGroups.isEmpty()) {
-            return new HashSet<>(definedGroups);
-        }
-        return new HashSet<>(modulesByGroup.keySet());
+        return repository.getDefinedGroupValues();
     }
 
     public List<Module> getModulesByGroup(String group) {
-        if (group == null || group.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Module> groupModules = modulesByGroup.get(group);
-        return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
+        return repository.getModulesByGroup(group);
     }
 
     public Set<String> getDefinedModifiesValues() {
-        // Return defined modifies values if set. Otherwise return dynamically loaded values
-        if (definedModifies != null && !definedModifies.isEmpty()) {
-            return new HashSet<>(definedModifies);
-        }
-        return new HashSet<>(modulesByModifies.keySet());
+        return repository.getDefinedModifiesValues();
     }
 
     public List<Module> getModulesByModifies(String modifies) {
-        if (modifies == null || modifies.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Module> modifiesModules = modulesByModifies.get(modifies);
-        return modifiesModules != null ? new ArrayList<>(modifiesModules) : new ArrayList<>();
-    }
-
-    private Set<String> normalizeStringSet(Set<String> values) {
-        if (values == null || values.isEmpty()) {
-            return null;
-        }
-        Set<String> normalized = new HashSet<>();
-        for (String value : values) {
-            if (value != null) {
-                String trimmed = value.trim().toLowerCase();
-                if (!trimmed.isEmpty()) {
-                    normalized.add(trimmed);
-                }
-            }
-        }
-        return normalized;
+        return repository.getModulesByModifies(modifies);
     }
 
     public List<Module> getAllModules() {
-        return new ArrayList<>(modules.values());
+        return repository.getAllModules();
     }
 
     public Set<String> getModuleNames() {
-        return new HashSet<>(modules.keySet());
+        return repository.getModuleNames();
     }
 
     public List<Module> getScripts(String timing, String when) {
-        Map<String, List<Module>> timingMap = scriptsByType.get(timing);
-        if (timingMap == null) {
-            return new ArrayList<>();
-        }
-
-        List<Module> scripts = timingMap.get(when);
-        return scripts != null ? new ArrayList<>(scripts) : new ArrayList<>();
+        return repository.getScripts(timing, when);
     }
 
     public void clear() {
-        modules.clear();
-        modulesByGroup.clear();
-        modulesByModifies.clear();
-        for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
-            for (List<Module> scripts : timingMap.values()) {
-                scripts.clear();
-            }
-        }
+        repository.clear();
         // TODO: Handle this better - probably means making non static
         ErrorTracker.clearErrors();
     }

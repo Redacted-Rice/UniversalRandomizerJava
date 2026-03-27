@@ -70,55 +70,6 @@ public class Module {
         this.about = about;
     }
 
-    public static Module parseFromFile(LuaTable moduleTable, File file) {
-        String fileName = file.getName();
-
-        String name = LuaJavaConverter.tryGetStringFromTable(moduleTable, "name", null, fileName);
-        String description =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "description", "", fileName);
-        Set<String> groups =
-                LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "groups", fileName);
-        Set<String> modifies =
-                LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "modifies", fileName);
-
-        Integer seedOffsetInt =
-                LuaJavaConverter.tryGetIntFromTable(moduleTable, "seedOffset", fileName);
-        // Default to 0
-        int seedOffset = (seedOffsetInt != null) ? seedOffsetInt : 0;
-        LuaFunction executeFunction =
-                LuaJavaConverter.tryGetFunctionFromTable(moduleTable, "execute", fileName);
-        LuaFunction onLoadFunction =
-                LuaJavaConverter.tryGetFunctionFromTable(moduleTable, "onLoad", fileName);
-
-        // Parse arguments - handled separately due to complexity
-        List<ArgumentDefinition> arguments =
-                ArgumentParser.parseArgumentsFromTable(moduleTable, fileName);
-
-        String when = LuaJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
-        String author =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "author", null, fileName);
-        String version =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "version", null, fileName);
-        Map<String, String> requires =
-                LuaJavaConverter.tryGetStringMapFromTable(moduleTable, "requires", fileName);
-        String source =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "source", null, fileName);
-        String license =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "license", null, fileName);
-        String about =
-                LuaJavaConverter.tryGetStringFromTable(moduleTable, "about", null, fileName);
-
-        // Create the module. This will validate and throw if there are issues
-        try {
-            return new Module(name, description, groups, modifies, arguments, executeFunction,
-                    onLoadFunction, file.getAbsolutePath(), seedOffset, when, author, version,
-                    requires, source, license, about);
-        } catch (IllegalArgumentException e) {
-            ErrorTracker.addError(fileName + " validation failed: " + e.getMessage());
-            return null;
-        }
-    }
-
     private void validateRequiredFields(String name, LuaFunction executeFunction, String author,
             String version, Map<String, String> requires) {
         if (name == null || name.trim().isEmpty()) {
