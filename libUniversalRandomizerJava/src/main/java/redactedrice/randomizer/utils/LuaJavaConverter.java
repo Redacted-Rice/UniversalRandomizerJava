@@ -5,6 +5,7 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import redactedrice.randomizer.context.EnumDefinition;
+import redactedrice.randomizer.context.JavaObjectWrapper;
 
 import java.util.*;
 
@@ -14,6 +15,10 @@ public class LuaJavaConverter {
     // ----------- Java to Lua Conversion ------------------
 
     public static LuaValue javaToLua(Object value) {
+        return javaToLua(value, null);
+    }
+
+    public static LuaValue javaToLua(Object value, JavaObjectWrapper wrapper) {
         if (value == null) {
             return LuaValue.NIL;
         } else if (value instanceof LuaValue) {
@@ -25,29 +30,42 @@ public class LuaJavaConverter {
             // Use LuaJ's built-in coercion for primitives and strings
             return CoerceJavaToLua.coerce(value);
         } else if (value instanceof List) {
-            return listToLuaTable((List<?>) value);
+            return listToLuaTable((List<?>) value, wrapper);
         } else if (value instanceof Map) {
-            return mapToLuaTable((Map<?, ?>) value);
+            return mapToLuaTable((Map<?, ?>) value, wrapper);
         } else {
-            // For complex objects, use LuaJ's coercion (will become userdata)
-            return CoerceJavaToLua.coerce(value);
+            // For complex objects, wrap them if wrapper is provided
+            if (wrapper != null) {
+                return wrapper.wrap(value);
+            } else {
+                // Otherwise use LuaJ's coercion to make the userdata
+                return CoerceJavaToLua.coerce(value);
+            }
         }
     }
 
     public static LuaTable listToLuaTable(List<?> list) {
+        return listToLuaTable(list, null);
+    }
+
+    public static LuaTable listToLuaTable(List<?> list, JavaObjectWrapper wrapper) {
         LuaTable luaTable = new LuaTable();
         for (int i = 0; i < list.size(); i++) {
             // Lua arrays are 1-indexed
-            luaTable.set(i + 1, javaToLua(list.get(i)));
+            luaTable.set(i + 1, javaToLua(list.get(i), wrapper));
         }
         return luaTable;
     }
 
     public static LuaTable mapToLuaTable(Map<?, ?> map) {
+        return mapToLuaTable(map, null);
+    }
+
+    public static LuaTable mapToLuaTable(Map<?, ?> map, JavaObjectWrapper wrapper) {
         LuaTable luaTable = new LuaTable();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            LuaValue key = javaToLua(entry.getKey());
-            LuaValue val = javaToLua(entry.getValue());
+            LuaValue key = javaToLua(entry.getKey(), wrapper);
+            LuaValue val = javaToLua(entry.getValue(), wrapper);
             luaTable.set(key, val);
         }
         return luaTable;

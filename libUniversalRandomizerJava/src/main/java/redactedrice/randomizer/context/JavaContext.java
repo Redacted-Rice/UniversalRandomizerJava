@@ -108,11 +108,11 @@ public class JavaContext {
             Object value = entry.getValue();
             LuaValue luaValue;
 
-            // Wrap complex objects for method access
+            // Wrap complex objects for method access, including objects inside lists/maps
             if (value != null && !isPrimitiveOrWrapper(value) && !(value instanceof String)
-                    && !(value instanceof List) && !(value instanceof Map)
                     && !(value instanceof Enum)) {
-                luaValue = objectWrapper.wrap(value);
+                // Pass wrapper to converter so it can wrap nested objects
+                luaValue = LuaJavaConverter.javaToLua(value, objectWrapper);
             } else {
                 luaValue = LuaJavaConverter.javaToLua(value);
             }

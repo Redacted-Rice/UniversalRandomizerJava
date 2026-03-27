@@ -69,8 +69,9 @@ public class JavaObjectWrapper {
                 // Try to set on userdata first (for actual Java fields)
                 try {
                     userdata.set(key, value);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     // If that fails, store in wrapper (for dynamic Lua fields)
+                    // Must catch Throwable because LuaJ throws LuaError
                     wrapper.rawset(key, value);
                 }
                 return LuaValue.NIL;
