@@ -1,12 +1,8 @@
 package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
-import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
-import redactedrice.randomizer.lua.arguments.ArgumentType;
-import redactedrice.randomizer.lua.arguments.TypeDefinition;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 
 import org.luaj.vm2.LuaError;
@@ -21,6 +17,8 @@ import java.util.*;
 public class ModuleExecutor {
     LuaSandbox sandbox;
     List<ExecutionResult> results;
+    ModuleArgumentValidator argumentValidator;
+    ModuleArgumentConverter argumentConverter;
 
     public ModuleExecutor(LuaSandbox sandbox) {
         if (sandbox == null) {
@@ -28,6 +26,8 @@ public class ModuleExecutor {
         }
         this.sandbox = sandbox;
         this.results = new ArrayList<>();
+        this.argumentValidator = new ModuleArgumentValidator();
+        this.argumentConverter = new ModuleArgumentConverter(sandbox);
     }
 
     private ExecutionResult executeModule(ExecutionRequest request, Module metadata,
@@ -47,14 +47,14 @@ public class ModuleExecutor {
         try {
             // validate and convert arguements using enum context from javacontext
             Map<String, Object> validatedArgs =
-                    validateArguments(metadata, request.getArguments(), context);
+                    argumentValidator.validate(metadata, request.getArguments(), context);
 
             ExecutionErrorFormatter.logExecutionInfo(moduleName, request.getSeed(), validatedArgs,
                     null, null);
 
             // set seed and get the args
             setSeedInLua(request.getSeed());
-            LuaTable argsTable = convertArgumentsToLuaTable(metadata, validatedArgs);
+            LuaTable argsTable = argumentConverter.toLuaTable(metadata, validatedArgs);
 
             // Execute and return the results
             LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);
@@ -249,100 +249,6 @@ public class ModuleExecutor {
         }
 
         return execResults;
-    }
-
-    private Map<String, Object> validateArguments(Module metadata, Map<String, Object> arguments,
-            redactedrice.randomizer.context.JavaContext context) {
-        Map<String, Object> validated = new HashMap<>();
-
-        if (arguments == null) {
-            arguments = new HashMap<>();
-        }
-
-        // need enum registry for validating enum arguments
-        redactedrice.randomizer.context.EnumRegistry enumRegistry =
-                context != null ? context.getEnumRegistry() : null;
-
-        // go through each argument the module expects
-        for (ArgumentDefinition argDef : metadata.getArguments()) {
-            String argName = argDef.getName();
-            Object value = arguments.get(argName);
-
-            // make sure required args are present
-            if (value == null && argDef.getDefaultValue() == null) {
-                throw new IllegalArgumentException("Missing required argument '" + argName
-                        + "' for module '" + metadata.getName() + "'");
-            }
-
-            // convert and validate the value
-            try {
-                Object convertedValue = argDef.convertAndValidate(value, enumRegistry);
-                validated.put(argName, convertedValue);
-            } catch (IllegalArgumentException e) {
-                // add module and arg name to error message
-                String errorMessage = e.getMessage();
-                throw new IllegalArgumentException(
-                        String.format("Error validating argument '%s' for module '%s': %s", argName,
-                                metadata.getName(),
-                                errorMessage != null ? errorMessage : "Unknown error"),
-                        e);
-            }
-        }
-
-        return validated;
-    }
-
-    private LuaTable convertArgumentsToLuaTable(Module metadata, Map<String, Object> arguments) {
-        LuaTable table = new LuaTable();
-
-        if (arguments != null) {
-            // build a map of argument name to type definition for quick lookup
-            // this is needed to handle GROUP types specially
-            Map<String, TypeDefinition> argTypes = new HashMap<>();
-            for (ArgumentDefinition argDef : metadata.getArguments()) {
-                argTypes.put(argDef.getName(), argDef.getTypeDefinition());
-            }
-
-            // convert each argument to Lua format
-            for (Map.Entry<String, Object> entry : arguments.entrySet()) {
-                String argName = entry.getKey();
-                Object value = entry.getValue();
-
-                // check if this is a GROUP type argument
-                // GROUP types need special handling because they need to be wrapped
-                TypeDefinition argType = argTypes.get(argName);
-                if (argType != null && argType.getBaseType() == ArgumentType.GROUP) {
-                    // for group types convert the map to a lua table then wrap it with randomizer
-                    // group
-                    try {
-                        LuaValue mapTable = LuaJavaConverter.javaToLua(value);
-
-                        // get the randomizer module and group function
-                        LuaValue randomizerModule = sandbox.getGlobals().get("require")
-                                .call(LuaValue.valueOf("randomizer"));
-                        LuaValue groupFunction = randomizerModule.get("group");
-
-                        if (groupFunction.isnil()) {
-                            throw new IllegalStateException(
-                                    "randomizer.group function not found. Make sure randomizer module is properly loaded.");
-                        }
-
-                        // call randomizer group on the table and set the result
-                        LuaValue groupObject = groupFunction.call(mapTable);
-                        table.set(argName, groupObject);
-                    } catch (Exception e) {
-                        throw new IllegalStateException("Failed to convert argument '" + argName
-                                + "' to Group: " + e.getMessage(), e);
-                    }
-                } else {
-                    // regular conversion for non group types
-                    LuaValue luaValue = LuaJavaConverter.javaToLua(value);
-                    table.set(argName, luaValue);
-                }
-            }
-        }
-
-        return table;
     }
 
     public List<ExecutionResult> getResults() {
