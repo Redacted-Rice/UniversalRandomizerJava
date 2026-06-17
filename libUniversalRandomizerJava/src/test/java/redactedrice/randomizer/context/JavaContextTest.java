@@ -86,6 +86,18 @@ public class JavaContextTest {
     }
 
     @Test
+    public void testExecutionModuleInToLuaTable() {
+        context.setExecutionModuleName("shuffle_hp");
+
+        LuaTable table = context.toLuaTable();
+        assertEquals("shuffle_hp", table.get("executionModule").tojstring());
+
+        context.clearExecutionModuleName();
+        table = context.toLuaTable();
+        assertTrue(table.get("executionModule").isnil());
+    }
+
+    @Test
     public void testSize() {
         assertEquals(0, context.size());
         context.register("obj1", "value1");

@@ -14,8 +14,14 @@ return {
 
 		local changes = changedetector.detectChanges()
 		if changedetector.hasChanges(changes) then
-			-- Layout comes from monitor setup; this only renders the ASCII table
-			logger.info(changedetector.formatChangesTable(changes))
+			local formatOptions = {
+				leadingNewline = true,
+			}
+			if context.executionModule then
+				formatOptions.moduleName = context.executionModule
+			end
+
+			logger.info(changedetector.formatChangesTable(changes, formatOptions))
 		end
 	end,
 }

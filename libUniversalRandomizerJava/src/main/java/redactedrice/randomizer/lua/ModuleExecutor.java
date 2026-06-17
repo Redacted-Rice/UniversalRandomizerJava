@@ -78,6 +78,11 @@ public class ModuleExecutor {
 
     private ExecutionResult executeLuaScript(Module script, JavaContext context,
             String scriptTiming, String scriptWhen) {
+        return executeLuaScript(script, context, scriptTiming, scriptWhen, null);
+    }
+
+    private ExecutionResult executeLuaScript(Module script, JavaContext context,
+            String scriptTiming, String scriptWhen, String executionModuleName) {
         if (script == null) {
             throw new IllegalArgumentException("Script metadata cannot be null");
         }
@@ -91,6 +96,10 @@ public class ModuleExecutor {
 
         Logger.setCurrentModuleName(moduleName);
         try {
+            if (executionModuleName != null) {
+                context.setExecutionModuleName(executionModuleName);
+            }
+
             // Scripts are much simpler. No args and no seed. Just log and execute
             ExecutionErrorFormatter.logExecutionInfo(moduleName, 0, null, scriptTiming, scriptWhen);
             LuaValue result = executeWithTraceback(script, context.toLuaTable(), new LuaTable());
@@ -105,6 +114,10 @@ public class ModuleExecutor {
             ErrorTracker.addError(errorMsg);
             execResult = ExecutionResult.scriptFailure(moduleName, errorMsg);
         } finally {
+            if (executionModuleName != null) {
+                context.clearExecutionModuleName();
+            }
+
             // Always set the module name back to support recursive calls
             Logger.setCurrentModuleName(previousModuleName);
         }
@@ -131,13 +144,14 @@ public class ModuleExecutor {
 
         // Execute the module
         ExecutionResult result = executeModule(request, metadata, context);
+        String executedModuleName = metadata.getName();
 
         // Execute post module script(s)
         if (postModuleScripts != null) {
             for (Module script : postModuleScripts) {
                 try {
                     executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_POST,
-                            ModuleRegistry.SCRIPT_WHEN_MODULE);
+                            ModuleRegistry.SCRIPT_WHEN_MODULE, executedModuleName);
                 } catch (Exception e) {
                     Logger.error("Error executing post module script '" + script.getName() + "': "
                             + e.getMessage());
