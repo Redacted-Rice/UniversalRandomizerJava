@@ -17,6 +17,7 @@ public class JavaContext {
     Map<String, Object> config;
     EnumRegistry enumRegistry;
     JavaObjectWrapper objectWrapper;
+    String executionModuleName;
 
     public JavaContext() {
         this.objects = new HashMap<>();
@@ -41,6 +42,18 @@ public class JavaContext {
 
     public Object getConfig(String key) {
         return config.get(key);
+    }
+
+    public void setExecutionModuleName(String executionModuleName) {
+        this.executionModuleName = executionModuleName;
+    }
+
+    public void clearExecutionModuleName() {
+        this.executionModuleName = null;
+    }
+
+    public String getExecutionModuleName() {
+        return executionModuleName;
     }
 
     public <E extends Enum<E>> void registerEnum(Class<E> enumClass) {
@@ -126,6 +139,10 @@ public class JavaContext {
                 configTable.set(entry.getKey(), LuaJavaConverter.javaToLua(entry.getValue()));
             }
             table.set("config", configTable);
+        }
+
+        if (executionModuleName != null) {
+            table.set("executionModule", LuaValue.valueOf(executionModuleName));
         }
 
         // Add enums directly to root (not nested)
