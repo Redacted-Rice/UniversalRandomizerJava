@@ -12,32 +12,42 @@ return {
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
 
-		-- Get active flag from config
+		-- Respect the GUI/config toggle for whether change detection runs at all
 		local isActive = context.config and context.config.changeDetectionActive or false
 		changedetector.configure(isActive)
 
-        -- Setup monitoring for entities and items
-        -- Entities have private fields so we use getters
-		local entityFields = {
-			{name = "name", getter = function(obj) return obj:getName() end},
-			{name = "health", getter = function(obj) return obj:getHealth() end},
-			{name = "damage", getter = function(obj) return obj:getDamage() end},
-			{name = "speed", getter = function(obj) return obj:getSpeed() end},
-			{name = "defense", getter = function(obj) return obj:getDefense() end},
-			{name = "type", getter = function(obj) return obj:getType() end},
-			{name = "startingItem", getter = function(obj) return obj:getStartingItem() end}
-		}
-		-- Items have public fields so we use direct field access
-		local itemFields = {"name", "rarity", "attackBonus", "defenseBonus", "healthBonus", "speedBonus"}
+		-- Table layout is configured here so formatting stays simple in detectChanges()
+		changedetector.monitor("Entities", context.entitiesModified, {
+			title = "Entities",
+			primaryKey = {
+				header = "Name",
+				getter = function(obj)
+					return obj:getName()
+				end,
+			},
+			fields = {
+				{ field = "health", header = "Health", align = "right", getter = function(obj) return obj:getHealth() end },
+				{ field = "damage", header = "Damage", align = "right", getter = function(obj) return obj:getDamage() end },
+				{ field = "speed", header = "Speed", align = "right", getter = function(obj) return obj:getSpeed() end },
+				{ field = "defense", header = "Defense", align = "right", getter = function(obj) return obj:getDefense() end },
+				{ field = "type", header = "Type", getter = function(obj) return obj:getType() end },
+				{ field = "startingItem", header = "Starting Item", getter = function(obj) return obj:getStartingItem() end },
+			},
+		})
 
-		changedetector.monitor("Entities", context.entitiesModified, entityFields, function(obj)
-			return obj:getName()
-		end)
-		changedetector.monitor("Items", context.itemsModified, itemFields, function(obj)
-			return obj.name
-		end)
+		-- Items use plain table fields instead of Java getters
+		changedetector.monitor("Items", context.itemsModified, {
+			title = "Items",
+			primaryKey = { field = "name", header = "Name" },
+			fields = {
+				{ field = "rarity", header = "Rarity" },
+				{ field = "attackBonus", header = "Attack Bonus", align = "right" },
+				{ field = "defenseBonus", header = "Defense Bonus", align = "right" },
+				{ field = "healthBonus", header = "Health Bonus", align = "right" },
+				{ field = "speedBonus", header = "Speed Bonus", align = "right" },
+			},
+		})
 
-		-- Log just so its clear what we are tracking
 		local entries = changedetector.getMonitoredEntryNames()
 		if #entries > 0 then
 			logger.info("Change detection configured with " .. #entries .. " monitoring entries")
