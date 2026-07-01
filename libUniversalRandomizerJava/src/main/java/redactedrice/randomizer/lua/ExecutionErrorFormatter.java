@@ -78,8 +78,15 @@ public class ExecutionErrorFormatter {
         return sb.toString();
     }
 
-    public static void logExecutionInfo(String moduleName, int seed, Map<String, Object> arguments,
-            String scriptTiming, String scriptWhen) {
+    // Pre/post scripts omit seed info so pass only the request overload for scripts
+    public static void logExecutionInfo(String moduleName, Map<String, Object> arguments,
+            String scriptTiming, String scriptWhen, Module module, ExecutionRequest request) {
+        logExecutionInfo(moduleName, arguments, scriptTiming, scriptWhen, module, 0, 0, request);
+    }
+
+    public static void logExecutionInfo(String moduleName, Map<String, Object> arguments,
+            String scriptTiming, String scriptWhen, Module module, int baseSeed, int absoluteSeed,
+            ExecutionRequest request) {
         // Build script type information
         StringBuilder scriptInfo = new StringBuilder();
         if (scriptTiming != null && scriptWhen != null) {
@@ -96,16 +103,36 @@ public class ExecutionErrorFormatter {
             scriptInfo.append(" [Module]");
         }
 
+        String seedInfo = formatSeedLog(module, baseSeed, absoluteSeed, request);
+
         // if no arguments just log seed
         if (arguments == null || arguments.isEmpty()) {
-            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo.toString()
-                    + " with seed: " + seed);
+            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo + seedInfo);
         } else {
             // format arguments for logging with nice formatting
             String argsStr = formatArguments(arguments);
-            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo.toString()
-                    + " with seed: " + seed + " and args: " + argsStr);
+            Logger.info("Starting execution of '" + moduleName + "'" + scriptInfo + seedInfo
+                    + " and args: " + argsStr);
         }
+    }
+
+    private static String formatSeedLog(Module module, int baseSeed, int absoluteSeed,
+            ExecutionRequest request) {
+        // Pre/post scripts intentionally omit arguments and seed handling
+        if (request.isScript()) {
+            return "";
+        }
+        int seedOffset = request.getSeedOffset();
+        if (request.hasExplicitSeedOffset()) {
+            return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", explicit seedOffset: "
+                    + seedOffset + ")";
+        }
+        if (module.isSeedOffsetFromMetadata()) {
+            return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", defaultSeedOffset: "
+                    + seedOffset + ")";
+        }
+        return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", nameHashOffset: "
+                + seedOffset + ")";
     }
 
     private static String formatArguments(Map<String, Object> arguments) {

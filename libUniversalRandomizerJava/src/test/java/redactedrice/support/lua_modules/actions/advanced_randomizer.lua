@@ -8,7 +8,7 @@ return {
 	description = "Advanced randomization with grouped pools and multiple constraint types",
 	groups = { "advanced" },
 	modifies = { "name", "health", "damage", "active" },
-	seedOffset = 12345, -- Default seed offset
+	defaultSeedOffset = 12345, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",
 	requires = {

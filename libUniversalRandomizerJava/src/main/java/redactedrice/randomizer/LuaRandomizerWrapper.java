@@ -149,7 +149,7 @@ public class LuaRandomizerWrapper {
 
     // Will return only the module results, not the script results
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
-            JavaContext context) {
+            JavaContext context, int baseSeed) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
@@ -177,7 +177,7 @@ public class LuaRandomizerWrapper {
 
         // Execute the modules running the pre/post scripts for each one
         List<ExecutionResult> results = moduleExecutor.executeModules(requests, moduleRegistry,
-                context, preModuleScripts, postModuleScripts);
+                context, preModuleScripts, postModuleScripts, baseSeed);
 
         // Execute post randomize scripts
         moduleExecutor.executeScripts(postRandomizeScripts, context,
@@ -187,7 +187,8 @@ public class LuaRandomizerWrapper {
     }
 
     // Will return only the module result, not the script results
-    public ExecutionResult executeModule(ExecutionRequest request, JavaContext context) {
+    public ExecutionResult executeModule(ExecutionRequest request, JavaContext context,
+            int baseSeed) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
@@ -207,7 +208,7 @@ public class LuaRandomizerWrapper {
         // Execute the module with only pre/post module scripts
         List<ExecutionResult> results =
                 moduleExecutor.executeModules(Collections.singletonList(request), moduleRegistry,
-                        context, preModuleScripts, postModuleScripts);
+                        context, preModuleScripts, postModuleScripts, baseSeed);
 
         return results.get(0);
     }
@@ -289,4 +290,3 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModulesByModifies(modifies);
     }
 }
-

@@ -202,11 +202,11 @@ public class ExampleApp {
         // more than once with different args if desired
         List<ExecutionRequest> executionRequests = new ArrayList<>();
 
-        // 1 & 2 have no args
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[0], null, 12345));
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[1], null, 12346));
+        // Modules 1 & 2 use defaultSeedOffset from their Lua metadata and have no args
+        executionRequests.add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[0]), null));
+        executionRequests.add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[1]), null));
 
-        // 3 requires speedByType and speedClassPools
+        // 3 requires speedByType and speedClassPools and uses a seed offset
         Map<String, Object> module3Args = new HashMap<>();
         // Map entity types to weighted list of speed classes
         Map<String, List<String>> speedByType = new HashMap<>();
@@ -226,13 +226,14 @@ public class ExampleApp {
         speedClassPools.put(SPEED_CLASS_AVERAGE, Arrays.asList(9, 10, 11, 12));
         speedClassPools.put(SPEED_CLASS_FAST, Arrays.asList(13, 14, 15, 16));
         module3Args.put("speedClassPools", speedClassPools);
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[2], module3Args, 12347));
+        executionRequests.add(
+                ExecutionRequest.forModuleWithSeedOffset(scriptNames[2], module3Args, 56));
 
-        // 4 & 5 have no args
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[3], null, 12348));
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[4], null, 12349));
+        // Module 4 uses module default seed; module 5 keeps an explicit offset override. Both have no args
+        executionRequests.add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[3]), null));
+        executionRequests.add(ExecutionRequest.forModuleWithSeedOffset(scriptNames[4], null, 2));
 
-        // 6 requires weightedRarityPool
+        // 6 requires weightedRarityPool and uses a seed offset
         Map<String, Object> module6Args = new HashMap<>();
         // Create weighted rarity pool
         // COMMON: 50% chance (10 out of 20 entries)
@@ -248,13 +249,14 @@ public class ExampleApp {
             weightedPool.add(ExampleItem.ItemRarity.RARE);
         weightedPool.add(ExampleItem.ItemRarity.LEGENDARY);
         module6Args.put("weightedRarityPool", weightedPool);
-        executionRequests.add(ExecutionRequest.withSeed(scriptNames[5], module6Args, 12350));
+        executionRequests.add(
+                ExecutionRequest.forModuleWithSeedOffset(scriptNames[5], module6Args, 107));
 
         // Execute all modules with their respective arguments. Pre and post scripts will run
         // automatically for these.
         // This does it in batch but you can also run one by one if preferred. See functional
         // tests for an example of that
-        List<ExecutionResult> results = wrapper.executeModules(executionRequests, context);
+        List<ExecutionResult> results = wrapper.executeModules(executionRequests, context, 12345);
 
         // Print the results (logs and errors)
         for (int i = 0; i < results.size(); i++) {

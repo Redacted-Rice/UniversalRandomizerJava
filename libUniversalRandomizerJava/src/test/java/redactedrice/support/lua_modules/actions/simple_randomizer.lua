@@ -8,7 +8,7 @@ return {
 	description = "Randomizes entity name, health, and damage values",
 	groups = { "basic" },
 	modifies = { "name", "health", "damage", "active" },
-	seedOffset = 42, -- Default seed offset
+	defaultSeedOffset = 42, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",
 	requires = {

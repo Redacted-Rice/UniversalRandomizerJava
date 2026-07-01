@@ -13,6 +13,7 @@ return {
 	requires = {
 		UniversalRandomizerJava = "0.5.0",
 	},
+	defaultSeedOffset = 10,
 
 	execute = function(context)
 		local entitiesOriginal = context.entitiesOriginal

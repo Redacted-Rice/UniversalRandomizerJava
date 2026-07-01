@@ -4,38 +4,66 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents a request to execute a module with specific arguments and seed. Allows the same module
- * to be executed multiple times with different configurations.
+ * Represents a request to execute a module with specific arguments and seed offset. The offset is
+ * added to the run's base seed at execution time.
  */
 public final class ExecutionRequest {
     private final String moduleName;
     private final Map<String, Object> arguments;
-    private final int seed;
+    private final int seedOffset;
+    private final boolean explicitSeedOffset;
+    // Pre/post scripts intentionally omit arguments and seed offsets
+    private final boolean script;
 
     // private constructor. Use static factories instead
-    private ExecutionRequest(String moduleName, Map<String, Object> arguments, int seed) {
+    private ExecutionRequest(String moduleName, Map<String, Object> arguments, int seedOffset,
+            boolean explicitSeedOffset, boolean script) {
         this.moduleName = Objects.requireNonNull(moduleName, "Module name cannot be null");
         this.arguments = arguments != null ? Map.copyOf(arguments) : Map.of();
-        this.seed = seed;
+        this.seedOffset = seedOffset;
+        this.explicitSeedOffset = explicitSeedOffset;
+        this.script = script;
     }
 
-    // Sets seed to the passed seed
-    public static ExecutionRequest withSeed(String moduleName, Map<String, Object> arguments,
-            int seed) {
-        return new ExecutionRequest(moduleName, arguments, seed);
+    // Copies the module's defaultSeedOffset (or name-hash offset) for use at execution time
+    public static ExecutionRequest forModule(Module module, Map<String, Object> arguments) {
+        Objects.requireNonNull(module, "Module cannot be null");
+        return new ExecutionRequest(module.getName(), arguments, module.getSeedOffset(), false,
+                false);
     }
 
-    // Pulls the default seed offset from the module and offsets the passed seed with that
-    public static ExecutionRequest withDefaultSeedOffset(String moduleName,
-            Map<String, Object> arguments, int baseSeed, ModuleRegistry moduleRegistry) {
-        Objects.requireNonNull(moduleRegistry, "ModuleRegistry cannot be null");
-        Module module = moduleRegistry.getModule(moduleName);
-        if (module == null) {
-            throw new IllegalArgumentException("Module not found: " + moduleName);
+    // Sets seed offset to the passed value
+    public static ExecutionRequest forModuleWithSeedOffset(String moduleName,
+            Map<String, Object> arguments, int seedOffset) {
+        return new ExecutionRequest(moduleName, arguments, seedOffset, true, false);
+    }
+
+    public static ExecutionRequest forModuleWithSeedOffset(Module module,
+            Map<String, Object> arguments, int seedOffset) {
+        Objects.requireNonNull(module, "Module cannot be null");
+        return forModuleWithSeedOffset(module.getName(), arguments, seedOffset);
+    }
+
+    // Pre/post scripts intentionally omit arguments and seed offsets
+    public static ExecutionRequest forScript(Module script) {
+        Objects.requireNonNull(script, "Script cannot be null");
+        return new ExecutionRequest(script.getName(), Map.of(), 0, false, true);
+    }
+
+    public boolean isScript() {
+        return script;
+    }
+
+    public boolean hasExplicitSeedOffset() {
+        return explicitSeedOffset;
+    }
+
+    public int resolveAbsoluteSeed(int baseSeed) {
+        if (script) {
+            throw new IllegalStateException(
+                    "Scripts do not use seeds: " + moduleName);
         }
-        int offset = module.getDefaultSeedOffset();
-        int finalSeed = baseSeed + offset;
-        return new ExecutionRequest(moduleName, arguments, finalSeed);
+        return baseSeed + seedOffset;
     }
 
     /**
@@ -57,12 +85,12 @@ public final class ExecutionRequest {
     }
 
     /**
-     * Gets the seed to use for randomization.
+     * Gets the seed offset to use for randomization.
      *
-     * @return the seed
+     * @return the seed offset
      */
-    public int getSeed() {
-        return seed;
+    public int getSeedOffset() {
+        return seedOffset;
     }
 
     @Override
@@ -72,23 +100,32 @@ public final class ExecutionRequest {
         if (o == null || getClass() != o.getClass())
             return false;
         ExecutionRequest that = (ExecutionRequest) o;
-        return moduleName.equals(that.moduleName) && arguments.equals(that.arguments)
-                && seed == that.seed;
+        return seedOffset == that.seedOffset && explicitSeedOffset == that.explicitSeedOffset
+                && script == that.script && moduleName.equals(that.moduleName)
+                && arguments.equals(that.arguments);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(moduleName, arguments, seed);
+        return Objects.hash(moduleName, arguments, seedOffset, explicitSeedOffset, script);
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("ExecutionRequest{");
         sb.append("moduleName='").append(moduleName).append('\'');
+        if (script) {
+            sb.append(", script=true");
+        }
         if (!arguments.isEmpty()) {
             sb.append(", arguments=").append(arguments);
         }
-        sb.append(", seed=").append(seed);
+        if (!script) {
+            sb.append(", seedOffset=").append(seedOffset);
+            if (explicitSeedOffset) {
+                sb.append(" (explicit)");
+            }
+        }
         sb.append('}');
         return sb.toString();
     }
