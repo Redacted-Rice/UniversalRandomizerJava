@@ -47,8 +47,7 @@ public class ManifestResourceExtractor {
             Files.createDirectories(targetFile.getParent());
 
             String fullResourcePath = resourcePath + "/" + file;
-            try (InputStream in = ManifestResourceExtractor.class.getClassLoader()
-                    .getResourceAsStream(fullResourcePath)) {
+            try (InputStream in = resourceClassLoader().getResourceAsStream(fullResourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found: " + fullResourcePath);
                 }
@@ -59,8 +58,7 @@ public class ManifestResourceExtractor {
 
     private static List<String> readManifest(String resourcePath) throws IOException {
         String manifestFile = resourcePath + "/.manifest";
-        try (InputStream manifestStream = ManifestResourceExtractor.class.getClassLoader()
-                .getResourceAsStream(manifestFile)) {
+        try (InputStream manifestStream = resourceClassLoader().getResourceAsStream(manifestFile)) {
             if (manifestStream == null) {
                 throw new IOException("Manifest file not found: " + manifestFile);
             }
@@ -72,6 +70,14 @@ public class ManifestResourceExtractor {
                         .collect(Collectors.toList());
             }
         }
+    }
+
+    private static ClassLoader resourceClassLoader() {
+        ClassLoader context = Thread.currentThread().getContextClassLoader();
+        if (context != null) {
+            return context;
+        }
+        return ManifestResourceExtractor.class.getClassLoader();
     }
 
     private static void deleteDirectory(Path directory) throws IOException {
