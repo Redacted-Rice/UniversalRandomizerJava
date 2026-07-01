@@ -13,7 +13,7 @@ return {
 	description = "Demonstrates all new parameter types and metadata features",
 	groups = { "gameplay", "advanced" },
 	modifies = { "stats", "appearance", "loot" },
-	seedOffset = 77777,
+	defaultSeedOffset = 77777,
 	author = "Test Author",
 	version = "0.1",
 	requires = {

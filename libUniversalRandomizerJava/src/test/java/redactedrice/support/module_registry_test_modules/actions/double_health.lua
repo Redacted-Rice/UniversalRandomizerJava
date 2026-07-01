@@ -8,7 +8,7 @@ return {
 	description = "Increases entity health",
 	groups = { "health" },
 	modifies = { "health" },
-	seedOffset = 30,
+	defaultSeedOffset = 30,
 	author = "Test Author",
 	version = "0.1",
 	requires = {

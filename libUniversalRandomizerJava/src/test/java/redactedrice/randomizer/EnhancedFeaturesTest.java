@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class EnhancedFeaturesTest {
 
+    private static final int TEST_BASE_SEED = 12345;
+
     private LuaRandomizerWrapper wrapper;
     private String testModulesPath;
 
@@ -71,9 +73,9 @@ public class EnhancedFeaturesTest {
         args.put("applyRandomness", true);
         args.put("powerLevel", 75);
 
-        ExecutionRequest request =
-                ExecutionRequest.withSeed("Enhanced Entity Randomizer", args, 12345);
-        ExecutionResult result = wrapper.executeModule(request, context);
+        ExecutionRequest request = ExecutionRequest
+                .forModuleWithSeedOffset("Enhanced Entity Randomizer", args, 0);
+        ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess(), "Execution should succeed: " + result.getErrorMessage());
         assertNotEquals("Test", entity.getName());
@@ -139,8 +141,9 @@ public class EnhancedFeaturesTest {
         JavaContext context = new JavaContext();
 
         // Execute the usage module - it should be able to access TestPriority enum
-        ExecutionRequest request = ExecutionRequest.withSeed("Enum Usage", new HashMap<>(), 12345);
-        ExecutionResult result = wrapper.executeModule(request, context);
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset("Enum Usage", new HashMap<>(), 0);
+        ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess(),
                 "Module execution should succeed: " + result.getErrorMessage());
@@ -189,8 +192,9 @@ public class EnhancedFeaturesTest {
         // Execute the Flag Enum module
         // The wrapper will merge the shared enum context (from onLoad) into execContext,
         // and FlagEnum will already be in execContext
-        ExecutionRequest request = ExecutionRequest.withSeed("Flag Enum", new HashMap<>(), 12345);
-        ExecutionResult result = wrapper.executeModule(request, execContext);
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset("Flag Enum", new HashMap<>(), 0);
+        ExecutionResult result = wrapper.executeModule(request, execContext, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess(),
                 "Module execution should succeed: " + result.getErrorMessage());
@@ -228,8 +232,9 @@ public class EnhancedFeaturesTest {
         JavaContext context = new JavaContext();
         context.register("testEntity", testEntity);
 
-        ExecutionRequest request = ExecutionRequest.withSeed("Enum Usage", new HashMap<>(), 12345);
-        ExecutionResult result = wrapper.executeModule(request, context);
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset("Enum Usage", new HashMap<>(), 0);
+        ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess(),
                 "Module execution should succeed: " + result.getErrorMessage());
@@ -334,8 +339,9 @@ public class EnhancedFeaturesTest {
         Map<String, Object> args = new HashMap<>();
         args.put("entityType", "PALADIN");
 
-        ExecutionRequest request = ExecutionRequest.withSeed("Enum Expansion Test", args, 12345);
-        ExecutionResult result = wrapper.executeModule(request, context);
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset("Enum Expansion Test", args, 0);
+        ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         // Will fail an assert and not return true if it does not work
         assertTrue(result.isSuccess());
@@ -348,22 +354,23 @@ public class EnhancedFeaturesTest {
         args1.put("healthMin", 50);
         args1.put("healthMax", 100);
         args1.put("damageMultiplier", 1.5);
-        ExecutionRequest request1 =
-                ExecutionRequest.withSeed("Simple Entity Randomizer", args1, 11111);
+        ExecutionRequest request1 = ExecutionRequest.forModuleWithSeedOffset(
+                "Simple Entity Randomizer", args1, 11111 - TEST_BASE_SEED);
 
         Map<String, Object> args2 = new HashMap<>();
         args2.put("healthMin", 80);
         args2.put("healthMax", 120);
         args2.put("damageMultiplier", 2.0);
-        ExecutionRequest request2 =
-                ExecutionRequest.withSeed("Simple Entity Randomizer", args2, 22222);
+        ExecutionRequest request2 = ExecutionRequest.forModuleWithSeedOffset(
+                "Simple Entity Randomizer", args2, 22222 - TEST_BASE_SEED);
 
         // Execute the modules in batch
         TestEntity entity1 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context = new JavaContext();
         context.register("entity", entity1);
         List<ExecutionRequest> requests = Arrays.asList(request1, request2);
-        List<ExecutionResult> batchResults = wrapper.executeModules(requests, context);
+        List<ExecutionResult> batchResults =
+                wrapper.executeModules(requests, context, TEST_BASE_SEED);
 
         // Verify batch execution results
         assertEquals(2, batchResults.size());

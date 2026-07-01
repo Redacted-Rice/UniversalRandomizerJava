@@ -8,7 +8,7 @@ return {
 	description = "Randomizes entity damage",
 	groups = { "damage" },
 	modifies = { "damage", "stats" },
-	seedOffset = 20,
+	defaultSeedOffset = 20,
 	author = "Test Author",
 	version = "0.1",
 	requires = {

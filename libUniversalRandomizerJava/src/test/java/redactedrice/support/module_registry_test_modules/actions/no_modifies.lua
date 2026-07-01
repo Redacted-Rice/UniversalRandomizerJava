@@ -7,7 +7,7 @@ return {
 	name = "No Modifies Test",
 	description = "Tests that missing modifies field is allowed",
 	groups = { "test" },
-	seedOffset = 88,
+	defaultSeedOffset = 88,
 	author = "Test Author",
 	version = "0.1",
 	requires = {
