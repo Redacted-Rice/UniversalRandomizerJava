@@ -5,7 +5,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
-import redactedrice.randomizer.utils.ManifestResourceExtractor;
+import redactedrice.randomizer.utils.RandomizerBundledResources;
 import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.Logger;
 
@@ -56,23 +56,11 @@ public class ExampleApp {
             File logFile, File warnErrFile) {
         System.out.println("=== Lua Randomizer Wrapper Example App ===\n");
 
-        // Set the extraction path for bundled randomizer files
-        String resourcePath = "randomizer";
-        String randomizerExtractionPath = new File("randomizer").getAbsolutePath();
+        File randomizerDir = RandomizerBundledResources.install(new File("."), true);
+        String randomizerExtractionPath = randomizerDir.getAbsolutePath();
         String modulesPath = new File("lua_modules").getAbsolutePath();
 
-        // Extract bundled randomizer file
-        try {
-            // Overwrite existing files. Normally I would probably not do this so the files can be
-            // modified
-            // if desired but for the example I do this to ensure it picks up any updates from the
-            // universal randomizer core
-            ManifestResourceExtractor.extract(resourcePath, randomizerExtractionPath, true);
-            System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
-        } catch (Exception e) {
-            System.out.println(
-                    "Failed to extract core lua randomizer files. Error: " + e.getMessage());
-        }
+        System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
 
         // Define allowed directories
         List<String> allowedDirectories = new ArrayList<>();
