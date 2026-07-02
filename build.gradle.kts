@@ -93,3 +93,10 @@ tasks.register("coverageExample") {
         }
     }
 }
+
+tasks.register<Exec>("coreTests") {
+    group = "verification"
+    description = "Runs UniversalRandomizerCore Lua tests via busted"
+    workingDir = file("UniversalRandomizerCore")
+    commandLine("./run_tests.sh")
+}
