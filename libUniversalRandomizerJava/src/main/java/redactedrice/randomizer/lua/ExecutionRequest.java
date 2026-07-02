@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * Represents a request to execute a module with specific arguments and seed offset. The offset is
- * added to the run's base seed at execution time.
+ * added to the run's base seed at execution time for seeded modules only.
  */
 public final class ExecutionRequest {
     private final String moduleName;
@@ -14,44 +14,63 @@ public final class ExecutionRequest {
     private final boolean explicitSeedOffset;
     // Pre/post scripts intentionally omit arguments and seed offsets
     private final boolean script;
+    // Whether this module participates in seed configuration at execution time
+    private final boolean seeded;
 
     // private constructor. Use static factories instead
     private ExecutionRequest(String moduleName, Map<String, Object> arguments, int seedOffset,
-            boolean explicitSeedOffset, boolean script) {
+            boolean explicitSeedOffset, boolean script, boolean seeded) {
         this.moduleName = Objects.requireNonNull(moduleName, "Module name cannot be null");
         this.arguments = arguments != null ? Map.copyOf(arguments) : Map.of();
         this.seedOffset = seedOffset;
         this.explicitSeedOffset = explicitSeedOffset;
         this.script = script;
+        this.seeded = seeded;
     }
 
     // Copies the module's defaultSeedOffset (or name-hash offset) for use at execution time
     public static ExecutionRequest forModule(Module module, Map<String, Object> arguments) {
         Objects.requireNonNull(module, "Module cannot be null");
+        if (!module.isSeeded()) {
+            return forUnseededModule(module, arguments);
+        }
         return new ExecutionRequest(module.getName(), arguments, module.getSeedOffset(), false,
-                false);
+                false, true);
+    }
+
+    public static ExecutionRequest forUnseededModule(Module module,
+            Map<String, Object> arguments) {
+        Objects.requireNonNull(module, "Module cannot be null");
+        return new ExecutionRequest(module.getName(), arguments, 0, false, false, false);
     }
 
     // Sets seed offset to the passed value
     public static ExecutionRequest forModuleWithSeedOffset(String moduleName,
             Map<String, Object> arguments, int seedOffset) {
-        return new ExecutionRequest(moduleName, arguments, seedOffset, true, false);
+        return new ExecutionRequest(moduleName, arguments, seedOffset, true, false, true);
     }
 
     public static ExecutionRequest forModuleWithSeedOffset(Module module,
             Map<String, Object> arguments, int seedOffset) {
         Objects.requireNonNull(module, "Module cannot be null");
+        if (!module.isSeeded()) {
+            return forUnseededModule(module, arguments);
+        }
         return forModuleWithSeedOffset(module.getName(), arguments, seedOffset);
     }
 
     // Pre/post scripts intentionally omit arguments and seed offsets
     public static ExecutionRequest forScript(Module script) {
         Objects.requireNonNull(script, "Script cannot be null");
-        return new ExecutionRequest(script.getName(), Map.of(), 0, false, true);
+        return new ExecutionRequest(script.getName(), Map.of(), 0, false, true, false);
     }
 
     public boolean isScript() {
         return script;
+    }
+
+    public boolean usesSeed() {
+        return seeded && !script;
     }
 
     public boolean hasExplicitSeedOffset() {
@@ -62,6 +81,10 @@ public final class ExecutionRequest {
         if (script) {
             throw new IllegalStateException(
                     "Scripts do not use seeds: " + moduleName);
+        }
+        if (!seeded) {
+            throw new IllegalStateException(
+                    "Unseeded modules do not use seeds: " + moduleName);
         }
         return baseSeed + seedOffset;
     }
@@ -101,13 +124,13 @@ public final class ExecutionRequest {
             return false;
         ExecutionRequest that = (ExecutionRequest) o;
         return seedOffset == that.seedOffset && explicitSeedOffset == that.explicitSeedOffset
-                && script == that.script && moduleName.equals(that.moduleName)
-                && arguments.equals(that.arguments);
+                && script == that.script && seeded == that.seeded
+                && moduleName.equals(that.moduleName) && arguments.equals(that.arguments);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(moduleName, arguments, seedOffset, explicitSeedOffset, script);
+        return Objects.hash(moduleName, arguments, seedOffset, explicitSeedOffset, script, seeded);
     }
 
     @Override
@@ -121,9 +144,12 @@ public final class ExecutionRequest {
             sb.append(", arguments=").append(arguments);
         }
         if (!script) {
-            sb.append(", seedOffset=").append(seedOffset);
-            if (explicitSeedOffset) {
-                sb.append(" (explicit)");
+            sb.append(", seeded=").append(seeded);
+            if (seeded) {
+                sb.append(", seedOffset=").append(seedOffset);
+                if (explicitSeedOffset) {
+                    sb.append(" (explicit)");
+                }
             }
         }
         sb.append('}');

@@ -7,7 +7,6 @@ import redactedrice.randomizer.utils.ErrorTracker;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class ArgumentParser {
 
@@ -78,9 +77,7 @@ public class ArgumentParser {
                 typeDef = TypeDefinition.parse(definitionValue.tojstring());
             } else if (definitionValue.istable()) {
                 // complex type with constraints embedded
-                Map<String, Object> defMap =
-                        (Map<String, Object>) LuaJavaConverter.luaToJava(definitionValue);
-                typeDef = TypeDefinition.parse(defMap);
+                typeDef = TypeDefinition.parse(LuaJavaConverter.luaToJava(definitionValue));
             } else {
                 ErrorTracker.addError(
                         context + " argument '" + name + "' has invalid definition field");
