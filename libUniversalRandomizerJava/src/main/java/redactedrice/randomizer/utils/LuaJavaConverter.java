@@ -193,17 +193,40 @@ public class LuaJavaConverter {
         return value.tojstring();
     }
 
-    public static Integer tryGetIntFromTable(LuaTable table, String fieldName, String context) {
+    public static Integer tryGetIntFromTable(LuaTable table, String fieldName, String context,
+            Integer defaultValue) {
         LuaValue value = table.get(fieldName);
         if (value.isnil()) {
-            return null;
+            return defaultValue;
         }
         if (!value.isnumber() || !value.isint()) {
             ErrorTracker.addError(context + " field '" + fieldName + "' must be an integer (got "
-                    + value.typename() + ")");
-            return null;
+                    + value.typename() + "). Defaulting to " + defaultValue);
+            return defaultValue;
         }
         return value.toint();
+    }
+
+    public static Integer tryGetIntFromTable(LuaTable table, String fieldName, String context) {
+        return tryGetIntFromTable(table, fieldName, context, null);
+    }
+
+    public static Boolean tryGetBooleanFromTable(LuaTable table, String fieldName, String context,
+            Boolean defaultValue) {
+        LuaValue value = table.get(fieldName);
+        if (value.isnil()) {
+            return defaultValue;
+        }
+        if (!value.isboolean()) {
+            ErrorTracker.addError(context + " field '" + fieldName + "' must be a boolean (got "
+                    + value.typename() + "). Defaulting to " + defaultValue);
+            return defaultValue;
+        }
+        return value.toboolean();
+    }
+
+    public static Boolean tryGetBooleanFromTable(LuaTable table, String fieldName, String context) {
+        return tryGetBooleanFromTable(table, fieldName, context, null);
     }
 
     public static LuaFunction tryGetFunctionFromTable(LuaTable table, String fieldName,
