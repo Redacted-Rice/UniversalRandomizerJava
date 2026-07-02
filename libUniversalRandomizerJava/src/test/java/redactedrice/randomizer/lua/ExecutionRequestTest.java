@@ -18,7 +18,7 @@ public class ExecutionRequestTest {
             }
         };
         return new Module(name, null, null, null, null, executeFunc, null, null, seedOffset,
-                fromMetadata, "module", "Author", "0.1", Map.of("UniversalRandomizerJava", "0.5.0"),
+                fromMetadata, true, "module", "Author", "0.1", Map.of("UniversalRandomizerJava", "0.5.0"),
                 null, null, null);
     }
 

@@ -22,6 +22,8 @@ public class Module {
     String filePath;
     int seedOffset;
     boolean seedOffsetFromMetadata;
+    // Whether this module participates in seed configuration (true for modules, false for scripts)
+    boolean seeded;
     // When to execute: each randomization or for each module or null for regular
     // modules
     // Currently I call these "scripts" (run automatically before & after triggers)
@@ -41,7 +43,8 @@ public class Module {
     public Module(String name, String description, Set<String> groups, Set<String> modifies,
             List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int seedOffset,
-            boolean seedOffsetFromMetadata, String when, String author, String version,
+            boolean seedOffsetFromMetadata, boolean seeded, String when, String author,
+            String version,
             Map<String, String> requires, String source, String license, String about) {
         // validate required fields
         validateRequiredFields(name, executeFunction, author, version, requires);
@@ -63,6 +66,7 @@ public class Module {
         this.filePath = filePath;
         this.seedOffset = seedOffset;
         this.seedOffsetFromMetadata = seedOffsetFromMetadata;
+        this.seeded = seeded;
         this.when = when;
         this.author = author;
         this.version = version;
@@ -179,6 +183,10 @@ public class Module {
         return seedOffsetFromMetadata;
     }
 
+    public boolean isSeeded() {
+        return seeded;
+    }
+
     public String getWhen() {
         return when;
     }
@@ -215,8 +223,8 @@ public class Module {
     public String toString() {
         return String.format(
                 "Module{name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, "
-                        + "seedOffset=%d, seedOffsetFromMetadata=%s, when='%s', filePath='%s', author='%s', version='%s'}",
+                        + "seedOffset=%d, seedOffsetFromMetadata=%s, seeded=%s, when='%s', filePath='%s', author='%s', version='%s'}",
                 name, groups, modifies, description, arguments.size(), seedOffset,
-                seedOffsetFromMetadata, when, filePath, author, version);
+                seedOffsetFromMetadata, seeded, when, filePath, author, version);
     }
 }

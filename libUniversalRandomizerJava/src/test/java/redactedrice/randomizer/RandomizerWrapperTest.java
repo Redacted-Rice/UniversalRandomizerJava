@@ -6,6 +6,7 @@ import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.lua.Module;
+import redactedrice.randomizer.lua.ModuleRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -357,7 +358,31 @@ public class RandomizerWrapperTest {
         assertEquals(2, postModuleScriptCount);
         assertEquals(1, postRandomizeScriptCount);
 
+        assertFalse(findLoadedModule("Test Pre Randomize Script").isSeeded());
+        assertFalse(findLoadedModule("Test Pre Module Script").isSeeded());
+        assertTrue(wrapper.getModule("Simple Entity Randomizer").isSeeded());
+
         assertFalse(ErrorTracker.hasErrors());
+    }
+
+    private Module findLoadedModule(String name) {
+        Module module = wrapper.getModule(name);
+        if (module != null) {
+            return module;
+        }
+        for (String timing :
+                List.of(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_TIMING_POST)) {
+            for (String when : List.of(ModuleRegistry.SCRIPT_WHEN_RANDOMIZE,
+                    ModuleRegistry.SCRIPT_WHEN_MODULE)) {
+                for (Module script : wrapper.getModuleRegistry().getScripts(timing, when)) {
+                    if (name.equals(script.getName())) {
+                        return script;
+                    }
+                }
+            }
+        }
+        fail("Module not loaded: " + name);
+        return null;
     }
 
     @Test

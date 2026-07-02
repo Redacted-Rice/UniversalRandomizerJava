@@ -39,7 +39,7 @@ public class ModuleTest {
         Module metadata = new Module("TestModule", "Test description", setOf("gameplay"),
                 setOf("stats", "appearance"),
                 Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
-                executeFunc, null, "/path/to/module.lua", 0, true, null, "TestAuthor", "0.1", requires,
+                executeFunc, null, "/path/to/module.lua", 0, true, true, null, "TestAuthor", "0.1", requires,
                 null, null, null);
 
         assertEquals("TestModule", metadata.getName());
@@ -66,7 +66,7 @@ public class ModuleTest {
     public void testConstructorNullNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module(null, null, null, null, null, executeFunc, null, null, 0, true, "module",
+            new Module(null, null, null, null, null, executeFunc, null, null, 0, true, true, "module",
                     "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -75,7 +75,7 @@ public class ModuleTest {
     public void testConstructorEmptyNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("", null, null, null, null, executeFunc, null, null, 0, true, null, "TestAuthor",
+            new Module("", null, null, null, null, executeFunc, null, null, 0, true, true, null, "TestAuthor",
                     "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -84,7 +84,7 @@ public class ModuleTest {
     public void testConstructorWhitespaceNameThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("   ", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("   ", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -92,7 +92,7 @@ public class ModuleTest {
     @Test
     public void testConstructorNullExecuteFunctionThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, null, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, null, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -101,7 +101,7 @@ public class ModuleTest {
     public void testConstructorNullAuthorThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null, null,
                     "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -110,7 +110,7 @@ public class ModuleTest {
     public void testConstructorEmptyAuthorThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null, "",
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null, "",
                     "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -119,7 +119,7 @@ public class ModuleTest {
     public void testConstructorWhitespaceAuthorThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "   ", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -128,7 +128,7 @@ public class ModuleTest {
     public void testConstructorNullVersionThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", null, createRequiresMap(), null, null, null);
         });
     }
@@ -137,7 +137,7 @@ public class ModuleTest {
     public void testConstructorEmptyVersionThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "", createRequiresMap(), null, null, null);
         });
     }
@@ -146,7 +146,7 @@ public class ModuleTest {
     public void testConstructorWhitespaceVersionThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "   ", createRequiresMap(), null, null, null);
         });
     }
@@ -155,7 +155,7 @@ public class ModuleTest {
     public void testConstructorNullRequiresThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", null, null, null, null);
         });
     }
@@ -164,7 +164,7 @@ public class ModuleTest {
     public void testConstructorEmptyRequiresThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", new HashMap<>(), null, null, null);
         });
     }
@@ -176,7 +176,7 @@ public class ModuleTest {
         requires.put("UniversalRandomizerJava", "0.5.0");
         requires.put("TestRequired", "0.1");
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", requires, null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", requires, null, null, null);
 
         assertEquals("0.5.0", metadata.getRequires().get("UniversalRandomizerJava"));
         assertEquals("0.1", metadata.getRequires().get("TestRequired"));
@@ -188,7 +188,7 @@ public class ModuleTest {
         Map<String, String> requires = new HashMap<>();
         requires.put("TestRequired", "0.1");
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", requires, null, null, null);
         });
     }
@@ -198,7 +198,7 @@ public class ModuleTest {
         LuaFunction executeFunc = createMockFunction();
         Map<String, String> requires = createRequiresMap();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", requires, null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", requires, null, null, null);
 
         Map<String, String> retrieved = metadata.getRequires();
         assertThrows(UnsupportedOperationException.class, () -> {
@@ -210,7 +210,7 @@ public class ModuleTest {
     public void testConstructorNullDescription() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertEquals("", metadata.getDescription());
     }
@@ -219,7 +219,7 @@ public class ModuleTest {
     public void testConstructorNullGroupsForScriptsAllowed() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         // Scripts should not have groups
         assertTrue(metadata.getGroups().isEmpty());
@@ -231,7 +231,7 @@ public class ModuleTest {
         // Scripts should not have groups
         assertThrows(IllegalArgumentException.class, () -> {
             new Module("TestModule", null, setOf("test"), null, null, executeFunc, null, null, 0, true,
-                    "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                    false, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
 
@@ -240,7 +240,7 @@ public class ModuleTest {
         LuaFunction executeFunc = createMockFunction();
         // Regular modules require groups
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, null, null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -250,7 +250,7 @@ public class ModuleTest {
         LuaFunction executeFunc = createMockFunction();
         // Regular modules cannot have empty groups
         assertThrows(IllegalArgumentException.class, () -> {
-            new Module("TestModule", null, setOf(), null, null, executeFunc, null, null, 0, true, null,
+            new Module("TestModule", null, setOf(), null, null, executeFunc, null, null, 0, true, true, null,
                     "TestAuthor", "0.1", createRequiresMap(), null, null, null);
         });
     }
@@ -259,7 +259,7 @@ public class ModuleTest {
     public void testConstructorGroupsCaseInsensitive() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, setOf("GAMEPLAY"), null, null, executeFunc,
-                null, null, 0, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                null, null, 0, true, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertTrue(metadata.getGroups().contains("gameplay")); // Lowercased
     }
@@ -268,7 +268,7 @@ public class ModuleTest {
     public void testConstructorMultipleGroups() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, setOf("gameplay", "ACTION"), null, null,
-                executeFunc, null, null, 0, true, null, "TestAuthor", "0.1", createRequiresMap(), null,
+                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", createRequiresMap(), null,
                 null, null);
 
         assertEquals(2, metadata.getGroups().size());
@@ -280,7 +280,7 @@ public class ModuleTest {
     public void testConstructorNullModifies() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, setOf("test"), null, null, executeFunc,
-                null, null, 0, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                null, null, 0, true, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertTrue(metadata.getModifies().isEmpty());
     }
@@ -289,7 +289,7 @@ public class ModuleTest {
     public void testConstructorNullArguments() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertTrue(metadata.getArguments().isEmpty());
     }
@@ -299,7 +299,7 @@ public class ModuleTest {
         LuaFunction executeFunc = createMockFunction();
         LuaFunction onLoadFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, onLoadFunc,
-                null, 0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                null, 0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertEquals(onLoadFunc, metadata.getOnLoadFunction());
         assertTrue(metadata.hasOnLoad());
@@ -311,7 +311,7 @@ public class ModuleTest {
         Set<String> groups = setOf("test");
         Set<String> modifies = setOf("stats", "appearance");
         Module metadata = new Module("TestModule", null, groups, modifies, null, executeFunc, null,
-                null, 0, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                null, 0, true, true, null, "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         Set<String> retrieved = metadata.getModifies();
         assertThrows(UnsupportedOperationException.class, () -> {
@@ -325,7 +325,7 @@ public class ModuleTest {
         ArgumentDefinition arg1 = new ArgumentDefinition("arg1", TypeDefinition.string(), null);
         List<ArgumentDefinition> arguments = Arrays.asList(arg1);
         Module metadata = new Module("TestModule", null, null, null, arguments, executeFunc, null,
-                null, 0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                null, 0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         List<ArgumentDefinition> retrieved = metadata.getArguments();
         assertThrows(UnsupportedOperationException.class, () -> {
@@ -338,7 +338,7 @@ public class ModuleTest {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", "Description", setOf("gameplay"), setOf("stats"),
                 Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
-                executeFunc, null, "/path/to/module.lua", 5, true, null, "TestAuthor", "0.1",
+                executeFunc, null, "/path/to/module.lua", 5, true, true, null, "TestAuthor", "0.1",
                 createRequiresMap(), null, null, null);
 
         String str = metadata.toString();
@@ -358,17 +358,29 @@ public class ModuleTest {
     public void testforModuleOffset() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                42, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                42, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertTrue(metadata.isSeedOffsetFromMetadata());
         assertEquals(42, metadata.getSeedOffset());
+        assertTrue(metadata.isSeeded());
+    }
+
+    @Test
+    public void testSeededFalseMetadata() {
+        LuaFunction executeFunc = createMockFunction();
+        Module metadata = new Module("Test Script", null, null, null, null, executeFunc, null, null,
+                0, true, false, "randomize", "TestAuthor", "0.1", createRequiresMap(), null, null,
+                null);
+
+        assertFalse(metadata.isSeeded());
+        assertTrue(metadata.isScript());
     }
 
     @Test
     public void testWithFilePath() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null,
-                "/custom/path.lua", 0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null,
+                "/custom/path.lua", 0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null,
                 null, null);
 
         assertEquals("/custom/path.lua", metadata.getFilePath());
@@ -378,7 +390,7 @@ public class ModuleTest {
     public void testOptionalFieldsSourceLicenseAbout() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", createRequiresMap(),
+                0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(),
                 "https://github.com/example/module", "MIT", "This is a test module");
 
         assertEquals("https://github.com/example/module", metadata.getSource());
@@ -390,7 +402,7 @@ public class ModuleTest {
     public void testOptionalFieldsCanBeNull() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = new Module("TestModule", null, null, null, null, executeFunc, null, null,
-                0, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
+                0, true, true, "module", "TestAuthor", "0.1", createRequiresMap(), null, null, null);
 
         assertNull(metadata.getSource());
         assertNull(metadata.getLicense());

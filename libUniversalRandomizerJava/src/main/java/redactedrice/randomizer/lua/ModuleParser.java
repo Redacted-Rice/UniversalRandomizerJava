@@ -45,17 +45,36 @@ public class ModuleParser {
                 LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "groups", fileName);
         Set<String> modifies =
                 LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "modifies", fileName);
+        String when = LuaJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
+        boolean isScript = when != null && !when.trim().isEmpty();
 
-        Integer metadataSeedOffset =
-                LuaJavaConverter.tryGetIntFromTable(moduleTable, "defaultSeedOffset", fileName);
-        int seedOffset;
-        boolean seedOffsetFromMetadata;
-        if (metadataSeedOffset != null) {
-            seedOffset = metadataSeedOffset;
-            seedOffsetFromMetadata = true;
+        boolean seeded = false;
+        int seedOffset = 0;
+        boolean seedOffsetFromMetadata = false;
+
+        if (isScript) {
+            // Treat these as non-fatal for the script
+            if (!moduleTable.get("defaultSeedOffset").isnil()) {
+                ErrorTracker.addError(
+                        fileName + " field 'defaultSeedOffset' is not allowed on scripts");
+            }
+            if (!moduleTable.get("seeded").isnil()) {
+                ErrorTracker.addError(fileName + " field 'seeded' is not allowed on scripts");
+            }
         } else {
-            seedOffset = hashNameToSeedOffset(name);
-            seedOffsetFromMetadata = false;
+            Boolean parsedSeeded =
+                    LuaJavaConverter.tryGetBooleanFromTable(moduleTable, "seeded", fileName, true);
+            seeded = parsedSeeded != null ? parsedSeeded : true;
+            if (seeded) {
+                Integer metadataSeedOffset = LuaJavaConverter.tryGetIntFromTable(moduleTable,
+                        "defaultSeedOffset", fileName);
+                if (metadataSeedOffset != null) {
+                    seedOffset = metadataSeedOffset;
+                    seedOffsetFromMetadata = true;
+                } else {
+                    seedOffset = hashNameToSeedOffset(name);
+                }
+            }
         }
 
         LuaFunction executeFunction =
@@ -67,7 +86,6 @@ public class ModuleParser {
         List<ArgumentDefinition> arguments =
                 ArgumentParser.parseArgumentsFromTable(moduleTable, fileName);
 
-        String when = LuaJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
         String author =
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "author", null, fileName);
         String version =
@@ -84,8 +102,8 @@ public class ModuleParser {
         try {
             return new Module(name, description, groups, modifies, arguments, executeFunction,
                     onLoadFunction, sourceFile.toAbsolutePath().toString(), seedOffset,
-                    seedOffsetFromMetadata, when, author, version, requires, source, license,
-                    about);
+                    seedOffsetFromMetadata, seeded, when, author, version, requires, source,
+                    license, about);
         } catch (IllegalArgumentException e) {
             ErrorTracker.addError(fileName + " validation failed: " + e.getMessage());
             return null;
