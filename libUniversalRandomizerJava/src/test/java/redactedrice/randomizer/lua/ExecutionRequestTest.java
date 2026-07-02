@@ -11,6 +11,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class ExecutionRequestTest {
     private Module createModule(String name, int seedOffset, boolean fromMetadata) {
+        return createModule(name, seedOffset, fromMetadata, true);
+    }
+
+    private Module createModule(String name, int seedOffset, boolean fromMetadata,
+            boolean seeded) {
         LuaFunction executeFunc = new ZeroArgFunction() {
             @Override
             public LuaValue call() {
@@ -18,8 +23,8 @@ public class ExecutionRequestTest {
             }
         };
         return new Module(name, null, null, null, null, executeFunc, null, null, seedOffset,
-                fromMetadata, true, "module", "Author", "0.1", Map.of("UniversalRandomizerJava", "0.5.0"),
-                null, null, null);
+                fromMetadata, seeded, "module", "Author", "0.1",
+                Map.of("UniversalRandomizerJava", "0.5.0"), null, null, null);
     }
 
     @Test
@@ -41,5 +46,24 @@ public class ExecutionRequestTest {
         assertEquals(99, request.getSeedOffset());
         assertTrue(request.hasExplicitSeedOffset());
         assertEquals(12444, request.resolveAbsoluteSeed(12345));
+    }
+
+    @Test
+    public void testUnseededModuleSkipsSeedOffset() {
+        Module module = createModule("Unseeded Module", 77, true, false);
+        ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
+
+        assertFalse(request.usesSeed());
+        assertEquals(0, request.getSeedOffset());
+        assertThrows(IllegalStateException.class, () -> request.resolveAbsoluteSeed(12345));
+    }
+
+    @Test
+    public void testForUnseededModuleFactory() {
+        Module module = createModule("Unseeded Module", 0, false, false);
+        ExecutionRequest request = ExecutionRequest.forUnseededModule(module, Map.of());
+
+        assertFalse(request.usesSeed());
+        assertFalse(request.hasExplicitSeedOffset());
     }
 }

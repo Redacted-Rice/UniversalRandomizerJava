@@ -39,7 +39,14 @@ public class ModuleExecutor {
             throw new IllegalArgumentException("ExecutionRequest cannot be null");
         }
 
-        int absoluteSeed = request.resolveAbsoluteSeed(baseSeed);
+        boolean usesSeed = metadata.isSeeded();
+        int seedUsed = 0;
+        int absoluteSeed = 0;
+        if (usesSeed) {
+            absoluteSeed = request.resolveAbsoluteSeed(baseSeed);
+            seedUsed = absoluteSeed;
+        }
+
         String moduleName = metadata.getName();
         String previousModuleName = Logger.getCurrentModuleName();
         ExecutionResult execResult = null;
@@ -53,23 +60,29 @@ public class ModuleExecutor {
             ExecutionErrorFormatter.logExecutionInfo(moduleName, validatedArgs, null, null,
                     metadata, baseSeed, absoluteSeed, request);
 
-            // set seed and get the args
-            setSeedInLua(absoluteSeed);
+            if (usesSeed) {
+                setSeedInLua(absoluteSeed);
+            }
             LuaTable argsTable = argumentConverter.toLuaTable(metadata, validatedArgs);
 
             // Execute and return the results
             LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);
-            execResult = ExecutionResult.success(request, absoluteSeed, result);
+            execResult = ExecutionResult.success(request, seedUsed, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(metadata, e);
             ErrorTracker.addError(errorMsg);
-            execResult = ExecutionResult.failure(request, absoluteSeed, errorMsg);
+            Logger.error(errorMsg);
+            execResult = ExecutionResult.failure(request, seedUsed, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = ExecutionErrorFormatter.formatJavaError(metadata, e);
             ErrorTracker.addError(errorMsg);
-            execResult = ExecutionResult.failure(request, absoluteSeed, errorMsg);
+            Logger.error(errorMsg);
+            execResult = ExecutionResult.failure(request, seedUsed, errorMsg);
         } finally {
+            if (execResult != null && execResult.isSuccess()) {
+                Logger.info("Finished execution of '" + moduleName + "'");
+            }
             // Always set the module name back to support recursive calls
             Logger.setCurrentModuleName(previousModuleName);
         }
@@ -251,7 +264,7 @@ public class ModuleExecutor {
             if (module == null) {
                 String errorMsg = "Module not found: " + request.getModuleName();
                 ErrorTracker.addError(errorMsg);
-                int seedUsed = request.resolveAbsoluteSeed(baseSeed);
+                int seedUsed = request.usesSeed() ? request.resolveAbsoluteSeed(baseSeed) : 0;
                 ExecutionResult errorResult = ExecutionResult.failure(request, seedUsed, errorMsg);
                 execResults.add(errorResult);
                 continue;

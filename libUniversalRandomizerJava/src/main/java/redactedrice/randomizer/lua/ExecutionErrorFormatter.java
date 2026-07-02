@@ -118,8 +118,8 @@ public class ExecutionErrorFormatter {
 
     private static String formatSeedLog(Module module, int baseSeed, int absoluteSeed,
             ExecutionRequest request) {
-        // Pre/post scripts intentionally omit arguments and seed handling
-        if (request.isScript()) {
+        // Pre/post scripts and unseeded modules omit seed handling
+        if (request.isScript() || !module.isSeeded()) {
             return "";
         }
         int seedOffset = request.getSeedOffset();
