@@ -143,6 +143,10 @@ public class ModuleRegistry {
         return repository.getModule(name);
     }
 
+    public Module getScript(String name) {
+        return repository.getScript(name);
+    }
+
     public Set<String> getDefinedGroupValues() {
         return repository.getDefinedGroupValues();
     }
@@ -169,6 +173,10 @@ public class ModuleRegistry {
 
     public List<Module> getScripts(String timing, String when) {
         return repository.getScripts(timing, when);
+    }
+
+    public List<Module> getAllScripts(String timing) {
+        return repository.getAllScripts(timing);
     }
 
     public void clear() {

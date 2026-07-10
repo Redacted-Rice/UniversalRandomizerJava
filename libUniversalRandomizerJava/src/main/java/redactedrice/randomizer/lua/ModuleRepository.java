@@ -126,6 +126,26 @@ public class ModuleRepository {
         return modules.get(name);
     }
 
+    public Module getScript(String name) {
+        return findScriptByName(name);
+    }
+
+    private Module findScriptByName(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
+            for (List<Module> scripts : timingMap.values()) {
+                for (Module script : scripts) {
+                    if (name.equals(script.getName())) {
+                        return script;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public List<Module> getAllModules() {
         return new ArrayList<>(modules.values());
     }
@@ -176,6 +196,20 @@ public class ModuleRepository {
 
         List<Module> scripts = timingMap.get(when);
         return scripts != null ? new ArrayList<>(scripts) : new ArrayList<>();
+    }
+
+    public List<Module> getAllScripts(String timing) {
+        Map<String, List<Module>> timingMap = scriptsByType.get(timing);
+        if (timingMap == null) {
+            return new ArrayList<>();
+        }
+
+        List<Module> scripts = new ArrayList<>();
+        for (List<Module> whenScripts : timingMap.values()) {
+            scripts.addAll(whenScripts);
+        }
+        scripts.sort(Comparator.comparing(Module::getName));
+        return scripts;
     }
 
     public void clear() {
