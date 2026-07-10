@@ -360,6 +360,10 @@ public class RandomizerWrapperTest {
 
         assertFalse(findLoadedModule("Test Pre Randomize Script").isSeeded());
         assertFalse(findLoadedModule("Test Pre Module Script").isSeeded());
+        assertNotNull(wrapper.getScript("Test Pre Randomize Script"));
+        assertNotNull(wrapper.getScript("Test Pre Module Script"));
+        assertNull(wrapper.getModule("Test Pre Randomize Script"));
+        assertNull(wrapper.getModule("Test Pre Module Script"));
         assertTrue(wrapper.getModule("Simple Entity Randomizer").isSeeded());
 
         assertFalse(ErrorTracker.hasErrors());
@@ -370,16 +374,9 @@ public class RandomizerWrapperTest {
         if (module != null) {
             return module;
         }
-        for (String timing :
-                List.of(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_TIMING_POST)) {
-            for (String when : List.of(ModuleRegistry.SCRIPT_WHEN_RANDOMIZE,
-                    ModuleRegistry.SCRIPT_WHEN_MODULE)) {
-                for (Module script : wrapper.getModuleRegistry().getScripts(timing, when)) {
-                    if (name.equals(script.getName())) {
-                        return script;
-                    }
-                }
-            }
+        module = wrapper.getScript(name);
+        if (module != null) {
+            return module;
         }
         fail("Module not loaded: " + name);
         return null;

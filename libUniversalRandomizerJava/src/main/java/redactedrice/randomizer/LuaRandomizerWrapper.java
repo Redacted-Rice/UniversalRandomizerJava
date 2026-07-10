@@ -105,6 +105,10 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModule(name);
     }
 
+    public Module getScript(String name) {
+        return moduleRegistry.getScript(name);
+    }
+
     // TODO: Keep these exposed and remove delegating fns or remove these and add more
     // delegating fns?
     public ModuleRegistry getModuleRegistry() {
