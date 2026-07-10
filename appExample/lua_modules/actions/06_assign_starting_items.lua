@@ -5,15 +5,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "06_assign_starting_items",
 	name = "06_assign_starting_items",
 	description = "Two-phase assignment: weighted rarity, then grouped item selection",
 	groups = { "players" },
 	modifies = { "startingItem", "startingItemRarity" },
 	author = "Redacted Rice",
 	version = "1.0.0",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	arguments = {
 		{

@@ -4,6 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "advanced_entity_randomizer",
 	name = "Advanced Entity Randomizer",
 	description = "Advanced randomization with grouped pools and multiple constraint types",
 	groups = { "advanced" },
@@ -11,9 +12,6 @@ return {
 	defaultSeedOffset = 12345, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	arguments = {
 		{

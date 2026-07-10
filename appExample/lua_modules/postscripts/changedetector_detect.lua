@@ -1,13 +1,11 @@
 -- Checks for changes and logs if there are any
 return {
+	 id = "changedetector_detect",
 	name = "changedetector_detect",
 	description = "Detect and log changes after each module",
 	when = "module",
 	author = "Redacted Rice",
 	version = "1.0.0",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector

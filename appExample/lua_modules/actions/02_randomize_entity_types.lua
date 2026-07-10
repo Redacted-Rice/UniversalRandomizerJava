@@ -4,15 +4,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "02_randomize_entity_types",
 	name = "02_randomize_entity_types",
 	description = "Randomizes entity types using the registered enum",
 	groups = { "players" },
 	modifies = { "type" },
 	author = "Redacted Rice",
 	version = "1.0.0",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 	defaultSeedOffset = 20,
 
 	execute = function(context)

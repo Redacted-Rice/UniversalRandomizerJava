@@ -4,6 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "simple_entity_randomizer",
 	name = "Simple Entity Randomizer",
 	description = "Randomizes entity name, health, and damage values",
 	groups = { "basic" },
@@ -11,9 +12,6 @@ return {
 	defaultSeedOffset = 42, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 	source = "https://github.com/not/a/real/url",
 	license = "MIT",
 	about = "Just a module designed for use in testing the randomizer wrapper.",

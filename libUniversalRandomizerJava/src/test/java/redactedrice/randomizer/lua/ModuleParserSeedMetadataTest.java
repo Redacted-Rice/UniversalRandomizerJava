@@ -26,12 +26,12 @@ class ModuleParserSeedMetadataTest {
     void scriptsDefaultToUnseededWithoutSeedMetadata() throws IOException {
         Path luaFile = writeScript("""
                 return {
+                    id = "seedless_script",
                     name = "Seedless Script",
                     description = "test",
                     when = "randomize",
                     author = "Test",
                     version = "0.1",
-                    requires = { UniversalRandomizerJava = "0.5.0" },
                     execute = function(context) end,
                 }
                 """);
@@ -48,11 +48,11 @@ class ModuleParserSeedMetadataTest {
     void scriptsLogErrorForDefaultSeedOffsetButStillLoad() throws IOException {
         Path luaFile = writeScript("""
                 return {
+                    id = "bad_script",
                     name = "Bad Script",
                     when = "randomize",
                     author = "Test",
                     version = "0.1",
-                    requires = { UniversalRandomizerJava = "0.5.0" },
                     defaultSeedOffset = 10,
                     execute = function(context) end,
                 }
@@ -70,11 +70,11 @@ class ModuleParserSeedMetadataTest {
     void scriptsLogErrorForSeededFieldButStillLoad() throws IOException {
         Path luaFile = writeScript("""
                 return {
+                    id = "bad_script_seeded",
                     name = "Bad Script",
                     when = "randomize",
                     author = "Test",
                     version = "0.1",
-                    requires = { UniversalRandomizerJava = "0.5.0" },
                     seeded = true,
                     execute = function(context) end,
                 }
@@ -92,11 +92,11 @@ class ModuleParserSeedMetadataTest {
     void modulesDefaultToSeededAndUseNameHashOffset() throws IOException {
         Path luaFile = writeScript("""
                 return {
+                    id = "seeded_module",
                     name = "Seeded Module",
                     groups = { "test" },
                     author = "Test",
                     version = "0.1",
-                    requires = { UniversalRandomizerJava = "0.5.0" },
                     execute = function(context, args) end,
                 }
                 """);
@@ -105,18 +105,18 @@ class ModuleParserSeedMetadataTest {
         assertNotNull(module);
         assertFalse(module.isScript());
         assertTrue(module.isSeeded());
-        assertEquals(ModuleParser.hashNameToSeedOffset("Seeded Module"), module.getSeedOffset());
+        assertEquals(ModuleParser.hashNameToSeedOffset("seeded_module"), module.getSeedOffset());
     }
 
     @Test
     void unseededModulesSkipSeedOffsetMetadata() throws IOException {
         Path luaFile = writeScript("""
                 return {
+                    id = "unseeded_module",
                     name = "Unseeded Module",
                     groups = { "test" },
                     author = "Test",
                     version = "0.1",
-                    requires = { UniversalRandomizerJava = "0.5.0" },
                     seeded = false,
                     execute = function(context, args) end,
                 }

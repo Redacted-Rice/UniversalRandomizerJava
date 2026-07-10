@@ -4,6 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "damage_randomizer",
 	name = "Damage Randomizer",
 	description = "Randomizes entity damage",
 	groups = { "damage" },
@@ -11,9 +12,6 @@ return {
 	defaultSeedOffset = 20,
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	execute = function(context, args)
 		local entity = context.entity

@@ -10,11 +10,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ExecutionRequestTest {
-    private Module createModule(String name, int seedOffset, boolean fromMetadata) {
-        return createModule(name, seedOffset, fromMetadata, true);
+    private Module createModule(String id, int seedOffset, boolean fromMetadata) {
+        return createModule(id, seedOffset, fromMetadata, true);
     }
 
-    private Module createModule(String name, int seedOffset, boolean fromMetadata,
+    private Module createModule(String id, int seedOffset, boolean fromMetadata,
             boolean seeded) {
         LuaFunction executeFunc = new ZeroArgFunction() {
             @Override
@@ -22,14 +22,14 @@ public class ExecutionRequestTest {
                 return LuaValue.NIL;
             }
         };
-        return new Module(name, null, null, null, null, executeFunc, null, null, seedOffset,
-                fromMetadata, seeded, "module", "Author", "0.1",
-                Map.of("UniversalRandomizerJava", "0.5.0"), null, null, null);
+        return new Module(id, "Offset Module", null, null, null, null, executeFunc, null, null,
+                seedOffset, fromMetadata, seeded, "module", "Author", "0.1", Map.of(), null, null,
+                null);
     }
 
     @Test
     public void testForModuleUsesModuleSeedOffset() {
-        Module module = createModule("Offset Module", 77, true);
+        Module module = createModule("offset_module", 77, true);
         ExecutionRequest request = ExecutionRequest.forModule(module, Map.of());
 
         assertEquals(77, request.getSeedOffset());
@@ -39,7 +39,7 @@ public class ExecutionRequestTest {
 
     @Test
     public void testForModuleWithSeedOffsetOverridesModuleDefault() {
-        Module module = createModule("Offset Module", 77, true);
+        Module module = createModule("offset_module", 77, true);
         ExecutionRequest request =
                 ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
 
@@ -50,7 +50,7 @@ public class ExecutionRequestTest {
 
     @Test
     public void testUnseededModuleSkipsSeedOffset() {
-        Module module = createModule("Unseeded Module", 77, true, false);
+        Module module = createModule("unseeded_module", 77, true, false);
         ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
 
         assertFalse(request.usesSeed());
@@ -60,7 +60,7 @@ public class ExecutionRequestTest {
 
     @Test
     public void testForUnseededModuleFactory() {
-        Module module = createModule("Unseeded Module", 0, false, false);
+        Module module = createModule("unseeded_module", 0, false, false);
         ExecutionRequest request = ExecutionRequest.forUnseededModule(module, Map.of());
 
         assertFalse(request.usesSeed());

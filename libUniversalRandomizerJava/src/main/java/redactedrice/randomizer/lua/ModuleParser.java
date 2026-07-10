@@ -38,6 +38,7 @@ public class ModuleParser {
         String fileName = sourceFile.getFileName().toString();
 
         // Extract all fields from the Lua table
+        String id = LuaJavaConverter.tryGetStringFromTable(moduleTable, "id", null, fileName);
         String name = LuaJavaConverter.tryGetStringFromTable(moduleTable, "name", null, fileName);
         String description =
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "description", "", fileName);
@@ -72,7 +73,7 @@ public class ModuleParser {
                     seedOffset = metadataSeedOffset;
                     seedOffsetFromMetadata = true;
                 } else {
-                    seedOffset = hashNameToSeedOffset(name);
+                    seedOffset = hashNameToSeedOffset(id);
                 }
             }
         }
@@ -100,7 +101,7 @@ public class ModuleParser {
 
         // Create the module. This will validate and throw if there are issues
         try {
-            return new Module(name, description, groups, modifies, arguments, executeFunction,
+            return new Module(id, name, description, groups, modifies, arguments, executeFunction,
                     onLoadFunction, sourceFile.toAbsolutePath().toString(), seedOffset,
                     seedOffsetFromMetadata, seeded, when, author, version, requires, source,
                     license, about);

@@ -9,6 +9,7 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "enhanced_entity_randomizer",
 	name = "Enhanced Entity Randomizer",
 	description = "Demonstrates all new parameter types and metadata features",
 	groups = { "gameplay", "advanced" },
@@ -16,9 +17,6 @@ return {
 	defaultSeedOffset = 77777,
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	arguments = {
 		-- Enum parameter (references context enum)
