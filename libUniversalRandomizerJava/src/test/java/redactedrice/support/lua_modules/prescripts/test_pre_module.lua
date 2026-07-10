@@ -1,13 +1,11 @@
 -- Runs before each module execution to validate per-module hooks
 return {
+	 id = "test_pre_module",
 	name = "Test Pre Module Script",
 	description = "Ensures module-level prescripts are invoked",
 	when = "module",
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	execute = function(context)
 		return "pre_module_ran"

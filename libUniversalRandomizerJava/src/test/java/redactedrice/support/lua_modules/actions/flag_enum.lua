@@ -4,15 +4,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "flag_enum",
 	name = "Flag Enum",
 	description = "Tests flag enum usage with non-sequential values",
 	groups = { "utils" },
 	modifies = { "entity" },
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	execute = function(context, args)
 		-- The FlagEnum should be available here because it was registered from Java

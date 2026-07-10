@@ -34,14 +34,14 @@ public final class ExecutionRequest {
         if (!module.isSeeded()) {
             return forUnseededModule(module, arguments);
         }
-        return new ExecutionRequest(module.getName(), arguments, module.getSeedOffset(), false,
+        return new ExecutionRequest(module.getId(), arguments, module.getSeedOffset(), false,
                 false, true);
     }
 
     public static ExecutionRequest forUnseededModule(Module module,
             Map<String, Object> arguments) {
         Objects.requireNonNull(module, "Module cannot be null");
-        return new ExecutionRequest(module.getName(), arguments, 0, false, false, false);
+        return new ExecutionRequest(module.getId(), arguments, 0, false, false, false);
     }
 
     // Sets seed offset to the passed value
@@ -56,13 +56,13 @@ public final class ExecutionRequest {
         if (!module.isSeeded()) {
             return forUnseededModule(module, arguments);
         }
-        return forModuleWithSeedOffset(module.getName(), arguments, seedOffset);
+        return forModuleWithSeedOffset(module.getId(), arguments, seedOffset);
     }
 
     // Pre/post scripts intentionally omit arguments and seed offsets
     public static ExecutionRequest forScript(Module script) {
         Objects.requireNonNull(script, "Script cannot be null");
-        return new ExecutionRequest(script.getName(), Map.of(), 0, false, true, false);
+        return new ExecutionRequest(script.getId(), Map.of(), 0, false, true, false);
     }
 
     public boolean isScript() {

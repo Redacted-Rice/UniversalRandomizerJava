@@ -4,15 +4,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "01_shuffle_health_pool",
 	name = "01_shuffle_health_pool",
 	description = "Pulls HP values from original entities and randomly assigns them using an exhausting pool",
 	groups = { "players" },
 	modifies = { "health" },
 	author = "Redacted Rice",
 	version = "1.0.0",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 	defaultSeedOffset = 10,
 
 	execute = function(context)

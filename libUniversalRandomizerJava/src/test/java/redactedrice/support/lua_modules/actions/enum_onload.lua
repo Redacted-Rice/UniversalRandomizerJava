@@ -4,15 +4,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "enum_onload",
 	name = "Enum OnLoad",
 	description = "Registers test enums in onLoad for use by other modules",
 	groups = { "utils" },
 	modifies = { "context" },
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	onLoad = function(context)
 		-- Register a custom enum with integer values

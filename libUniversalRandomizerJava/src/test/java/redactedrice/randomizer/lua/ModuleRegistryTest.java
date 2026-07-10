@@ -53,9 +53,9 @@ public class ModuleRegistryTest {
 
         // Verify specific modules
         Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("Health Randomizer"));
-        assertTrue(moduleNames.contains("Health Booster"));
-        assertFalse(moduleNames.contains("Damage Randomizer"));
+        assertTrue(moduleNames.contains("health_randomizer"));
+        assertTrue(moduleNames.contains("health_booster"));
+        assertFalse(moduleNames.contains("damage_randomizer"));
     }
 
     @Test
@@ -76,9 +76,9 @@ public class ModuleRegistryTest {
 
         // Verify specific modules
         Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("Damage Randomizer"));
+        assertTrue(moduleNames.contains("damage_randomizer"));
         // Health Booster only modifies health so it should not be here
-        assertFalse(moduleNames.contains("Health Booster"));
+        assertFalse(moduleNames.contains("health_booster"));
     }
 
     @Test
@@ -98,9 +98,9 @@ public class ModuleRegistryTest {
 
         // Only modules in health group and with stats modifies should be loaded
         Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("Health Randomizer")); // health group + stats modifies
-        assertFalse(moduleNames.contains("Health Booster")); // health group but no stats modifies
-        assertFalse(moduleNames.contains("Damage Randomizer")); // stats modifies but damage group
+        assertTrue(moduleNames.contains("health_randomizer")); // health group + stats modifies
+        assertFalse(moduleNames.contains("health_booster")); // health group but no stats modifies
+        assertFalse(moduleNames.contains("damage_randomizer")); // stats modifies but damage group
     }
 
     @Test
@@ -114,9 +114,9 @@ public class ModuleRegistryTest {
 
         // All modules should be loaded
         Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("Health Randomizer"));
-        assertTrue(moduleNames.contains("Health Booster"));
-        assertTrue(moduleNames.contains("Damage Randomizer"));
+        assertTrue(moduleNames.contains("health_randomizer"));
+        assertTrue(moduleNames.contains("health_booster"));
+        assertTrue(moduleNames.contains("damage_randomizer"));
     }
 
     @Test
@@ -195,7 +195,7 @@ public class ModuleRegistryTest {
         wrapper.loadModules();
 
         // Health Randomizer should be loaded since it has health modifies
-        Module module = wrapper.getModule("Health Randomizer");
+        Module module = wrapper.getModule("health_randomizer");
         assertNotNull(module);
 
         // It should appear in health category
@@ -211,7 +211,7 @@ public class ModuleRegistryTest {
     public void testModifiesFieldIsOptional() {
         // Modules should allow empty/missing modifies
         wrapper.loadModules();
-        Module module = wrapper.getModule("No Modifies Test");
+        Module module = wrapper.getModule("no_modifies_test");
         assertNotNull(module);
         assertTrue(module.getModifies().isEmpty());
         assertFalse(module.getGroups().isEmpty());

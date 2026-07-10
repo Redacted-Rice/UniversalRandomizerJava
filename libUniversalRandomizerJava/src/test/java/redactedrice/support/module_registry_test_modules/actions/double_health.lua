@@ -4,6 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "health_booster",
 	name = "Health Booster",
 	description = "Increases entity health",
 	groups = { "health" },
@@ -11,9 +12,6 @@ return {
 	defaultSeedOffset = 30,
 	author = "Test Author",
 	version = "0.1",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	execute = function(context, args)
 		local entity = context.entity

@@ -57,7 +57,7 @@ public class ModuleRepository {
             return;
         }
 
-        modules.put(module.getName(), module);
+        modules.put(module.getId(), module);
 
         // Add to group indices
         addModuleToCategoryIndices(module, module.getGroups(), modulesByGroup, definedGroups);
@@ -122,22 +122,22 @@ public class ModuleRepository {
 
     // Query methods
 
-    public Module getModule(String name) {
-        return modules.get(name);
+    public Module getModule(String moduleId) {
+        return modules.get(moduleId);
     }
 
-    public Module getScript(String name) {
-        return findScriptByName(name);
+    public Module getScript(String moduleId) {
+        return findScriptById(moduleId);
     }
 
-    private Module findScriptByName(String name) {
-        if (name == null || name.isBlank()) {
+    private Module findScriptById(String moduleId) {
+        if (moduleId == null || moduleId.isBlank()) {
             return null;
         }
         for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
             for (List<Module> scripts : timingMap.values()) {
                 for (Module script : scripts) {
-                    if (name.equals(script.getName())) {
+                    if (moduleId.equals(script.getId())) {
                         return script;
                     }
                 }

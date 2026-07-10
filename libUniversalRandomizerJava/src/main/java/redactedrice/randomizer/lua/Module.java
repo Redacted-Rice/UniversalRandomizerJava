@@ -12,6 +12,7 @@ import java.util.*;
 
 // holds metadata and execution function for a lua randomizer module
 public class Module {
+    String id;
     String name;
     String description;
     Set<String> groups;
@@ -40,14 +41,14 @@ public class Module {
     String license;
     String about;
 
-    public Module(String name, String description, Set<String> groups, Set<String> modifies,
-            List<ArgumentDefinition> arguments, LuaFunction executeFunction,
+    public Module(String id, String name, String description, Set<String> groups,
+            Set<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int seedOffset,
             boolean seedOffsetFromMetadata, boolean seeded, String when, String author,
-            String version,
-            Map<String, String> requires, String source, String license, String about) {
+            String version, Map<String, String> requires, String source, String license,
+            String about) {
         // validate required fields
-        validateRequiredFields(name, executeFunction, author, version, requires);
+        validateRequiredFields(id, name, executeFunction, author, version);
 
         // For regular modules (when == null) groups are required
         // Scripts (when != null) should not have groups or modifies
@@ -56,6 +57,7 @@ public class Module {
         validateModifiesForModuleType(modifies, isScript);
 
         // initialize all fields with defaults where appropriate
+        this.id = id;
         this.name = name;
         this.description = description != null ? description : "";
         this.groups = normalizeStringSet(groups);
@@ -76,8 +78,11 @@ public class Module {
         this.about = about;
     }
 
-    private void validateRequiredFields(String name, LuaFunction executeFunction, String author,
-            String version, Map<String, String> requires) {
+    private void validateRequiredFields(String id, String name, LuaFunction executeFunction,
+            String author, String version) {
+        if (id == null || id.trim().isEmpty()) {
+            throw new IllegalArgumentException("Module id cannot be null or empty");
+        }
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Module name cannot be null or empty");
         }
@@ -89,13 +94,6 @@ public class Module {
         }
         if (version == null || version.trim().isEmpty()) {
             throw new IllegalArgumentException("Version cannot be null or empty");
-        }
-        if (requires == null || requires.isEmpty()) {
-            throw new IllegalArgumentException("Requires cannot be null or empty");
-        }
-        if (!requires.containsKey("UniversalRandomizerJava")) {
-            throw new IllegalArgumentException(
-                    "Requires must specify the UniversalRandomizerJava version");
         }
     }
 
@@ -139,6 +137,10 @@ public class Module {
     }
 
     // Getters
+    public String getId() {
+        return id;
+    }
+
     public String getName() {
         return name;
     }
@@ -222,9 +224,9 @@ public class Module {
     @Override
     public String toString() {
         return String.format(
-                "Module{name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, "
+                "Module{id='%s', name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, "
                         + "seedOffset=%d, seedOffsetFromMetadata=%s, seeded=%s, when='%s', filePath='%s', author='%s', version='%s'}",
-                name, groups, modifies, description, arguments.size(), seedOffset,
+                id, name, groups, modifies, description, arguments.size(), seedOffset,
                 seedOffsetFromMetadata, seeded, when, filePath, author, version);
     }
 }

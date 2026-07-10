@@ -4,15 +4,13 @@
 local randomizer = require("randomizer")
 
 return {
+	 id = "03_grouped_speed_by_type",
 	name = "03_grouped_speed_by_type",
 	description = "Randomizes speed values based on entity type using min/max ranges",
 	groups = { "players" },
 	modifies = { "speed" },
 	author = "Redacted Rice",
 	version = "1.0.0",
-	requires = {
-		UniversalRandomizerJava = "0.5.0",
-	},
 
 	arguments = {
 		{
