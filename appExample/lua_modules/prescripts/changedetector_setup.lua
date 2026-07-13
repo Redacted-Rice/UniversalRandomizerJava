@@ -7,6 +7,10 @@ return {
 	author = "Redacted Rice",
 	version = "1.0.0",
 
+	requires = {
+		ExampleApp = "1.0.0",
+	},
+
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
 
@@ -29,6 +33,7 @@ return {
 				{ field = "speed", header = "Speed", align = "right", getter = function(obj) return obj:getSpeed() end },
 				{ field = "defense", header = "Defense", align = "right", getter = function(obj) return obj:getDefense() end },
 				{ field = "type", header = "Type", getter = function(obj) return obj:getType() end },
+				{ field = "startingItemRarity", header = "Starting Rarity" },
 				{ field = "startingItem", header = "Starting Item", getter = function(obj) return obj:getStartingItem() end },
 			},
 		})

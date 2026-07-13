@@ -11,6 +11,10 @@ return {
 	modifies = { "type" },
 	author = "Redacted Rice",
 	version = "1.0.0",
+
+	requires = {
+		ExampleApp = "0.5.0",
+	},
 	defaultSeedOffset = 20,
 
 	execute = function(context)

@@ -12,6 +12,10 @@ return {
 	author = "Redacted Rice",
 	version = "1.0.0",
 
+	requires = {
+		ExampleApp = "0.999.0",
+	},
+
 	arguments = {
 		{
 			name = "speedByType",

@@ -12,6 +12,10 @@ return {
 	author = "Redacted Rice",
 	version = "1.0.0",
 
+	requires = {
+		ExampleApp = "1.0.0",
+	},
+
 	execute = function(context)
 		local itemsOriginal = context.itemsOriginal
 		local itemsModified = context.itemsModified

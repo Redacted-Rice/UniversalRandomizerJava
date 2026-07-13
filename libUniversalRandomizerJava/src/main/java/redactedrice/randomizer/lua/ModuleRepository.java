@@ -14,6 +14,8 @@ public class ModuleRepository {
     private final Map<String, List<Module>> modulesByModifies;
     // Scripts are automatically run before and after triggers. Name may change
     private final Map<String, Map<String, List<Module>>> scriptsByType;
+    // Scripts indexed by id for dependency resolution and validation
+    private final Map<String, Module> scriptsById;
     // If set, this will restrict the groups that are loaded to only specified values. Null to
     // autodetermine from loading
     private final Set<String> definedGroups;
@@ -32,6 +34,7 @@ public class ModuleRepository {
         this.modulesByGroup = new HashMap<>();
         this.modulesByModifies = new HashMap<>();
         this.scriptsByType = new HashMap<>();
+        this.scriptsById = new HashMap<>();
         this.definedGroups = normalizeStringSet(definedGroups);
         this.definedModifies = normalizeStringSet(definedModifies);
 
@@ -84,7 +87,7 @@ public class ModuleRepository {
             whenKey = SCRIPT_WHEN_RANDOMIZE;
         }
 
-        // Add to the appropriate list in the nested map
+        scriptsById.put(script.getId(), script);
         scriptsByType.get(timing).get(whenKey).add(script);
     }
 
@@ -127,23 +130,10 @@ public class ModuleRepository {
     }
 
     public Module getScript(String moduleId) {
-        return findScriptById(moduleId);
-    }
-
-    private Module findScriptById(String moduleId) {
         if (moduleId == null || moduleId.isBlank()) {
             return null;
         }
-        for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
-            for (List<Module> scripts : timingMap.values()) {
-                for (Module script : scripts) {
-                    if (moduleId.equals(script.getId())) {
-                        return script;
-                    }
-                }
-            }
-        }
-        return null;
+        return scriptsById.get(moduleId);
     }
 
     public List<Module> getAllModules() {
@@ -212,10 +202,24 @@ public class ModuleRepository {
         return scripts;
     }
 
+    public List<Module> getAllScripts() {
+        return new ArrayList<>(scriptsById.values());
+    }
+
+    /**
+     * Returns every registered action module and script for requirement validation.
+     */
+    public List<Module> getAllModulesAndScripts() {
+        List<Module> loaded = new ArrayList<>(modules.values());
+        loaded.addAll(scriptsById.values());
+        return loaded;
+    }
+
     public void clear() {
         modules.clear();
         modulesByGroup.clear();
         modulesByModifies.clear();
+        scriptsById.clear();
         for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
             for (List<Module> scripts : timingMap.values()) {
                 scripts.clear();
