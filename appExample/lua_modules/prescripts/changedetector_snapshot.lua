@@ -7,6 +7,11 @@ return {
 	author = "Redacted Rice",
 	version = "1.0.0",
 
+	requires = {
+		ExampleApp = "1.0.0",
+		changedetector_setup = "1.0.0",
+	},
+
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
 		changedetector.takeSnapshots()

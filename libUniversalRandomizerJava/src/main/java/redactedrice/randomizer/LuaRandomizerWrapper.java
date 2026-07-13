@@ -6,6 +6,7 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRegistry;
@@ -26,6 +27,12 @@ public class LuaRandomizerWrapper {
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
             Set<String> definedGroups, Set<String> definedModifies) {
+        this(allowedDirectories, searchPaths, definedGroups, definedModifies, null);
+    }
+
+    public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
+            Set<String> definedGroups, Set<String> definedModifies,
+            CoreRequirements requirementContext) {
         if (allowedDirectories == null || allowedDirectories.isEmpty()) {
             throw new IllegalArgumentException("At least one allowed directory must be provided");
         }
@@ -33,7 +40,8 @@ public class LuaRandomizerWrapper {
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
 
         this.sandbox = new LuaSandbox(allowedDirectories);
-        this.moduleRegistry = new ModuleRegistry(sandbox, definedGroups, definedModifies);
+        this.moduleRegistry =
+                new ModuleRegistry(sandbox, definedGroups, definedModifies, requirementContext);
         this.moduleExecutor = new ModuleExecutor(sandbox);
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
@@ -62,15 +70,15 @@ public class LuaRandomizerWrapper {
         moduleRegistry.clear();
         int totalLoaded = 0;
 
-        // load modules from all the search paths
+        // Register every module and script before validating requires so filesystem load order
+        // does not affect dependency resolution.
         for (String path : searchPaths) {
-            int loaded = moduleRegistry.loadModulesFromDirectory(path);
-            totalLoaded += loaded;
+            totalLoaded += moduleRegistry.loadModulesFromDirectory(path);
         }
 
-        // call onLoad functions if modules have them
+        // Validate requirements for loaded modules
+        moduleRegistry.validateAllRequirements();
         callModuleOnLoadFunctions();
-
         return totalLoaded;
     }
 

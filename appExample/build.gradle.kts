@@ -3,6 +3,8 @@ plugins {
     jacoco
 }
 
+version = "1.0.0"
+
 repositories {
     mavenCentral()
 }
@@ -19,6 +21,30 @@ java {
 
 application {
     mainClass.set("redactedrice.randomizer.ExampleApp")
+}
+
+val generateAppVersion = tasks.register("generateAppVersion") {
+    group = "build"
+    description = "Generates app-version.properties from the Gradle project version"
+
+    val appVersion = version.toString()
+    val outputFile = layout.buildDirectory.file(
+        "generated/resources/redactedrice/randomizer/app-version.properties")
+
+    outputs.file(outputFile)
+
+    doLast {
+        val file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText("version=$appVersion\n")
+    }
+}
+
+sourceSets.main.get().resources.srcDir(
+    layout.buildDirectory.dir("generated/resources"))
+
+tasks.named("processResources") {
+    dependsOn("generateAppVersion")
 }
 
 // Extract JaCoCo agent jar from zip (the Maven artifact is a zip containing the jar)

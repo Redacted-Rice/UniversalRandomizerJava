@@ -8,12 +8,15 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 
 // Wraps Java objects in Lua tables with metatable-based method access
 // Provides extensible wrapper that allows both Java method calls and dynamic Lua fields
 public class JavaObjectWrapper {
     private final EnumRegistry enumRegistry;
+    // We need to cache objects so we can store and keep lua assigned values to them
+    private final Map<Object, LuaTable> wrapperCache = new IdentityHashMap<>();
 
     public JavaObjectWrapper(EnumRegistry enumRegistry) {
         this.enumRegistry = enumRegistry;
@@ -23,6 +26,11 @@ public class JavaObjectWrapper {
     public LuaValue wrap(Object javaObject) {
         if (javaObject == null) {
             return LuaValue.NIL;
+        }
+
+        LuaTable cached = wrapperCache.get(javaObject);
+        if (cached != null) {
+            return cached;
         }
 
         LuaValue userdata = CoerceJavaToLua.coerce(javaObject);
@@ -84,6 +92,7 @@ public class JavaObjectWrapper {
         // Apply metatable
         wrapper.setmetatable(metatable);
 
+        wrapperCache.put(javaObject, wrapper);
         return wrapper;
     }
 }

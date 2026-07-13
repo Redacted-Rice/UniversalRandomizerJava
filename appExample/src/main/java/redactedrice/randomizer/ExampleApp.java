@@ -5,9 +5,11 @@ import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
+import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.utils.RandomizerBundledResources;
 import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.Logger;
+import redactedrice.randomizer.utils.ErrorTracker;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -71,7 +73,13 @@ public class ExampleApp {
         List<String> searchPaths = new ArrayList<>();
         searchPaths.add(modulesPath);
 
-        LuaRandomizerWrapper wrapper = new LuaRandomizerWrapper(allowedDirectories, searchPaths);
+        CoreRequirements requirements = new CoreRequirements();
+        requirements.addCoreRequirement(ExampleAppVersion.PLATFORM_KEY, ExampleAppVersion.VERSION,
+                true);
+        UniversalRandomizerVersions.addTo(requirements);
+
+        LuaRandomizerWrapper wrapper =
+                new LuaRandomizerWrapper(allowedDirectories, searchPaths, null, null, requirements);
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)
@@ -91,6 +99,10 @@ public class ExampleApp {
 
         System.out.println("Loading modules...");
         int loaded = wrapper.loadModules();
+        if (ErrorTracker.hasErrors()) {
+            throw new IllegalStateException(
+                    "Module requirement validation failed: " + ErrorTracker.getErrors());
+        }
         System.out.println("Loaded " + loaded + " modules\n");
         wrapper.printModuleSummary();
 
@@ -166,9 +178,10 @@ public class ExampleApp {
 
         System.out.println("\n=== EXECUTING RANDOMIZATION SCRIPTS ===\n");
 
-        String[] scriptNames = {"01_shuffle_health_pool", "02_randomize_entity_types",
-                "03_grouped_speed_by_type", "04_grouped_stats_by_type",
-                "05_shuffle_items_by_rarity", "06_assign_starting_items"};
+        String[] scriptNames =
+                {"01_shuffle_health_pool", "02_randomize_entity_types", "03_grouped_speed_by_type",
+                        "04_grouped_stats_by_type", "05_shuffle_items_by_rarity",
+                        "06_assign_starting_item_rarity", "07_assign_starting_item_from_rarity"};
 
         // create some arguements for the scripts. In a real apploication these would be provided
         // by the user or a config file or something like that
@@ -214,20 +227,18 @@ public class ExampleApp {
         speedClassPools.put(SPEED_CLASS_AVERAGE, Arrays.asList(9, 10, 11, 12));
         speedClassPools.put(SPEED_CLASS_FAST, Arrays.asList(13, 14, 15, 16));
         module3Args.put("speedClassPools", speedClassPools);
-        executionRequests.add(
-                ExecutionRequest.forModuleWithSeedOffset(scriptNames[2], module3Args, 56));
+        executionRequests
+                .add(ExecutionRequest.forModuleWithSeedOffset(scriptNames[2], module3Args, 56));
 
-        // Module 4 uses module default seed; module 5 keeps an explicit offset override. Both have no args
+        // Module 4 uses module default seed; module 5 keeps an explicit offset override. Both have
+        // no args
         executionRequests.add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[3]), null));
         executionRequests.add(ExecutionRequest.forModuleWithSeedOffset(scriptNames[4], null, 2));
 
-        // 6 requires weightedRarityPool and uses a seed offset
+        // 6 & 7 split starting-item assignment into rarity then item selection (module dependency
+        // demo)
         Map<String, Object> module6Args = new HashMap<>();
-        // Create weighted rarity pool
-        // COMMON: 50% chance (10 out of 20 entries)
-        // UNCOMMON: 30% chance (6 out of 20 entries)
-        // RARE: 15% chance (3 out of 20 entries)
-        // LEGENDARY: 5% chance (1 out of 20 entries)
+        // COMMON: 50%, UNCOMMON: 30%, RARE: 15%, LEGENDARY: 5%
         List<ExampleItem.ItemRarity> weightedPool = new ArrayList<>();
         for (int j = 0; j < 10; j++)
             weightedPool.add(ExampleItem.ItemRarity.COMMON);
@@ -237,8 +248,9 @@ public class ExampleApp {
             weightedPool.add(ExampleItem.ItemRarity.RARE);
         weightedPool.add(ExampleItem.ItemRarity.LEGENDARY);
         module6Args.put("weightedRarityPool", weightedPool);
-        executionRequests.add(
-                ExecutionRequest.forModuleWithSeedOffset(scriptNames[5], module6Args, 107));
+        executionRequests
+                .add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[5]), module6Args));
+        executionRequests.add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[6]), null));
 
         // Execute all modules with their respective arguments. Pre and post scripts will run
         // automatically for these.

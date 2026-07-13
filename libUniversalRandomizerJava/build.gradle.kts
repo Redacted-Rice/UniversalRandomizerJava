@@ -93,7 +93,27 @@ tasks.register<Sync>("copyRandomizerFiles") {
     }
 }
 
+val generateUrjVersionProperties = tasks.register("generateUrjVersionProperties") {
+    group = "build"
+    description = "Generates urj-version.properties from the Gradle project version"
+
+    val urjVersion = version.toString()
+    val outputFile = layout.buildDirectory.file(
+        "generated/resources/redactedrice/randomizer/urj-version.properties")
+
+    outputs.file(outputFile)
+
+    doLast {
+        val file = outputFile.get().asFile
+        file.parentFile.mkdirs()
+        file.writeText("version=$urjVersion\n")
+    }
+}
+
+sourceSets.main.get().resources.srcDir(
+    layout.buildDirectory.dir("generated/resources"))
+
 // Make processResources depend on copyRandomizerFiles to ensure files are copied before packaging
 tasks.named("processResources") {
-    dependsOn("copyRandomizerFiles")
+    dependsOn("copyRandomizerFiles", "generateUrjVersionProperties")
 }

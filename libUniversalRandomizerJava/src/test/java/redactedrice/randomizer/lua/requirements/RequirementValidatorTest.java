@@ -1,0 +1,175 @@
+package redactedrice.randomizer.lua.requirements;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.luaj.vm2.LuaFunction;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.ZeroArgFunction;
+
+import redactedrice.randomizer.lua.Module;
+import redactedrice.randomizer.lua.ModuleRepository;
+
+class RequirementValidatorTest {
+    private ModuleRepository repository;
+
+    @BeforeEach
+    void setUp() {
+        repository = new ModuleRepository(null, null);
+    }
+
+    @Test
+    void mandatoryPlatformMustBeDeclared() {
+        Module module = module("consumer", "Consumer", Map.of(), "1.0.0");
+        repository.registerModule(module, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+        assertEquals("ExampleApp", issues.get(0).getRequirementKey());
+    }
+
+    @Test
+    void optionalPlatformIsCheckedOnlyWhenDeclared() {
+        Module without = module("without", "Without", Map.of(), "1.0.0");
+        Module withSatisfiedMinimum = module("with", "With",
+                Map.of("ExampleApp", "1.0.0", "UniversalRandomizerJava", "0.4.0"), "1.0.0");
+        repository.registerModule(without, m -> true);
+        repository.registerModule(withSatisfiedMinimum, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+        context.addCoreRequirement("UniversalRandomizerJava", "0.5.0", false);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertEquals(1, issues.size());
+        assertTrue(issues.stream()
+                .anyMatch(issue -> issue.isError() && issue.getModule().getId().equals("without")));
+    }
+
+    @Test
+    void optionalPlatformFailsWhenBelowMinimum() {
+        Module consumer = module("with", "With",
+                Map.of("ExampleApp", "1.0.0", "UniversalRandomizerJava", "0.6.0"), "1.0.0");
+        repository.registerModule(consumer, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+        context.addCoreRequirement("UniversalRandomizerJava", "0.5.0", false);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertEquals(1, issues.size());
+        assertFalse(issues.get(0).isError());
+        assertEquals("UniversalRandomizerJava", issues.get(0).getRequirementKey());
+    }
+
+    @Test
+    void moduleCanDependOnLoadedScript() {
+        LuaFunction execute = new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.NIL;
+            }
+        };
+        Module setupScript = new Module("changedetector_setup", "Change Detector Setup", null, null,
+                null, null, execute, null, null, 0, false, false, "randomize", "author", "1.0.0",
+                Map.of("ExampleApp", "1.0.0"), null, null, null);
+        Module consumer = new Module("downstream_action", "Downstream Action", null,
+                Set.of("players"), null, null, execute, null, null, 0, false, true, null, "author",
+                "1.0.0", Map.of("ExampleApp", "1.0.0", "changedetector_setup", "0.1.0"), null, null,
+                null);
+
+        repository.registerScript(setupScript, ModuleRepository.SCRIPT_TIMING_PRE);
+        repository.registerModule(consumer, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertTrue(issues.isEmpty(), () -> issues.toString());
+    }
+
+    @Test
+    void moduleDependencyPassesWhenLoadedVersionMeetsMinimum() {
+        Module dependency =
+                module("dependency", "Dependency", Map.of("ExampleApp", "1.0.0"), "0.2.0");
+        Module consumer = module("consumer", "Consumer",
+                Map.of("ExampleApp", "1.0.0", "dependency", "0.1.0"), "1.0.0");
+        repository.registerModule(dependency, m -> true);
+        repository.registerModule(consumer, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertTrue(issues.isEmpty(), () -> issues.toString());
+    }
+
+    @Test
+    void moduleDependencyFailsWhenLoadedVersionIsBelowMinimum() {
+        Module dependency =
+                module("dependency", "Dependency", Map.of("ExampleApp", "1.0.0"), "0.1.0");
+        Module consumer = module("consumer", "Consumer",
+                Map.of("ExampleApp", "1.0.0", "dependency", "0.2.0"), "1.0.0");
+        repository.registerModule(dependency, m -> true);
+        repository.registerModule(consumer, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertEquals(1, issues.size());
+        assertFalse(issues.get(0).isError());
+        assertEquals("dependency", issues.get(0).getRequirementKey());
+    }
+
+    @Test
+    void missingModuleDependencyIsReported() {
+        Module consumer = module("consumer", "Consumer",
+                Map.of("ExampleApp", "1.0.0", "missing_dep", "0.1.0"), "1.0.0");
+        repository.registerModule(consumer, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+    }
+
+    @Test
+    void moduleDependencyIsResolvedRegardlessOfRegistrationOrder() {
+        Module consumer = module("consumer", "Consumer",
+                Map.of("ExampleApp", "1.0.0", "dependency", "0.1.0"), "1.0.0");
+        Module dependency =
+                module("dependency", "Dependency", Map.of("ExampleApp", "1.0.0"), "0.2.0");
+
+        repository.registerModule(consumer, m -> true);
+        repository.registerModule(dependency, m -> true);
+
+        CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
+
+        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        assertTrue(issues.isEmpty(), () -> issues.toString());
+    }
+
+    private static CoreRequirements requirements(String key, String version, boolean mandatory) {
+        CoreRequirements context = new CoreRequirements();
+        context.addCoreRequirement(key, version, mandatory);
+        return context;
+    }
+
+    private Module module(String id, String name, Map<String, String> requires, String version) {
+        LuaFunction execute = new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.NIL;
+            }
+        };
+        return new Module(id, name, null, Set.of("test"), null, null, execute, null, null, 0, false,
+                true, null, "author", version, requires, null, null, null);
+    }
+}

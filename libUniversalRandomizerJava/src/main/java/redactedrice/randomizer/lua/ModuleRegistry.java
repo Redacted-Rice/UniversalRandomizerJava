@@ -2,6 +2,9 @@ package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.lua.requirements.CoreRequirements;
+import redactedrice.randomizer.lua.requirements.RequirementIssue;
+import redactedrice.randomizer.lua.requirements.RequirementValidator;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import org.luaj.vm2.LuaValue;
 
@@ -15,6 +18,7 @@ public class ModuleRegistry {
     private final ModuleLoader loader;
     private final ModuleRepository repository;
     private final ModuleFilter moduleFilter;
+    private final CoreRequirements requirementContext;
 
     public static final String SCRIPT_TIMING_PRE = ModuleRepository.SCRIPT_TIMING_PRE;
     public static final String SCRIPT_TIMING_POST = ModuleRepository.SCRIPT_TIMING_POST;
@@ -23,11 +27,16 @@ public class ModuleRegistry {
     public static final String SCRIPT_WHEN_MODULE = ModuleRepository.SCRIPT_WHEN_MODULE;
 
     public ModuleRegistry(LuaSandbox sandbox) {
-        this(sandbox, null, null);
+        this(sandbox, null, null, null);
     }
 
     public ModuleRegistry(LuaSandbox sandbox, Set<String> definedGroups,
             Set<String> definedModifies) {
+        this(sandbox, definedGroups, definedModifies, null);
+    }
+
+    public ModuleRegistry(LuaSandbox sandbox, Set<String> definedGroups,
+            Set<String> definedModifies, CoreRequirements requirementContext) {
         if (sandbox == null) {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
@@ -35,6 +44,7 @@ public class ModuleRegistry {
         this.repository = new ModuleRepository(definedGroups, definedModifies);
         this.moduleFilter = new CompositeFilter(new GroupFilter(definedGroups),
                 new ModifiesFilter(definedModifies));
+        this.requirementContext = requirementContext;
     }
 
     public int loadModulesFromDirectory(String directoryPath) {
@@ -60,7 +70,6 @@ public class ModuleRegistry {
         // Load the pre & post scripts as well
         loadPreScriptsFromDirectory(directoryPath);
         loadPostScriptsFromDirectory(directoryPath);
-
         return loadedCount;
     }
 
@@ -110,7 +119,7 @@ public class ModuleRegistry {
                 if (script != null) {
                     repository.registerScript(script, timing);
                     loadedCount++;
-                    Logger.info("Loaded from " + directoryPath + ": " + script.getName());
+                    Logger.info("Loaded from script: " + script.getName());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -177,6 +186,17 @@ public class ModuleRegistry {
 
     public List<Module> getAllScripts(String timing) {
         return repository.getAllScripts(timing);
+    }
+
+    public List<RequirementIssue> validateAllRequirements() {
+        List<RequirementIssue> issues =
+                RequirementValidator.validate(requirementContext, repository);
+        for (RequirementIssue issue : issues) {
+            if (issue.isError()) {
+                ErrorTracker.addError(issue.getMessage());
+            }
+        }
+        return issues;
     }
 
     public void clear() {
