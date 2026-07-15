@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "04_grouped_stats_by_type",
+	id = "04_grouped_stats_by_type",
 	name = "04_grouped_stats_by_type",
 	description = "Randomizes defense and attack tuple values based on entity type using grouped pools",
 	groups = { "players" },
