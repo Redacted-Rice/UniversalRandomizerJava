@@ -131,7 +131,7 @@ public class ExecutionErrorFormatter {
             return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", defaultSeedOffset: "
                     + seedOffset + ")";
         }
-        return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", nameHashOffset: "
+        return " with seed: " + absoluteSeed + " (base: " + baseSeed + ", idHashOffset: "
                 + seedOffset + ")";
     }
 

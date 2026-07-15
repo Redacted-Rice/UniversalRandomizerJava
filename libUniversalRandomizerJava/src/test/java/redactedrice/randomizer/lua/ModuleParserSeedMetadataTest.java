@@ -89,7 +89,7 @@ class ModuleParserSeedMetadataTest {
     }
 
     @Test
-    void modulesDefaultToSeededAndUseNameHashOffset() throws IOException {
+    void modulesDefaultToSeededAndUseIdHashOffset() throws IOException {
         Path luaFile = writeScript("""
                 return {
                     id = "seeded_module",
@@ -105,7 +105,7 @@ class ModuleParserSeedMetadataTest {
         assertNotNull(module);
         assertFalse(module.isScript());
         assertTrue(module.isSeeded());
-        assertEquals(ModuleParser.hashNameToSeedOffset("seeded_module"), module.getSeedOffset());
+        assertEquals(ModuleParser.hashIdToSeedOffset("seeded_module"), module.getSeedOffset());
     }
 
     @Test

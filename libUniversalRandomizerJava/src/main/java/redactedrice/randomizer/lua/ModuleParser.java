@@ -15,15 +15,16 @@ import java.util.Set;
 // Parses a Lua table into a Module object
 // Extracts metadata and validates structure
 public class ModuleParser {
-    private static final int NAME_HASH_OFFSET_MAX = 9999;
+    private static final int ID_HASH_OFFSET_MAX = 9999;
 
     private ModuleParser() {}
 
-    public static int hashNameToSeedOffset(String moduleName) {
-        if (moduleName == null || moduleName.isEmpty()) {
+    /** Default seed offset derived from the module id */
+    public static int hashIdToSeedOffset(String moduleId) {
+        if (moduleId == null || moduleId.isEmpty()) {
             return 1;
         }
-        return Math.floorMod(moduleName.hashCode(), NAME_HASH_OFFSET_MAX) + 1;
+        return Math.floorMod(moduleId.hashCode(), ID_HASH_OFFSET_MAX) + 1;
     }
 
     // Parse a Lua table into a Module object
@@ -73,7 +74,7 @@ public class ModuleParser {
                     seedOffset = metadataSeedOffset;
                     seedOffsetFromMetadata = true;
                 } else {
-                    seedOffset = hashNameToSeedOffset(id);
+                    seedOffset = hashIdToSeedOffset(id);
                 }
             }
         }
