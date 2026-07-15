@@ -7,20 +7,20 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ModuleParserTest {
 
     @Test
-    public void testHashNameToSeedOffsetIsInRange() {
-        int offset = ModuleParser.hashNameToSeedOffset("Generated Module");
+    public void testHashIdToSeedOffsetIsInRange() {
+        int offset = ModuleParser.hashIdToSeedOffset("generated_module");
         assertTrue(offset >= 1 && offset <= 9999);
     }
 
     @Test
-    public void testHashNameToSeedOffsetIsRepeatable() {
-        assertEquals(ModuleParser.hashNameToSeedOffset("Module A"),
-                ModuleParser.hashNameToSeedOffset("Module A"));
+    public void testHashIdToSeedOffsetIsRepeatable() {
+        assertEquals(ModuleParser.hashIdToSeedOffset("module_a"),
+                ModuleParser.hashIdToSeedOffset("module_a"));
     }
 
     @Test
-    public void testHashNameToSeedOffsetVariesByName() {
-        assertNotEquals(ModuleParser.hashNameToSeedOffset("Module A"),
-                ModuleParser.hashNameToSeedOffset("Module B"));
+    public void testHashIdToSeedOffsetVariesById() {
+        assertNotEquals(ModuleParser.hashIdToSeedOffset("module_a"),
+                ModuleParser.hashIdToSeedOffset("module_b"));
     }
 }

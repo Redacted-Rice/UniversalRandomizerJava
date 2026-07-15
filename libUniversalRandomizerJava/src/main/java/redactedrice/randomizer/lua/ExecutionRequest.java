@@ -28,7 +28,7 @@ public final class ExecutionRequest {
         this.seeded = seeded;
     }
 
-    // Copies the module's defaultSeedOffset (or name-hash offset) for use at execution time
+    // Copies the module's defaultSeedOffset (or id-hash offset) for use at execution time
     public static ExecutionRequest forModule(Module module, Map<String, Object> arguments) {
         Objects.requireNonNull(module, "Module cannot be null");
         if (!module.isSeeded()) {
