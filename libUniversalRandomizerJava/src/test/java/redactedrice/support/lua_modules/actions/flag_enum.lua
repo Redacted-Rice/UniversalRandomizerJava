@@ -39,9 +39,9 @@ return {
 		-- Test setting enum value on Java object to verify de-lua-ifying conversion
 		local testEntity = context.testEntity
 		if testEntity then
-			-- Set FlagEnum using string value - should be converted to Java FlagEnum.FLAG_FOUR
-			testEntity:setFlag("FLAG_FOUR")
-			print("  [execute] Set testEntity.flag = 'FLAG_FOUR' (should convert to Java FlagEnum.FLAG_FOUR)")
+			-- Set FlagEnum using named enum member - should coerce to Java FlagEnum.FLAG_FOUR
+			testEntity:setFlag(FlagEnum.FLAG_FOUR)
+			print("  [execute] Set testEntity.flag = FlagEnum.FLAG_FOUR")
 		end
 
 		print("  [execute] Flag Enum module executed successfully")

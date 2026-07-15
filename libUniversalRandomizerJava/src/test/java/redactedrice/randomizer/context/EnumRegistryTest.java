@@ -134,6 +134,22 @@ public class EnumRegistryTest {
         assertEquals("EASY", table.get(1).tojstring());
         assertEquals("NORMAL", table.get(2).tojstring());
         assertEquals("HARD", table.get(3).tojstring());
+        // Named aliases for Lua-only enums are the value name strings
+        assertEquals("EASY", table.get("EASY").tojstring());
+        assertEquals("HARD", table.get("HARD").tojstring());
+    }
+
+    @Test
+    public void testToLuaTablesNamedMembersUseJavaConstants() {
+        EnumRegistry context = new EnumRegistry();
+        context.registerEnum(TestEnum.class);
+
+        org.luaj.vm2.LuaTable table = context.toLuaTables().get("TestEnum");
+        assertNotNull(table);
+        assertEquals("VALUE1", table.get(1).tojstring());
+        assertTrue(table.get("VALUE1").isuserdata());
+        assertSame(TestEnum.VALUE1, table.get("VALUE1").touserdata());
+        assertSame(TestEnum.VALUE2, table.get("VALUE2").touserdata());
     }
 
     @Test
