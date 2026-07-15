@@ -79,11 +79,20 @@ public class LuaJavaConverter {
         LuaTable enumTable = new LuaTable();
         List<String> values = enumDef.getValues();
         Map<String, Integer> valueMap = enumDef.getValueMap();
+        Class<? extends Enum<?>> enumClass = enumDef.getEnumClass();
 
-        // Create sequential array of strings (1-indexed)
+        // Create sequential array of strings (1-indexed) for pool/randomize use
         for (int i = 0; i < values.size(); i++) {
             String value = values.get(i);
             enumTable.set(i + 1, LuaValue.valueOf(value));
+        }
+
+        // Named aliases so scripts can use EnumName.ENUM_VAL style access
+        for (String value : values) {
+            if ("values".equals(value) || "_name".equals(value)) {
+                continue;
+            }
+            enumTable.set(value, toNamedEnumLuaValue(enumClass, value));
         }
 
         // Create values subtable mapping name -> integer value
@@ -102,6 +111,19 @@ public class LuaJavaConverter {
         enumTable.setmetatable(createReadOnlyEnumMetatable());
 
         return enumTable;
+    }
+
+    private static LuaValue toNamedEnumLuaValue(Class<? extends Enum<?>> enumClass, String value) {
+        if (enumClass != null) {
+            try {
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                Enum<?> constant = Enum.valueOf((Class) enumClass, value);
+                return CoerceJavaToLua.coerce(constant);
+            } catch (IllegalArgumentException ignored) {
+                // Fall through to string for extended values that are Lua only
+            }
+        }
+        return LuaValue.valueOf(value);
     }
 
     private static LuaTable createReadOnlyEnumMetatable() {

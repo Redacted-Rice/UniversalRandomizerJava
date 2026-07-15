@@ -22,9 +22,12 @@ return {
 		if val1 == nil then
 			error("TestPriority[1] is nil - enum table may not be structured correctly")
 		end
-		assert(tostring(val1) == "LOW", "TestPriority: Index 1 should be LOW, got: " .. tostring(val1))
+		assert(tostring(TestPriority[1]) == "LOW", "TestPriority: Index 1 should be LOW, got: " .. tostring(val1))
 		assert(tostring(TestPriority[2]) == "MEDIUM", "TestPriority: Index 2 should be MEDIUM")
 		assert(tostring(TestPriority[3]) == "HIGH", "TestPriority: Index 3 should be HIGH")
+		assert(tostring(TestPriority.LOW) == "LOW", "TestPriority.LOW should be LOW")
+		assert(tostring(TestPriority.MEDIUM) == "MEDIUM", "TestPriority.MEDIUM should be MEDIUM")
+		assert(tostring(TestPriority.HIGH) == "HIGH", "TestPriority.HIGH should be HIGH")
 		assert(TestPriority.values ~= nil, "TestPriority: Should have values subtable")
 		assert(TestPriority.values.LOW == 1, "TestPriority: LOW should have value 1")
 		assert(TestPriority.values.MEDIUM == 50, "TestPriority: MEDIUM should have value 50")
@@ -63,9 +66,9 @@ return {
 		-- Test setting enum value on Java object to verify de-lua-ifying conversion
 		local testEntity = context.testEntity
 		if testEntity then
-			-- Set TestPriority using string value - should be passed as string to Java
-			testEntity:setPriority("MEDIUM")
-			print("  [execute] Set testEntity.priority = 'MEDIUM' (should pass as string to Java)")
+			-- Set TestPriority using named enum member - should coerce to Java enum
+			testEntity:setPriority(TestPriority.MEDIUM)
+			print("  [execute] Set testEntity.priority = TestPriority.MEDIUM")
 		end
 
 		print("  [execute] Enum Usage module executed successfully")
