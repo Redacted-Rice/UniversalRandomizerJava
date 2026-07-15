@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "05_shuffle_items_by_rarity",
+	id = "05_shuffle_items_by_rarity",
 	name = "05_shuffle_items_by_rarity",
 	description = "Shuffles all item stat tuples within the same rarity using grouped consumable pools",
 	groups = { "utils" },
@@ -23,7 +23,6 @@ return {
 		-- Create grouped pool of stat tuples by rarity from original items
 		local statTuplesPool = randomizer.groupFromField(itemsOriginal, "rarity", function(item)
 			return {
-	 id = "05_shuffle_items_by_rarity",
 				attack = item.attackBonus,
 				defense = item.defenseBonus,
 				health = item.healthBonus,

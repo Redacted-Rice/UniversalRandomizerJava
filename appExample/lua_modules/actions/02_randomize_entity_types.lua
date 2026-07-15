@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "02_randomize_entity_types",
+	id = "02_randomize_entity_types",
 	name = "02_randomize_entity_types",
 	description = "Randomizes entity types using the registered enum",
 	groups = { "players" },
