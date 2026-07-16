@@ -48,4 +48,21 @@ public class JavaObjectWrapperTest {
         assertEquals(2, first.get("tier").toint());
         assertEquals("a", first.get("name").tojstring());
     }
+
+    @Test
+    public void clearWrapperCacheDropsDynamicFields() {
+        JavaContext context = new JavaContext();
+        Card root = new Card("root", 1);
+        context.register("root", root);
+
+        LuaValue rootWrapper = context.toLuaTable().get("root");
+        rootWrapper.set("scratch", LuaValue.valueOf("keep_me"));
+        assertEquals("keep_me", rootWrapper.get("scratch").tojstring());
+
+        context.clearWrapperCache();
+
+        LuaValue freshWrapper = context.toLuaTable().get("root");
+        assertTrue(freshWrapper.get("scratch").isnil());
+        assertEquals("root", freshWrapper.get("name").tojstring());
+    }
 }

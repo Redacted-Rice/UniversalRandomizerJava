@@ -22,6 +22,11 @@ public class JavaObjectWrapper {
         this.enumRegistry = enumRegistry;
     }
 
+    /** Clears cached wrappers so a new randomization does not reuse stale dynamic Lua fields */
+    public void clearCache() {
+        wrapperCache.clear();
+    }
+
     // Wrap a Java object in a Lua table with method interception
     public LuaValue wrap(Object javaObject) {
         if (javaObject == null) {

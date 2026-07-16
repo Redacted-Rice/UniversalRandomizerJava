@@ -261,7 +261,7 @@ public class ExampleApp {
         // Print the results (logs and errors)
         for (int i = 0; i < results.size(); i++) {
             ExecutionResult result = results.get(i);
-            System.out.println((i + 1) + ". Executing: " + result.getModuleName());
+            System.out.println((i + 1) + ". Executing: " + result.getModuleId());
             if (!result.isSuccess()) {
                 System.err.println("   Failed: " + result.getErrorMessage());
             }

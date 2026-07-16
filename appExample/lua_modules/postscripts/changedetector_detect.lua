@@ -1,6 +1,6 @@
 -- Checks for changes and logs if there are any
 return {
-	 id = "changedetector_detect",
+	id = "changedetector_detect",
 	name = "changedetector_detect",
 	description = "Detect and log changes after each module",
 	when = "module",

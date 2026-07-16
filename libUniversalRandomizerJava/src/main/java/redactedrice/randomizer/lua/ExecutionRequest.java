@@ -8,7 +8,7 @@ import java.util.Objects;
  * added to the run's base seed at execution time for seeded modules only.
  */
 public final class ExecutionRequest {
-    private final String moduleName;
+    private final String moduleId;
     private final Map<String, Object> arguments;
     private final int seedOffset;
     private final boolean explicitSeedOffset;
@@ -18,9 +18,9 @@ public final class ExecutionRequest {
     private final boolean seeded;
 
     // private constructor. Use static factories instead
-    private ExecutionRequest(String moduleName, Map<String, Object> arguments, int seedOffset,
+    private ExecutionRequest(String moduleId, Map<String, Object> arguments, int seedOffset,
             boolean explicitSeedOffset, boolean script, boolean seeded) {
-        this.moduleName = Objects.requireNonNull(moduleName, "Module name cannot be null");
+        this.moduleId = Objects.requireNonNull(moduleId, "Module id cannot be null");
         this.arguments = arguments != null ? Map.copyOf(arguments) : Map.of();
         this.seedOffset = seedOffset;
         this.explicitSeedOffset = explicitSeedOffset;
@@ -45,9 +45,9 @@ public final class ExecutionRequest {
     }
 
     // Sets seed offset to the passed value
-    public static ExecutionRequest forModuleWithSeedOffset(String moduleName,
+    public static ExecutionRequest forModuleWithSeedOffset(String moduleId,
             Map<String, Object> arguments, int seedOffset) {
-        return new ExecutionRequest(moduleName, arguments, seedOffset, true, false, true);
+        return new ExecutionRequest(moduleId, arguments, seedOffset, true, false, true);
     }
 
     public static ExecutionRequest forModuleWithSeedOffset(Module module,
@@ -80,22 +80,22 @@ public final class ExecutionRequest {
     public int resolveAbsoluteSeed(int baseSeed) {
         if (script) {
             throw new IllegalStateException(
-                    "Scripts do not use seeds: " + moduleName);
+                    "Scripts do not use seeds: " + moduleId);
         }
         if (!seeded) {
             throw new IllegalStateException(
-                    "Unseeded modules do not use seeds: " + moduleName);
+                    "Unseeded modules do not use seeds: " + moduleId);
         }
         return baseSeed + seedOffset;
     }
 
     /**
-     * Gets the name of the module to execute.
+     * Gets the id of the module to execute.
      *
-     * @return the module name
+     * @return the module id
      */
-    public String getModuleName() {
-        return moduleName;
+    public String getModuleId() {
+        return moduleId;
     }
 
     /**
@@ -125,18 +125,18 @@ public final class ExecutionRequest {
         ExecutionRequest that = (ExecutionRequest) o;
         return seedOffset == that.seedOffset && explicitSeedOffset == that.explicitSeedOffset
                 && script == that.script && seeded == that.seeded
-                && moduleName.equals(that.moduleName) && arguments.equals(that.arguments);
+                && moduleId.equals(that.moduleId) && arguments.equals(that.arguments);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(moduleName, arguments, seedOffset, explicitSeedOffset, script, seeded);
+        return Objects.hash(moduleId, arguments, seedOffset, explicitSeedOffset, script, seeded);
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("ExecutionRequest{");
-        sb.append("moduleName='").append(moduleName).append('\'');
+        sb.append("moduleId='").append(moduleId).append('\'');
         if (script) {
             sb.append(", script=true");
         }

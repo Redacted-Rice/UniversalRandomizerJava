@@ -1,6 +1,6 @@
 -- Test helper postscript that should run once per randomize batch
 return {
-	 id = "test_post_randomize",
+	id = "test_post_randomize",
 	name = "Test Post Randomize Script",
 	description = "Marks that post-randomize scripts executed for tests",
 	when = "randomize",

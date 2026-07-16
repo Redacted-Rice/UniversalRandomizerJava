@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "enum_usage",
+	id = "enum_usage",
 	name = "Enum Usage",
 	description = "Uses enums registered by another module in onLoad",
 	groups = { "utils" },

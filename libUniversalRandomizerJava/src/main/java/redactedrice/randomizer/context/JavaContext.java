@@ -107,6 +107,12 @@ public class JavaContext {
 
     public void clear() {
         objects.clear();
+        objectWrapper.clearCache();
+    }
+
+    /** Clears cached object wrappers without removing registered objects */
+    public void clearWrapperCache() {
+        objectWrapper.clearCache();
     }
 
     public String[] getRegisteredNames() {

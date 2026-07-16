@@ -1,6 +1,6 @@
 -- Test helper prescript that should run once per randomize batch
 return {
-	 id = "test_pre_randomize",
+	id = "test_pre_randomize",
 	name = "Test Pre Randomize Script",
 	description = "Marks that pre-randomize scripts executed for tests",
 	when = "randomize",

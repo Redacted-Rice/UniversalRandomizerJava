@@ -17,7 +17,7 @@ public class ExecutionResultTest {
 
         ExecutionResult execResult = ExecutionResult.success(request, 12445, luaValue);
 
-        assertEquals("TestModule", execResult.getModuleName());
+        assertEquals("TestModule", execResult.getModuleId());
         assertTrue(execResult.isSuccess());
         assertNull(execResult.getErrorMessage());
         assertEquals(luaValue, execResult.getResult());
@@ -39,7 +39,7 @@ public class ExecutionResultTest {
         ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 0);
         ExecutionResult execResult = ExecutionResult.scriptFailure(request, "Error message");
 
-        assertEquals("TestModule", execResult.getModuleName());
+        assertEquals("TestModule", execResult.getModuleId());
         assertFalse(execResult.isSuccess());
         assertEquals("Error message", execResult.getErrorMessage());
         assertEquals(LuaValue.NIL, execResult.getResult());

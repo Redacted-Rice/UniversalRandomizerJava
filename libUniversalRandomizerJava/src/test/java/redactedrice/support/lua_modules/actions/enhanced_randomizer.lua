@@ -9,7 +9,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "enhanced_entity_randomizer",
+	id = "enhanced_entity_randomizer",
 	name = "Enhanced Entity Randomizer",
 	description = "Demonstrates all new parameter types and metadata features",
 	groups = { "gameplay", "advanced" },

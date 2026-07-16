@@ -1,6 +1,6 @@
 -- Configure the change detector for our example
 return {
-	 id = "changedetector_setup",
+	id = "changedetector_setup",
 	name = "changedetector_setup",
 	description = "Setup change detection on objects being randomized",
 	when = "randomize",

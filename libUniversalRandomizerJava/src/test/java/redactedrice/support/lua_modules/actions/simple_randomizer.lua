@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "simple_entity_randomizer",
+	id = "simple_entity_randomizer",
 	name = "Simple Entity Randomizer",
 	description = "Randomizes entity name, health, and damage values",
 	groups = { "basic" },

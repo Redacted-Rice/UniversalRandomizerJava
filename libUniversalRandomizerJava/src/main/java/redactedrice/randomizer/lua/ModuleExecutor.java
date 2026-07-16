@@ -260,9 +260,9 @@ public class ModuleExecutor {
 
         for (ExecutionRequest request : requests) {
             // Look up the module metadata from the registry
-            Module module = moduleRegistry.getModule(request.getModuleName());
+            Module module = moduleRegistry.getModule(request.getModuleId());
             if (module == null) {
-                String errorMsg = "Module not found: " + request.getModuleName();
+                String errorMsg = "Module not found: " + request.getModuleId();
                 ErrorTracker.addError(errorMsg);
                 int seedUsed = request.usesSeed() ? request.resolveAbsoluteSeed(baseSeed) : 0;
                 ExecutionResult errorResult = ExecutionResult.failure(request, seedUsed, errorMsg);

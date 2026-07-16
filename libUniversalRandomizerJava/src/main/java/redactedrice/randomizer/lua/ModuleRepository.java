@@ -2,17 +2,19 @@ package redactedrice.randomizer.lua;
 
 import java.util.*;
 
+import redactedrice.randomizer.utils.ErrorTracker;
+
 // Stores and indexes modules for efficient querying
-// Provides lookup by name, group, modifies, and script type
+// Provides lookup by id, group, modifies, and script type
 public class ModuleRepository {
     // Modules are the core randomization that are manually specified and run
-    // This is a map from the module name to its metadata
+    // Map from module id to its metadata
     private final Map<String, Module> modules;
     // Modules organized by their group metadata field
     private final Map<String, List<Module>> modulesByGroup;
     // Modules organized by what they modify. Modules can be in more than one key/list here
     private final Map<String, List<Module>> modulesByModifies;
-    // Scripts are automatically run before and after triggers. Name may change
+    // Scripts are automatically run before and after triggers
     private final Map<String, Map<String, List<Module>>> scriptsByType;
     // Scripts indexed by id for dependency resolution and validation
     private final Map<String, Module> scriptsById;
@@ -50,14 +52,18 @@ public class ModuleRepository {
         scriptsByType.put(SCRIPT_TIMING_POST, postScripts);
     }
 
-    // Register a module (not a script)
-    public void registerModule(Module module, ModuleFilter filter) {
+    // Register a module (not a script). Returns false if filtered out or id already taken.
+    public boolean registerModule(Module module, ModuleFilter filter) {
         if (module == null) {
-            return;
+            return false;
         }
 
         if (!filter.accepts(module)) {
-            return;
+            return false;
+        }
+
+        if (!isIdAvailable(module.getId(), "module")) {
+            return false;
         }
 
         modules.put(module.getId(), module);
@@ -68,12 +74,17 @@ public class ModuleRepository {
         // Add to modifies indices
         addModuleToCategoryIndices(module, module.getModifies(), modulesByModifies,
                 definedModifies);
+        return true;
     }
 
-    // Register a script (pre or post)
-    public void registerScript(Module script, String timing) {
+    // Register a script (pre or post). Returns false if id already taken.
+    public boolean registerScript(Module script, String timing) {
         if (script == null) {
-            return;
+            return false;
+        }
+
+        if (!isIdAvailable(script.getId(), "script")) {
+            return false;
         }
 
         // Determine the when it should be run
@@ -89,6 +100,16 @@ public class ModuleRepository {
 
         scriptsById.put(script.getId(), script);
         scriptsByType.get(timing).get(whenKey).add(script);
+        return true;
+    }
+
+    public boolean isIdAvailable(String id, String kind) {
+        if (modules.containsKey(id) || scriptsById.containsKey(id)) {
+            ErrorTracker.addError("Duplicate " + kind + " id '" + id
+                    + "': a module or script with this id is already registered");
+            return false;
+        }
+        return true;
     }
 
     private void addModuleToCategoryIndices(Module module, Set<String> categories,
@@ -140,7 +161,7 @@ public class ModuleRepository {
         return new ArrayList<>(modules.values());
     }
 
-    public Set<String> getModuleNames() {
+    public Set<String> getModuleIds() {
         return new HashSet<>(modules.keySet());
     }
 
