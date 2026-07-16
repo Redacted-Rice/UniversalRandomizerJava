@@ -95,8 +95,7 @@ public class ModuleRegistry {
         for (Path file : luaFiles) {
             try {
                 Module module = loadAndParseModule(file);
-                if (module != null) {
-                    repository.registerModule(module, moduleFilter);
+                if (module != null && repository.registerModule(module, moduleFilter)) {
                     loadedCount++;
                     Logger.info("Loaded from module: " + module.getName());
                 }
@@ -116,8 +115,7 @@ public class ModuleRegistry {
         for (Path file : luaFiles) {
             try {
                 Module script = loadAndParseModule(file);
-                if (script != null) {
-                    repository.registerScript(script, timing);
+                if (script != null && repository.registerScript(script, timing)) {
                     loadedCount++;
                     Logger.info("Loaded from script: " + script.getName());
                 }
@@ -148,12 +146,12 @@ public class ModuleRegistry {
     }
 
 
-    public Module getModule(String name) {
-        return repository.getModule(name);
+    public Module getModule(String moduleId) {
+        return repository.getModule(moduleId);
     }
 
-    public Module getScript(String name) {
-        return repository.getScript(name);
+    public Module getScript(String moduleId) {
+        return repository.getScript(moduleId);
     }
 
     public Set<String> getDefinedGroupValues() {
@@ -176,8 +174,8 @@ public class ModuleRegistry {
         return repository.getAllModules();
     }
 
-    public Set<String> getModuleNames() {
-        return repository.getModuleNames();
+    public Set<String> getModuleIds() {
+        return repository.getModuleIds();
     }
 
     public List<Module> getScripts(String timing, String when) {
@@ -192,8 +190,11 @@ public class ModuleRegistry {
         List<RequirementIssue> issues =
                 RequirementValidator.validate(requirementContext, repository);
         for (RequirementIssue issue : issues) {
+            // TODO later: Make a more cohesive error collection and dsiplay appraoch
             if (issue.isError()) {
                 ErrorTracker.addError(issue.getMessage());
+            } else {
+                Logger.warn(issue.getMessage());
             }
         }
         return issues;

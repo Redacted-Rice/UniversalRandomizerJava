@@ -16,6 +16,7 @@ import org.luaj.vm2.lib.ZeroArgFunction;
 
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
+import redactedrice.randomizer.utils.ErrorTracker;
 
 class RequirementValidatorTest {
     private ModuleRepository repository;
@@ -23,6 +24,7 @@ class RequirementValidatorTest {
     @BeforeEach
     void setUp() {
         repository = new ModuleRepository(null, null);
+        ErrorTracker.clearErrors();
     }
 
     @Test
@@ -125,6 +127,40 @@ class RequirementValidatorTest {
         assertEquals(1, issues.size());
         assertFalse(issues.get(0).isError());
         assertEquals("dependency", issues.get(0).getRequirementKey());
+    }
+
+    @Test
+    void duplicateModuleIdIsRejected() {
+        Module first = module("same_id", "First", Map.of("ExampleApp", "1.0.0"), "1.0.0");
+        Module second = module("same_id", "Second", Map.of("ExampleApp", "1.0.0"), "1.0.0");
+
+        assertTrue(repository.registerModule(first, m -> true));
+        assertFalse(repository.registerModule(second, m -> true));
+        assertEquals("First", repository.getModule("same_id").getName());
+        assertTrue(ErrorTracker.hasErrors());
+        assertTrue(ErrorTracker.getErrors().stream().anyMatch(msg -> msg.contains("same_id")));
+    }
+
+    @Test
+    void duplicateScriptIdIsRejectedAndNotAddedTwice() {
+        LuaFunction execute = new ZeroArgFunction() {
+            @Override
+            public LuaValue call() {
+                return LuaValue.NIL;
+            }
+        };
+        Module first = new Module("shared_script", "First Script", null, null, null, null, execute,
+                null, null, 0, false, false, "randomize", "author", "1.0.0",
+                Map.of("ExampleApp", "1.0.0"), null, null, null);
+        Module second = new Module("shared_script", "Second Script", null, null, null, null, execute,
+                null, null, 0, false, false, "randomize", "author", "1.0.0",
+                Map.of("ExampleApp", "1.0.0"), null, null, null);
+
+        assertTrue(repository.registerScript(first, ModuleRepository.SCRIPT_TIMING_PRE));
+        assertFalse(repository.registerScript(second, ModuleRepository.SCRIPT_TIMING_PRE));
+        assertEquals(1, repository.getScripts(ModuleRepository.SCRIPT_TIMING_PRE,
+                ModuleRepository.SCRIPT_WHEN_RANDOMIZE).size());
+        assertEquals("First Script", repository.getScript("shared_script").getName());
     }
 
     @Test

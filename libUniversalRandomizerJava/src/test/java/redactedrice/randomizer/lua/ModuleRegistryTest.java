@@ -52,10 +52,10 @@ public class ModuleRegistryTest {
         assertEquals(0, damageModules.size());
 
         // Verify specific modules
-        Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("health_randomizer"));
-        assertTrue(moduleNames.contains("health_booster"));
-        assertFalse(moduleNames.contains("damage_randomizer"));
+        Set<String> moduleIds = wrapper.getModuleIds();
+        assertTrue(moduleIds.contains("health_randomizer"));
+        assertTrue(moduleIds.contains("health_booster"));
+        assertFalse(moduleIds.contains("damage_randomizer"));
     }
 
     @Test
@@ -75,10 +75,10 @@ public class ModuleRegistryTest {
         assertTrue(damageModules.size() > 0);
 
         // Verify specific modules
-        Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("damage_randomizer"));
+        Set<String> moduleIds = wrapper.getModuleIds();
+        assertTrue(moduleIds.contains("damage_randomizer"));
         // Health Booster only modifies health so it should not be here
-        assertFalse(moduleNames.contains("health_booster"));
+        assertFalse(moduleIds.contains("health_booster"));
     }
 
     @Test
@@ -97,10 +97,10 @@ public class ModuleRegistryTest {
         assertTrue(loaded > 0);
 
         // Only modules in health group and with stats modifies should be loaded
-        Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("health_randomizer")); // health group + stats modifies
-        assertFalse(moduleNames.contains("health_booster")); // health group but no stats modifies
-        assertFalse(moduleNames.contains("damage_randomizer")); // stats modifies but damage group
+        Set<String> moduleIds = wrapper.getModuleIds();
+        assertTrue(moduleIds.contains("health_randomizer")); // health group + stats modifies
+        assertFalse(moduleIds.contains("health_booster")); // health group but no stats modifies
+        assertFalse(moduleIds.contains("damage_randomizer")); // stats modifies but damage group
     }
 
     @Test
@@ -113,10 +113,10 @@ public class ModuleRegistryTest {
         assertTrue(loaded > 0);
 
         // All modules should be loaded
-        Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("health_randomizer"));
-        assertTrue(moduleNames.contains("health_booster"));
-        assertTrue(moduleNames.contains("damage_randomizer"));
+        Set<String> moduleIds = wrapper.getModuleIds();
+        assertTrue(moduleIds.contains("health_randomizer"));
+        assertTrue(moduleIds.contains("health_booster"));
+        assertTrue(moduleIds.contains("damage_randomizer"));
     }
 
     @Test

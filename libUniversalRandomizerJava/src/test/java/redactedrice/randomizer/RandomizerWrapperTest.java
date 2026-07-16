@@ -48,8 +48,8 @@ public class RandomizerWrapperTest {
         int loaded = wrapper.loadModules();
         assertTrue(loaded > 0, "Should load at least one module");
 
-        Set<String> moduleNames = wrapper.getModuleNames();
-        assertTrue(moduleNames.contains("simple_entity_randomizer"));
+        Set<String> moduleIds = wrapper.getModuleIds();
+        assertTrue(moduleIds.contains("simple_entity_randomizer"));
     }
 
     @Test
@@ -322,26 +322,26 @@ public class RandomizerWrapperTest {
         int postRandomizeScriptCount = 0;
 
         for (ExecutionResult result : results) {
-            String moduleName = result.getModuleName();
-            if (moduleName.equals("simple_entity_randomizer")) {
+            String moduleId = result.getModuleId();
+            if (moduleId.equals("simple_entity_randomizer")) {
                 simpleModuleCount++;
                 assertTrue(result.isSuccess());
-            } else if (moduleName.equals("advanced_entity_randomizer")) {
+            } else if (moduleId.equals("advanced_entity_randomizer")) {
                 advancedModuleCount++;
                 assertTrue(result.isSuccess());
-            } else if (moduleName.equals("test_pre_randomize")) {
+            } else if (moduleId.equals("test_pre_randomize")) {
                 preRandomizeScriptCount++;
                 assertTrue(result.isSuccess());
                 assertTrue(result.getRequest().isScript());
-            } else if (moduleName.equals("test_pre_module")) {
+            } else if (moduleId.equals("test_pre_module")) {
                 preModuleScriptCount++;
                 assertTrue(result.isSuccess());
                 assertTrue(result.getRequest().isScript());
-            } else if (moduleName.equals("test_post_module")) {
+            } else if (moduleId.equals("test_post_module")) {
                 postModuleScriptCount++;
                 assertTrue(result.isSuccess());
                 assertTrue(result.getRequest().isScript());
-            } else if (moduleName.equals("test_post_randomize")) {
+            } else if (moduleId.equals("test_post_randomize")) {
                 postRandomizeScriptCount++;
                 assertTrue(result.isSuccess());
                 assertTrue(result.getRequest().isScript());

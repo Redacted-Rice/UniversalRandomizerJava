@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * App provided platform versions and validation policy for module reqiures metadata. Version
- * strings in reqires are treated as minimum compatible versions.
+ * App provided platform versions and validation policy for module requires metadata. Version
+ * strings in requires are treated as minimum compatible versions.
  */
 public final class CoreRequirements {
     private final Map<String, CoreRequirement> requirements;

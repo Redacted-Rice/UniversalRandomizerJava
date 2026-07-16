@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "flag_enum",
+	id = "flag_enum",
 	name = "Flag Enum",
 	description = "Tests flag enum usage with non-sequential values",
 	groups = { "utils" },

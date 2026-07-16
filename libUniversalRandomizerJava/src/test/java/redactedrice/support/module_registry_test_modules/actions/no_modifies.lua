@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "no_modifies_test",
+	id = "no_modifies_test",
 	name = "No Modifies Test",
 	description = "Tests that missing modifies field is allowed",
 	groups = { "test" },

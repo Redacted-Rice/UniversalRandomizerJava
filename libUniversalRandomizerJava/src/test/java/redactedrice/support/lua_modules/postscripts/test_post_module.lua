@@ -1,6 +1,6 @@
 -- Runs after each module execution to validate per-module postscripts
 return {
-	 id = "test_post_module",
+	id = "test_post_module",
 	name = "Test Post Module Script",
 	description = "Ensures module-level postscripts are invoked",
 	when = "module",

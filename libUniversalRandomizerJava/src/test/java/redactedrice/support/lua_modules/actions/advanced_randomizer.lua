@@ -4,7 +4,7 @@
 local randomizer = require("randomizer")
 
 return {
-	 id = "advanced_entity_randomizer",
+	id = "advanced_entity_randomizer",
 	name = "Advanced Entity Randomizer",
 	description = "Advanced randomization with grouped pools and multiple constraint types",
 	groups = { "advanced" },

@@ -105,16 +105,16 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getAllModules();
     }
 
-    public Set<String> getModuleNames() {
-        return moduleRegistry.getModuleNames();
+    public Set<String> getModuleIds() {
+        return moduleRegistry.getModuleIds();
     }
 
-    public Module getModule(String name) {
-        return moduleRegistry.getModule(name);
+    public Module getModule(String moduleId) {
+        return moduleRegistry.getModule(moduleId);
     }
 
-    public Module getScript(String name) {
-        return moduleRegistry.getScript(name);
+    public Module getScript(String moduleId) {
+        return moduleRegistry.getScript(moduleId);
     }
 
     // TODO: Keep these exposed and remove delegating fns or remove these and add more
@@ -171,6 +171,8 @@ public class LuaRandomizerWrapper {
 
         // add the shared enum registry from onLoad to the execution context
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        // Clear any old wrappers
+        context.clearWrapperCache();
 
         // get scripts by timing and when
         List<Module> preRandomizeScripts = moduleRegistry
@@ -243,7 +245,7 @@ public class LuaRandomizerWrapper {
 
         // print each module's details
         for (Module module : modules) {
-            System.out.println("Module: " + module.getName());
+            System.out.println("Module: " + module.getId() + " (" + module.getName() + ")");
             System.out.println("  Description: " + module.getDescription());
             if (!module.getGroups().isEmpty()) {
                 System.out.println("  Groups: " + module.getGroups());

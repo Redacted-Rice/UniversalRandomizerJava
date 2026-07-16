@@ -1,6 +1,6 @@
 -- Takes a snapshot for change detection before each module
 return {
-	 id = "changedetector_snapshot",
+	id = "changedetector_snapshot",
 	name = "changedetector_snapshot",
 	description = "Take snapshot before each module",
 	when = "module",
