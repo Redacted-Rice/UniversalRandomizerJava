@@ -34,65 +34,80 @@ public class JavaObjectWrapper {
         }
 
         LuaValue userdata = CoerceJavaToLua.coerce(javaObject);
-
-        // Create an extensible wrapper table
         LuaTable wrapper = new LuaTable();
-
         Map<String, Method> methodCache = new HashMap<>();
 
-        // Create metatable for forwarding to Java object
         LuaTable metatable = new LuaTable();
+        metatable.set(LuaValue.INDEX, new WrapperIndex(javaObject, userdata, wrapper, methodCache,
+                enumRegistry, this));
+        metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper));
 
-        // __index: Try wrapper first, then userdata
-        metatable.set(LuaValue.INDEX, new TwoArgFunction() {
-            @Override
-            public LuaValue call(LuaValue table, LuaValue key) {
-                // First check the wrapper table itself
-                LuaValue wrapperValue = wrapper.rawget(key);
-                if (!wrapperValue.isnil()) {
-                    return wrapperValue;
-                }
-
-                // Then try the userdata (Java object)
-                try {
-                    LuaValue userdataValue = userdata.get(key);
-
-                    // If it's a function, wrap it to convert string enum parameters
-                    if (userdataValue.isfunction()) {
-                        return new EnumMethodInterceptor(javaObject, key.toString(), userdataValue,
-                                userdata, methodCache, enumRegistry);
-                    }
-
-                    return userdataValue;
-                } catch (Exception e) {
-                    return LuaValue.NIL;
-                }
-            }
-        });
-
-        // __newindex: Always store in wrapper table for extensibility
-        metatable.set(LuaValue.NEWINDEX, new ThreeArgFunction() {
-            @Override
-            public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
-                // Try to set on userdata first (for actual Java fields)
-                try {
-                    userdata.set(key, value);
-                } catch (Throwable e) {
-                    // If that fails, store in wrapper (for dynamic Lua fields)
-                    // Must catch Throwable because LuaJ throws LuaError
-                    wrapper.rawset(key, value);
-                }
-                return LuaValue.NIL;
-            }
-        });
-
-        // Store reference to underlying userdata for debugging
         wrapper.rawset("__userdata", userdata);
-
-        // Apply metatable
         wrapper.setmetatable(metatable);
 
         wrapperCache.put(javaObject, wrapper);
         return wrapper;
+    }
+
+    /** __index: wrapper fields first, then Java userdata / intercepted methods */
+    private static final class WrapperIndex extends TwoArgFunction {
+        private final Object javaObject;
+        private final LuaValue userdata;
+        private final LuaTable wrapper;
+        private final Map<String, Method> methodCache;
+        private final EnumRegistry enumRegistry;
+        private final JavaObjectWrapper objectWrapper;
+
+        WrapperIndex(Object javaObject, LuaValue userdata, LuaTable wrapper,
+                Map<String, Method> methodCache, EnumRegistry enumRegistry,
+                JavaObjectWrapper objectWrapper) {
+            this.javaObject = javaObject;
+            this.userdata = userdata;
+            this.wrapper = wrapper;
+            this.methodCache = methodCache;
+            this.enumRegistry = enumRegistry;
+            this.objectWrapper = objectWrapper;
+        }
+
+        @Override
+        public LuaValue call(LuaValue table, LuaValue key) {
+            LuaValue wrapperValue = wrapper.rawget(key);
+            if (!wrapperValue.isnil()) {
+                return wrapperValue;
+            }
+
+            try {
+                LuaValue userdataValue = userdata.get(key);
+                if (userdataValue.isfunction()) {
+                    return new EnumMethodInterceptor(javaObject, key.toString(), userdataValue,
+                            userdata, methodCache, enumRegistry, objectWrapper);
+                }
+                return userdataValue;
+            } catch (Exception e) {
+                return LuaValue.NIL;
+            }
+        }
+    }
+
+    /** __newindex: Java fields when possible, otherwise dynamic Lua fields on the wrapper */
+    private static final class WrapperNewIndex extends ThreeArgFunction {
+        private final LuaValue userdata;
+        private final LuaTable wrapper;
+
+        WrapperNewIndex(LuaValue userdata, LuaTable wrapper) {
+            this.userdata = userdata;
+            this.wrapper = wrapper;
+        }
+
+        @Override
+        public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
+            try {
+                userdata.set(key, value);
+            } catch (Throwable e) {
+                // Must catch Throwable because LuaJ throws LuaError
+                wrapper.rawset(key, value);
+            }
+            return LuaValue.NIL;
+        }
     }
 }
