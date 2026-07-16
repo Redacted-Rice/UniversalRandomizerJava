@@ -18,15 +18,18 @@ public class EnumMethodInterceptor extends VarArgFunction {
     private final LuaValue userdata;
     private final Map<String, Method> methodCache;
     private final EnumRegistry enumRegistry;
+    private final JavaObjectWrapper objectWrapper;
 
     public EnumMethodInterceptor(Object javaObject, String methodName, LuaValue originalMethod,
-            LuaValue userdata, Map<String, Method> methodCache, EnumRegistry enumRegistry) {
+            LuaValue userdata, Map<String, Method> methodCache, EnumRegistry enumRegistry,
+            JavaObjectWrapper objectWrapper) {
         this.javaObject = javaObject;
         this.methodName = methodName;
         this.originalMethod = originalMethod;
         this.userdata = userdata;
         this.methodCache = methodCache;
         this.enumRegistry = enumRegistry;
+        this.objectWrapper = objectWrapper;
     }
 
     @Override
@@ -113,15 +116,26 @@ public class EnumMethodInterceptor extends VarArgFunction {
     }
 
     private Varargs convertReturnValue(Varargs result) {
-        // Convert return value if it's a Java collection
+        // Convert return value if it's a Java collection or other complex object so nested
+        // objects stay as extensible wrappers (dynamic Lua fields on cards, etc.)
         LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
         if (firstValue.isuserdata()) {
-            Object javaObject = firstValue.touserdata();
-            if (javaObject instanceof java.util.List || javaObject instanceof java.util.Map) {
-                return LuaJavaConverter.javaToLua(javaObject);
+            Object returned = firstValue.touserdata();
+            if (returned instanceof java.util.List || returned instanceof java.util.Map) {
+                return LuaJavaConverter.javaToLua(returned, objectWrapper);
+            }
+            if (objectWrapper != null && returned != null && !(returned instanceof String)
+                    && !isPrimitiveOrWrapper(returned) && !(returned instanceof Enum)) {
+                return objectWrapper.wrap(returned);
             }
         }
         return result;
+    }
+
+    private static boolean isPrimitiveOrWrapper(Object value) {
+        return value instanceof Boolean || value instanceof Byte || value instanceof Character
+                || value instanceof Short || value instanceof Integer || value instanceof Long
+                || value instanceof Float || value instanceof Double;
     }
 
     private Method findJavaMethod(Class<?> clazz, String methodName, int paramCount) {
