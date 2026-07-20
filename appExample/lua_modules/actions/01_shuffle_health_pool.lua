@@ -22,7 +22,7 @@ return {
 		local entitiesModified = context.entitiesModified
 
 		-- Create consumable pool by extracting health values
-		local healthPool = randomizer.listFromField(entitiesOriginal, "getHealth")
+		local healthPool = randomizer.list(entitiesOriginal):select("getHealth")
 
 		-- Randomize modified entities' health using the consumable pool
 		local setter = function(entity, value)
