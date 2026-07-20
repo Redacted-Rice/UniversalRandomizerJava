@@ -98,7 +98,7 @@ tasks.register<Exec>("coreTests") {
     group = "verification"
     description = "Runs UniversalRandomizerCore Lua tests via busted"
     workingDir = file("UniversalRandomizerCore")
-    if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+    if (System.getProperty("os.name").lowercase().contains("windows")) {
         commandLine("cmd", "/c", "run_tests.bat")
     } else {
         commandLine("./run_tests.sh")
