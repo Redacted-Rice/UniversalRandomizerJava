@@ -107,6 +107,8 @@ public class RandomizerSandboxTest {
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
         LuaSandbox limitedSandbox = new LuaSandbox(allowedDirectories); // Default 100MB
+        // Lower the interval to increase chances of catching it before completion
+        limitedSandbox.getResourceMonitor().setMonitoringIntervalMs(25);
 
         // Script will create 200 MB worth of data
         String testFile = new File(testCasesPath, "test_too_much_memory.lua").getAbsolutePath();
@@ -114,7 +116,8 @@ public class RandomizerSandboxTest {
         // This should throw MemoryLimitExceededException
         // There is a possibility that a script could still succeed if it finishes before
         // the memory limit check is done but should not happen with this script since
-        // allocates significantly more than the limit
+        // allocates significantly more than the limit and since we check also on completion
+        // it should be caught anyways
         MemoryLimitExceededException exception = assertThrows(MemoryLimitExceededException.class,
                 () -> limitedSandbox.executeFile(testFile));
 
