@@ -80,6 +80,8 @@ public class ResourceMonitor {
                 }
             }
         }
+        // Catch scripts that finish between polling intervals
+        checkMemoryLimit(state, executionThread, memoryBefore, context);
         return checkExecutionResult(state);
     }
 
