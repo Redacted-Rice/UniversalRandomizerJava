@@ -118,7 +118,7 @@ public class EnumMethodInterceptor extends VarArgFunction {
     private static LuaValue unwrapJavaWrapper(LuaValue arg) {
         if (arg.istable()) {
             LuaValue inner = arg.get("__userdata");
-            if (!inner.isnil()) {
+            if (inner.isuserdata()) {
                 return inner;
             }
         }
@@ -179,9 +179,21 @@ public class EnumMethodInterceptor extends VarArgFunction {
             if (signature.length() > 0) {
                 signature.append(',');
             }
-            signature.append(args.arg(i).typename());
+            signature.append(argumentTypeName(args.arg(i)));
         }
         return signature.toString();
+    }
+
+    private static String argumentTypeName(LuaValue arg) {
+        LuaValue unwrapped = unwrapJavaWrapper(arg);
+        if (unwrapped.isuserdata()) {
+            Object javaObject = unwrapped.touserdata();
+            if (javaObject != null) {
+                return javaObject.getClass().getName();
+            }
+            return "userdata";
+        }
+        return arg.typename();
     }
 
     private int scoreMethodMatch(Method method, Varargs args) {

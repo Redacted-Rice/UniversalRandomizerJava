@@ -28,6 +28,38 @@ public class JavaObjectWrapperTest {
         }
     }
 
+    public static class TypeA {
+        public String label = "A";
+    }
+
+    public static class TypeB {
+        public String label = "B";
+    }
+
+    public static class DualTypeProcessor {
+        public String lastType;
+
+        public void process(TypeA value) {
+            lastType = "A";
+        }
+
+        public void process(TypeB value) {
+            lastType = "B";
+        }
+    }
+
+    public static class OverloadProbe {
+        public String lastCall;
+
+        public void process(int value) {
+            lastCall = "int";
+        }
+
+        public void process(String value) {
+            lastCall = "string";
+        }
+    }
+
     public static class ValueHolder {
         private int value;
 
@@ -106,5 +138,77 @@ public class JavaObjectWrapperTest {
 
         LuaValue accepted = holderWrapper.get("accept").call(holderWrapper, copied);
         assertTrue(accepted.toboolean());
+    }
+
+    @Test
+    public void wrappedReturnValuesWorkWithTwoArgOverload() {
+        JavaContext context = new JavaContext();
+        ValueHolder holder = new ValueHolder(7);
+        ValueHolder different = new ValueHolder(99);
+        context.register("holder", holder);
+        context.register("different", different);
+
+        LuaValue holderWrapper = context.toLuaTable().get("holder");
+        LuaValue differentWrapper = context.toLuaTable().get("different");
+
+        LuaValue rejected = holderWrapper.get("accept").call(holderWrapper, differentWrapper);
+        assertFalse(rejected.toboolean());
+
+        LuaValue forced = holderWrapper.get("accept").call(holderWrapper, differentWrapper,
+                LuaValue.TRUE);
+        assertTrue(forced.toboolean());
+    }
+
+    @Test
+    public void overloadResolutionSelectsPrimitiveVsString() {
+        JavaContext context = new JavaContext();
+        OverloadProbe probe = new OverloadProbe();
+        context.register("probe", probe);
+
+        LuaValue wrapper = context.toLuaTable().get("probe");
+        wrapper.get("process").call(wrapper, LuaValue.valueOf(42));
+        assertEquals("int", probe.lastCall);
+
+        wrapper.get("process").call(wrapper, LuaValue.valueOf("hello"));
+        assertEquals("string", probe.lastCall);
+    }
+
+    @Test
+    public void overloadResolutionDistinguishesWrappedJavaTypes() {
+        JavaContext context = new JavaContext();
+        DualTypeProcessor processor = new DualTypeProcessor();
+        TypeA typeA = new TypeA();
+        TypeB typeB = new TypeB();
+        context.register("processor", processor);
+        context.register("typeA", typeA);
+        context.register("typeB", typeB);
+
+        LuaTable luaContext = context.toLuaTable();
+        LuaValue processorWrapper = luaContext.get("processor");
+        LuaValue typeAWrapper = luaContext.get("typeA");
+        LuaValue typeBWrapper = luaContext.get("typeB");
+
+        processorWrapper.get("process").call(processorWrapper, typeBWrapper);
+        assertEquals("B", processor.lastType);
+
+        processorWrapper.get("process").call(processorWrapper, typeAWrapper);
+        assertEquals("A", processor.lastType);
+
+        processorWrapper.get("process").call(processorWrapper, typeBWrapper);
+        assertEquals("B", processor.lastType);
+    }
+
+    @Test
+    public void tablesWithNonUserdataFieldAreNotUnwrapped() {
+        JavaContext context = new JavaContext();
+        ValueHolder holder = new ValueHolder(7);
+        context.register("holder", holder);
+
+        LuaValue holderWrapper = context.toLuaTable().get("holder");
+        LuaTable fakeWrapper = new LuaTable();
+        fakeWrapper.set("__userdata", LuaValue.valueOf("not-java"));
+
+        assertThrows(Exception.class,
+                () -> holderWrapper.get("accept").call(holderWrapper, fakeWrapper));
     }
 }
