@@ -28,6 +28,34 @@ public class JavaObjectWrapperTest {
         }
     }
 
+    public static class ValueHolder {
+        private int value;
+
+        public ValueHolder(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public ValueHolder copy() {
+            return new ValueHolder(value);
+        }
+
+        public void setValue(int value) {
+            this.value = value;
+        }
+
+        public boolean accept(ValueHolder other) {
+            return other != null && other.value == value;
+        }
+
+        public boolean accept(ValueHolder other, boolean force) {
+            return other != null && (force || other.value == value);
+        }
+    }
+
     @Test
     public void methodReturnedListItemsAreExtensibleWrappers() {
         JavaContext context = new JavaContext();
@@ -64,5 +92,19 @@ public class JavaObjectWrapperTest {
         LuaValue freshWrapper = context.toLuaTable().get("root");
         assertTrue(freshWrapper.get("scratch").isnil());
         assertEquals("root", freshWrapper.get("name").tojstring());
+    }
+
+    @Test
+    public void wrappedReturnValuesCanBePassedBackToJavaMethods() {
+        JavaContext context = new JavaContext();
+        ValueHolder holder = new ValueHolder(7);
+        context.register("holder", holder);
+
+        LuaValue holderWrapper = context.toLuaTable().get("holder");
+        LuaValue copied = holderWrapper.get("copy").call(holderWrapper);
+        assertTrue(copied.istable());
+
+        LuaValue accepted = holderWrapper.get("accept").call(holderWrapper, copied);
+        assertTrue(accepted.toboolean());
     }
 }
