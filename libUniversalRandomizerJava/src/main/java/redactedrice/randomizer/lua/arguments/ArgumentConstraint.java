@@ -76,9 +76,15 @@ public class ArgumentConstraint {
                 return Math.abs(remainder) < 0.0001 || Math.abs(remainder - step) < 0.0001;
 
             case ENUM:
-                // value must be in the allowed list
+                // value must be in the allowed list; compare numerically when both sides are
+                // Number to handle Lua's habit of converting whole-number doubles to Integer
+                // (e.g. constraint value 2 vs UI-supplied Double 2.0)
                 for (Object allowed : allowedValues) {
                     if (allowed.equals(value) || allowed.toString().equals(value.toString())) {
+                        return true;
+                    }
+                    if (allowed instanceof Number && value instanceof Number
+                            && ((Number) allowed).doubleValue() == ((Number) value).doubleValue()) {
                         return true;
                     }
                 }

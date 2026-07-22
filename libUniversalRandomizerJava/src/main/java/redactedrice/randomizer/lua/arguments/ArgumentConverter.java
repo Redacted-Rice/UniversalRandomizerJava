@@ -276,11 +276,18 @@ public class ArgumentConverter {
                         || Math.abs(remainder - constraint.getStep()) < 0.0001;
 
             case ENUM:
-                // check if value is in the allowed list
+                // check if value is in the allowed list; compare numerically when both sides are
+                // Number to handle Lua's habit of converting whole-number doubles to Integer
+                // (e.g. constraint value 2 vs UI-supplied Double 2.0)
                 List<Object> allowed = constraint.getAllowedValues();
                 for (Object allowedValue : allowed) {
                     if (allowedValue.equals(value)
                             || allowedValue.toString().equals(value.toString())) {
+                        return true;
+                    }
+                    if (allowedValue instanceof Number && value instanceof Number
+                            && ((Number) allowedValue).doubleValue() == ((Number) value)
+                                    .doubleValue()) {
                         return true;
                     }
                 }
