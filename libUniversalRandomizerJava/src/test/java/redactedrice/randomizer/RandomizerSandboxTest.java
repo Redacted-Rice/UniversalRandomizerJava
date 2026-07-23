@@ -5,6 +5,7 @@ import redactedrice.randomizer.lua.sandbox.monitoring.ResourceMonitor;
 import redactedrice.randomizer.lua.sandbox.monitoring.MemoryLimitExceededException;
 import redactedrice.randomizer.lua.sandbox.monitoring.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaValue;
 
@@ -23,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.*;
 // Testing the sandboxing of lua files in a functional way (i.e. with real lua scripts that try
 // to do things)
 public class RandomizerSandboxTest {
+
+    private static final long MEMORY_TEST_TIMEOUT_MS = 30 * 1000; // safety timeout for heavy scripts
 
     private LuaSandbox sandbox;
     private String testCasesPath;
@@ -102,11 +105,15 @@ public class RandomizerSandboxTest {
     }
 
     @Test
+    @Tag("isolatedJvm")
     public void testMemoryLimitEnforced() {
+        // Heap delta is skewed when other tests leave garbage on the JVM heap so we run in a new
+        // isolated JVM
         List<String> allowedDirectories = new ArrayList<>();
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
         LuaSandbox limitedSandbox = new LuaSandbox(allowedDirectories); // Default 100MB
+        limitedSandbox.getResourceMonitor().setMaxExecutionTimeMs(MEMORY_TEST_TIMEOUT_MS);
         // Lower the interval to increase chances of catching it before completion
         limitedSandbox.getResourceMonitor().setMonitoringIntervalMs(25);
 
@@ -139,13 +146,16 @@ public class RandomizerSandboxTest {
     }
 
     @Test
+    @Tag("isolatedJvm")
     public void testMemoryLimitDisabled() {
-        // Test that memory limit can be disabled
+        // Heap delta is skewed when other tests leave garbage on the JVM heap so we run in a new
+        // isolated JVM
         List<String> allowedDirectories = new ArrayList<>();
         allowedDirectories.add(testCasesPath);
         allowedDirectories.add(includetestPath);
         LuaSandbox unlimitedSandbox = new LuaSandbox(allowedDirectories);
         unlimitedSandbox.getResourceMonitor().disableMaxMemory();
+        unlimitedSandbox.getResourceMonitor().setMaxExecutionTimeMs(MEMORY_TEST_TIMEOUT_MS);
 
         assertEquals(ResourceMonitor.MAX_MEMORY_DISABLED,
                 unlimitedSandbox.getResourceMonitor().getMaxMemoryBytes());
