@@ -235,7 +235,7 @@ public class ArgumentDefinitionTest {
     @Test
     public void testConvertAndValidateMap() {
         TypeDefinition mapType =
-                TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer());
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer());
         ArgumentDefinition argDef = new ArgumentDefinition("mapping", mapType, null);
 
         java.util.Map<String, Integer> input = new java.util.HashMap<>();

@@ -56,25 +56,26 @@ public class TypeDefinitionTest {
     }
 
     @Test
-    public void testMapType() {
+    public void testTableType() {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.integer();
-        TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
-        assertEquals(ArgumentType.MAP, mapType.getBaseType());
-        assertEquals(keyType, mapType.getKeyType());
-        assertEquals(valueType, mapType.getValueType());
-        assertTrue(mapType.isMap());
-        assertTrue(mapType.isComplex());
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, valueType);
+        assertEquals(ArgumentType.TABLE, tableType.getBaseType());
+        assertEquals(keyType, tableType.getKeyType());
+        assertEquals(valueType, tableType.getValueType());
+        assertTrue(tableType.isTable());
+        assertTrue(tableType.isComplex());
     }
 
     @Test
-    public void testGroupType() {
+    public void testTableWithListValueType() {
         TypeDefinition keyType = TypeDefinition.enumType("EntityType");
         TypeDefinition listValueType = TypeDefinition.listOf(TypeDefinition.integer());
-        TypeDefinition groupType = TypeDefinition.groupOf(keyType, listValueType);
-        assertEquals(ArgumentType.GROUP, groupType.getBaseType());
-        assertEquals(keyType, groupType.getKeyType());
-        assertEquals(listValueType, groupType.getValueType());
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, listValueType);
+        assertEquals(ArgumentType.TABLE, tableType.getBaseType());
+        assertEquals(keyType, tableType.getKeyType());
+        assertEquals(listValueType, tableType.getValueType());
+        assertTrue(tableType.getValueType().isList());
     }
 
     @Test
@@ -111,31 +112,45 @@ public class TypeDefinitionTest {
     }
 
     @Test
-    public void testMapOfNullKeyThrows() {
+    public void testTableOfNullKeyThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.mapOf(null, TypeDefinition.string());
+            TypeDefinition.tableOf(null, TypeDefinition.string());
         });
     }
 
     @Test
-    public void testMapOfNullValueThrows() {
+    public void testTableOfNullValueThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.mapOf(TypeDefinition.string(), null);
+            TypeDefinition.tableOf(TypeDefinition.string(), null);
         });
     }
 
     @Test
-    public void testGroupOfNullKeyThrows() {
+    public void testTableOfListKeyThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.groupOf(null, TypeDefinition.listOf(TypeDefinition.string()));
+            TypeDefinition.tableOf(TypeDefinition.listOf(TypeDefinition.string()),
+                    TypeDefinition.integer());
         });
     }
 
     @Test
-    public void testGroupOfNullValueThrows() {
+    public void testTableOfTableKeyThrows() {
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.groupOf(TypeDefinition.string(), null);
+            TypeDefinition.tableOf(
+                    TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()),
+                    TypeDefinition.integer());
         });
+    }
+
+    @Test
+    public void testTableValueMayBeListOrTable() {
+        TypeDefinition withListValue = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.listOf(TypeDefinition.integer()));
+        assertTrue(withListValue.getValueType().isList());
+
+        TypeDefinition withNestedTableValue = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()));
+        assertTrue(withNestedTableValue.getValueType().isTable());
     }
 
     @Test
@@ -149,13 +164,9 @@ public class TypeDefinitionTest {
         TypeDefinition listType = TypeDefinition.listOf(TypeDefinition.string());
         assertEquals("List<String>", listType.toString());
 
-        TypeDefinition mapType =
-                TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer());
-        assertEquals("Map<String, Integer>", mapType.toString());
-
-        TypeDefinition groupType = TypeDefinition.groupOf(TypeDefinition.string(),
-                TypeDefinition.listOf(TypeDefinition.integer()));
-        assertEquals("Group<String, List<Integer>>", groupType.toString());
+        TypeDefinition tableType =
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer());
+        assertEquals("Table<String, Integer>", tableType.toString());
     }
 
     @Test
@@ -166,7 +177,7 @@ public class TypeDefinitionTest {
         assertTrue(TypeDefinition.bool().isPrimitive());
         assertFalse(TypeDefinition.enumType("Test").isPrimitive());
         assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isPrimitive());
-        assertFalse(TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer())
+        assertFalse(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer())
                 .isPrimitive());
     }
 
@@ -182,20 +193,20 @@ public class TypeDefinitionTest {
         assertTrue(TypeDefinition.listOf(TypeDefinition.string()).isList());
         assertFalse(TypeDefinition.string().isList());
         assertFalse(
-                TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer()).isList());
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()).isList());
     }
 
     @Test
-    public void testIsMap() {
-        assertTrue(TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer()).isMap());
-        assertFalse(TypeDefinition.string().isMap());
-        assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isMap());
+    public void testIsTable() {
+        assertTrue(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()).isTable());
+        assertFalse(TypeDefinition.string().isTable());
+        assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isTable());
     }
 
     @Test
     public void testIsComplex() {
         assertTrue(TypeDefinition.listOf(TypeDefinition.string()).isComplex());
-        assertTrue(TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer())
+        assertTrue(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer())
                 .isComplex());
         assertFalse(TypeDefinition.string().isComplex());
         assertFalse(TypeDefinition.enumType("Test").isComplex());

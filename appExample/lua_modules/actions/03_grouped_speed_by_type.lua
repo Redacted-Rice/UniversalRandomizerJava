@@ -20,29 +20,34 @@ return {
 		{
 			name = "speedByType",
 			definition = {
-				type = "group",
+				type = "table",
 				keyDefinition = {
 					type = "enum",
 					constraint = "EE_EntityTypes",
 				},
-				listElementDefinition = {
-					type = "enum",
-					constraint = "SpeedClass",
+				valueDefinition = {
+					type = "list",
+					elementDefinition = {
+						type = "enum",
+						constraint = "SpeedClass",
+					},
 				},
 			},
 		},
 		{
 			name = "speedClassPools",
 			definition = {
-				type = "group",
+				type = "table",
 				keyDefinition = {
 					type = "enum",
 					constraint = "SpeedClass",
 				},
-				listElementDefinition = {
-					type = "int",
-					min = 1,
-					max = 100,
+				valueDefinition = {
+					type = "list",
+					elementDefinition = {
+						type = "int",
+						constraint = { type = "range", min = 1, max = 100 },
+					},
 				},
 			},
 		},
@@ -64,15 +69,17 @@ return {
 		local speedByType = arguments.speedByType
 		local speedClassPools = arguments.speedClassPools
 
-		-- Assign a random speed class to each entity based on its type
-		randomizer.randomize(entitiesModified, speedByType, "getType", function(entity, speedClass)
-			entity.speedClass = speedClass
-		end)
+		-- Table arguments arrive as plain Lua tables so we need to wrap as Group when using
+		-- group based APIs
+		randomizer.randomize(entitiesModified, randomizer.group(speedByType), "getType",
+			function(entity, speedClass)
+				entity.speedClass = speedClass
+			end)
 
 		-- Second pass: assign a random speed value based on the assigned speed class
-		-- Use a custom key function that looks up the speed class we stored
-		randomizer.randomize(entitiesModified, speedClassPools, function(entity, speedValue)
-			return entity.speedClass
-		end, "setSpeed")
+		randomizer.randomize(entitiesModified, randomizer.group(speedClassPools),
+			function(entity, speedValue)
+				return entity.speedClass
+			end, "setSpeed")
 	end,
 }

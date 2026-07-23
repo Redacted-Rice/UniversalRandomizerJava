@@ -42,15 +42,15 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseMapType() {
-        Map<String, Object> mapSpec = new HashMap<>();
-        mapSpec.put("type", "map");
-        mapSpec.put("keyDefinition", "string");
-        mapSpec.put("valueDefinition", "integer");
-        TypeDefinition mapType = TypeParser.parse(mapSpec);
-        assertEquals(ArgumentType.MAP, mapType.getBaseType());
-        assertEquals(ArgumentType.STRING, mapType.getKeyType().getBaseType());
-        assertEquals(ArgumentType.INTEGER, mapType.getValueType().getBaseType());
+    public void testParseTableType() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", "integer");
+        TypeDefinition tableType = TypeParser.parse(tableSpec);
+        assertEquals(ArgumentType.TABLE, tableType.getBaseType());
+        assertEquals(ArgumentType.STRING, tableType.getKeyType().getBaseType());
+        assertEquals(ArgumentType.INTEGER, tableType.getValueType().getBaseType());
     }
 
     @Test
@@ -112,42 +112,22 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseMapTypeMissingKeyDefinition() {
-        Map<String, Object> mapSpec = new HashMap<>();
-        mapSpec.put("type", "map");
-        mapSpec.put("valueDefinition", "integer");
+    public void testParseTableTypeMissingKeyDefinition() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("valueDefinition", "integer");
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(mapSpec);
+            TypeParser.parse(tableSpec);
         });
     }
 
     @Test
-    public void testParseMapTypeMissingValueDefinition() {
-        Map<String, Object> mapSpec = new HashMap<>();
-        mapSpec.put("type", "map");
-        mapSpec.put("keyDefinition", "string");
+    public void testParseTableTypeMissingValueDefinition() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
         assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(mapSpec);
-        });
-    }
-
-    @Test
-    public void testParseGroupTypeMissingKeyDefinition() {
-        Map<String, Object> groupSpec = new HashMap<>();
-        groupSpec.put("type", "group");
-        groupSpec.put("listElementDefinition", "integer");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(groupSpec);
-        });
-    }
-
-    @Test
-    public void testParseGroupTypeMissingListElementDefinition() {
-        Map<String, Object> groupSpec = new HashMap<>();
-        groupSpec.put("type", "group");
-        groupSpec.put("keyDefinition", "string");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(groupSpec);
+            TypeParser.parse(tableSpec);
         });
     }
 
@@ -208,39 +188,99 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseGroupType() {
-        Map<String, Object> groupSpec = new HashMap<>();
-        groupSpec.put("type", "group");
-        groupSpec.put("keyDefinition", "string");
-        groupSpec.put("listElementDefinition", "integer");
+    public void testParseTableWithListValueType() {
+        Map<String, Object> listSpec = new HashMap<>();
+        listSpec.put("type", "list");
+        listSpec.put("elementDefinition", "integer");
 
-        TypeDefinition groupType = TypeParser.parse(groupSpec);
-        assertEquals(ArgumentType.GROUP, groupType.getBaseType());
-        assertEquals(ArgumentType.STRING, groupType.getKeyType().getBaseType());
-        assertEquals(ArgumentType.LIST, groupType.getValueType().getBaseType());
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", listSpec);
+
+        TypeDefinition tableType = TypeParser.parse(tableSpec);
+        assertEquals(ArgumentType.TABLE, tableType.getBaseType());
+        assertEquals(ArgumentType.STRING, tableType.getKeyType().getBaseType());
+        assertEquals(ArgumentType.LIST, tableType.getValueType().getBaseType());
         assertEquals(ArgumentType.INTEGER,
-                groupType.getValueType().getElementType().getBaseType());
+                tableType.getValueType().getElementType().getBaseType());
     }
 
     @Test
     public void testParseNestedComplexTypes() {
-        // List of maps: List<Map<String, Integer>>
-        Map<String, Object> mapSpec = new HashMap<>();
-        mapSpec.put("type", "map");
-        mapSpec.put("keyDefinition", "string");
-        mapSpec.put("valueDefinition", "integer");
+        // List of tables: List<Table<String, Integer>>
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", "integer");
 
         Map<String, Object> listSpec = new HashMap<>();
         listSpec.put("type", "list");
-        listSpec.put("elementDefinition", mapSpec);
+        listSpec.put("elementDefinition", tableSpec);
 
-        TypeDefinition listOfMapsType = TypeParser.parse(listSpec);
-        assertEquals(ArgumentType.LIST, listOfMapsType.getBaseType());
-        assertEquals(ArgumentType.MAP, listOfMapsType.getElementType().getBaseType());
+        TypeDefinition listOfTablesType = TypeParser.parse(listSpec);
+        assertEquals(ArgumentType.LIST, listOfTablesType.getBaseType());
+        assertEquals(ArgumentType.TABLE, listOfTablesType.getElementType().getBaseType());
         assertEquals(ArgumentType.STRING,
-                listOfMapsType.getElementType().getKeyType().getBaseType());
+                listOfTablesType.getElementType().getKeyType().getBaseType());
         assertEquals(ArgumentType.INTEGER,
-                listOfMapsType.getElementType().getValueType().getBaseType());
+                listOfTablesType.getElementType().getValueType().getBaseType());
+    }
+
+    @Test
+    public void testParseTableWithListKeyThrows() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", Map.of("type", "list", "elementDefinition", "string"));
+        tableSpec.put("valueDefinition", "integer");
+        assertThrows(IllegalArgumentException.class, () -> {
+            TypeParser.parse(tableSpec);
+        });
+    }
+
+    @Test
+    public void testParseTableWithNestedTableKeyThrows() {
+        Map<String, Object> innerTable = new HashMap<>();
+        innerTable.put("type", "table");
+        innerTable.put("keyDefinition", "string");
+        innerTable.put("valueDefinition", "integer");
+
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", innerTable);
+        tableSpec.put("valueDefinition", "integer");
+        assertThrows(IllegalArgumentException.class, () -> {
+            TypeParser.parse(tableSpec);
+        });
+    }
+
+    @Test
+    public void testParseNestedGroupLikeTableType() {
+        // Table<String, Table<String, List<Integer>>> — group whose values are groups of lists
+        Map<String, Object> listSpec = new HashMap<>();
+        listSpec.put("type", "list");
+        listSpec.put("elementDefinition", "integer");
+
+        Map<String, Object> innerTableSpec = new HashMap<>();
+        innerTableSpec.put("type", "table");
+        innerTableSpec.put("keyDefinition", "string");
+        innerTableSpec.put("valueDefinition", listSpec);
+
+        Map<String, Object> outerTableSpec = new HashMap<>();
+        outerTableSpec.put("type", "table");
+        outerTableSpec.put("keyDefinition", "string");
+        outerTableSpec.put("valueDefinition", innerTableSpec);
+
+        TypeDefinition outerType = TypeParser.parse(outerTableSpec);
+        assertEquals(ArgumentType.TABLE, outerType.getBaseType());
+        assertEquals(ArgumentType.STRING, outerType.getKeyType().getBaseType());
+
+        TypeDefinition innerType = outerType.getValueType();
+        assertEquals(ArgumentType.TABLE, innerType.getBaseType());
+        assertEquals(ArgumentType.STRING, innerType.getKeyType().getBaseType());
+        assertEquals(ArgumentType.LIST, innerType.getValueType().getBaseType());
+        assertEquals(ArgumentType.INTEGER,
+                innerType.getValueType().getElementType().getBaseType());
     }
 
     @Test
