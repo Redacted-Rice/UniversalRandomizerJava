@@ -29,7 +29,20 @@ java {
 
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("isolatedJvm")
+    }
+    finalizedBy("isolatedJvmTest")
+}
+
+// Heap sensitive tests run in a fresh JVM so prior tests garbage cannot mask allocations.
+tasks.register<Test>("isolatedJvmTest") {
+    group = "verification"
+    description = "Runs tests tagged isolatedJvm in a dedicated JVM (forkEvery = 1)"
+    useJUnitPlatform {
+        includeTags("isolatedJvm")
+    }
+    forkEvery = 1
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {

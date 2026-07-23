@@ -57,7 +57,7 @@ public class ResourceMonitor {
         long executionStartTime = System.currentTimeMillis();
 
         ExecutionState state = new ExecutionState();
-        Thread executionThread = createExecutionThread(executionTask, state);
+        Thread executionThread = createExecutionThread(executionTask, state, memoryBefore, context);
         Thread monitoringThread = createMonitoringThread(state, executionThread, memoryBefore,
                 executionStartTime, context);
 
@@ -80,7 +80,7 @@ public class ResourceMonitor {
                 }
             }
         }
-        // Catch scripts that finish between polling intervals
+        // Catch scripts that finish between polling intervals or after GC reclaims memory
         checkMemoryLimit(state, executionThread, memoryBefore, context);
         return checkExecutionResult(state);
     }
@@ -96,7 +96,8 @@ public class ResourceMonitor {
         }
     }
 
-    private Thread createExecutionThread(Callable<LuaValue> executionTask, ExecutionState state) {
+    private Thread createExecutionThread(Callable<LuaValue> executionTask, ExecutionState state,
+            long memoryBefore, String context) {
         Thread executionThread = new Thread(() -> {
             try {
                 LuaValue value = executionTask.call();
@@ -104,6 +105,8 @@ public class ResourceMonitor {
             } catch (Throwable e) {
                 state.executionException.set(e);
             } finally {
+                // Sample before signaling completion to hopefully check before GC fires
+                checkMemoryLimit(state, Thread.currentThread(), memoryBefore, context);
                 state.executionComplete.set(true);
             }
         }, "LuaSandbox-Executor");
@@ -131,21 +134,24 @@ public class ResourceMonitor {
     private void monitorExecution(ExecutionState state, Thread executionThread, long memoryBefore,
             long executionStartTime, String context) {
         while (!state.executionComplete.get() && !Thread.currentThread().isInterrupted()) {
+            checkTimeoutLimit(state, executionThread, executionStartTime, context);
+            checkMemoryLimit(state, executionThread, memoryBefore, context);
+
+            if (state.executionComplete.get() || state.memoryException.get() != null
+                    || state.timeoutException.get() != null) {
+                break;
+            }
+
             try {
                 Thread.sleep(monitoringIntervalMs);
-
-                if (state.executionComplete.get()) {
-                    break;
-                }
-
-                checkTimeoutLimit(state, executionThread, executionStartTime, context);
-                checkMemoryLimit(state, executionThread, memoryBefore, context);
-
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
         }
+        // Script may have finished while this thread was sleeping so sample once more on completion
+        checkTimeoutLimit(state, executionThread, executionStartTime, context);
+        checkMemoryLimit(state, executionThread, memoryBefore, context);
     }
 
     private void checkTimeoutLimit(ExecutionState state, Thread executionThread,
