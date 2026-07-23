@@ -3,7 +3,7 @@
 -- - Group and modifies metadata
 -- - Enum parameters
 -- - List parameters
--- - Map parameters
+-- - Table parameters
 -- - Default values
 
 local randomizer = require("randomizer")
@@ -43,11 +43,11 @@ return {
 			default = { 0, 0, 0 }, -- Default bonuses
 		},
 
-		-- Map parameter (string -> integer)
+		-- Table parameter (string -> integer)
 		{
 			name = "attributeModifiers",
 			definition = {
-				type = "map",
+				type = "table",
 				keyDefinition = {
 					type = "string",
 					-- default to constraint any
@@ -107,7 +107,7 @@ return {
 			entity:setDamage(entity:getDamage() + statBonuses[2])
 		end
 
-		-- Apply attribute modifiers from map
+		-- Apply attribute modifiers from table
 		local modifiers = args.attributeModifiers
 		if modifiers then
 			for key, value in pairs(modifiers) do

@@ -59,15 +59,9 @@ public class ArgumentConverter {
                 // recursively convert each element
                 return convertToList(value, typeDef.getElementType(), enumRegistry);
 
-            case MAP:
+            case TABLE:
                 // recursively convert keys and values
-                return convertToMap(value, typeDef.getKeyType(), typeDef.getValueType(),
-                        enumRegistry);
-
-            case GROUP:
-                // groups are just maps where values are lists
-                // actual group object creation happens later in convertArgumentsToLuaTable
-                return convertToMap(value, typeDef.getKeyType(), typeDef.getValueType(),
+                return convertToTable(value, typeDef.getKeyType(), typeDef.getValueType(),
                         enumRegistry);
 
             default:
@@ -214,7 +208,7 @@ public class ArgumentConverter {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<Object, Object> convertToMap(Object value, TypeDefinition keyType,
+    private static Map<Object, Object> convertToTable(Object value, TypeDefinition keyType,
             TypeDefinition valueType, EnumRegistry enumRegistry) {
         Map<Object, Object> result = new LinkedHashMap<>();
 
@@ -240,7 +234,7 @@ public class ArgumentConverter {
             }
         } else {
             throw new IllegalArgumentException(
-                    "Cannot convert " + value.getClass().getSimpleName() + " to Map");
+                    "Cannot convert " + value.getClass().getSimpleName() + " to table");
         }
 
         return result;

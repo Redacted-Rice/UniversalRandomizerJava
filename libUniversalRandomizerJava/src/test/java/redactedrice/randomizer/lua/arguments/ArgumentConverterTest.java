@@ -210,61 +210,61 @@ public class ArgumentConverterTest {
     }
 
     @Test
-    public void testConvertAndValidateMap() {
+    public void testConvertAndValidateTable() {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.integer();
-        TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, valueType);
 
         Map<String, Integer> input = new HashMap<>();
         input.put("key1", 1);
         input.put("key2", 2);
 
-        Object result = ArgumentConverter.convertAndValidate(input, mapType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, tableType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
-        Map<?, ?> resultMap = (Map<?, ?>) result;
-        assertEquals(2, resultMap.size());
+        Map<?, ?> resultTable = (Map<?, ?>) result;
+        assertEquals(2, resultTable.size());
     }
 
     @Test
-    public void testConvertAndValidateMapFromLuaTable() {
+    public void testConvertAndValidateTableFromLuaTable() {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.integer();
-        TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, valueType);
 
         LuaTable table = new LuaTable();
         table.set("key1", LuaInteger.valueOf(1));
         table.set("key2", LuaInteger.valueOf(2));
 
-        Object result = ArgumentConverter.convertAndValidate(table, mapType, null);
+        Object result = ArgumentConverter.convertAndValidate(table, tableType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
-        Map<?, ?> resultMap = (Map<?, ?>) result;
-        assertEquals(2, resultMap.size());
+        Map<?, ?> resultTable = (Map<?, ?>) result;
+        assertEquals(2, resultTable.size());
     }
 
     @Test
-    public void testConvertAndValidateMapInvalidThrows() {
+    public void testConvertAndValidateTableInvalidThrows() {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.integer();
-        TypeDefinition mapType = TypeDefinition.mapOf(keyType, valueType);
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, valueType);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            ArgumentConverter.convertAndValidate("not a map", mapType, null);
+            ArgumentConverter.convertAndValidate("not a table", tableType, null);
         });
     }
 
     @Test
-    public void testConvertAndValidateGroup() {
+    public void testConvertAndValidateTableWithListValues() {
         TypeDefinition keyType = TypeDefinition.string();
         TypeDefinition valueType = TypeDefinition.listOf(TypeDefinition.integer());
-        TypeDefinition groupType = TypeDefinition.groupOf(keyType, valueType);
+        TypeDefinition tableType = TypeDefinition.tableOf(keyType, valueType);
 
         Map<String, List<Integer>> input = new HashMap<>();
         input.put("key1", Arrays.asList(1, 2, 3));
         input.put("key2", Arrays.asList(4, 5));
 
-        Object result = ArgumentConverter.convertAndValidate(input, groupType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, tableType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
     }
@@ -367,18 +367,47 @@ public class ArgumentConverterTest {
     }
 
     @Test
-    public void testNestedMapConversion() {
-        TypeDefinition nestedMapType = TypeDefinition.mapOf(TypeDefinition.string(),
-                TypeDefinition.mapOf(TypeDefinition.string(), TypeDefinition.integer()));
+    public void testNestedTableConversion() {
+        TypeDefinition nestedTableType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()));
 
         Map<String, Map<String, Integer>> input = new HashMap<>();
         Map<String, Integer> inner = new HashMap<>();
         inner.put("key", 1);
         input.put("outer", inner);
 
-        Object result = ArgumentConverter.convertAndValidate(input, nestedMapType, null);
+        Object result = ArgumentConverter.convertAndValidate(input, nestedTableType, null);
         assertNotNull(result);
         assertTrue(result instanceof Map);
+    }
+
+    @Test
+    public void testNestedGroupLikeTableConversion() {
+        // Table<String, Table<String, List<Integer>>> — two table layers, leaf values are lists
+        TypeDefinition nestedGroupType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.tableOf(TypeDefinition.string(),
+                        TypeDefinition.listOf(TypeDefinition.integer())));
+
+        Map<String, List<Integer>> firePools = new HashMap<>();
+        firePools.put("common", Arrays.asList(10, 20, 30));
+        firePools.put("rare", Arrays.asList(100));
+
+        Map<String, List<Integer>> waterPools = new HashMap<>();
+        waterPools.put("common", Arrays.asList(5, 15));
+
+        Map<String, Map<String, List<Integer>>> input = new HashMap<>();
+        input.put("fire", firePools);
+        input.put("water", waterPools);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Map<String, List<Integer>>> result =
+                (Map<String, Map<String, List<Integer>>>) ArgumentConverter
+                        .convertAndValidate(input, nestedGroupType, null);
+
+        assertEquals(2, result.size());
+        assertEquals(Arrays.asList(10, 20, 30), result.get("fire").get("common"));
+        assertEquals(Arrays.asList(100), result.get("fire").get("rare"));
+        assertEquals(Arrays.asList(5, 15), result.get("water").get("common"));
     }
 
     @Test

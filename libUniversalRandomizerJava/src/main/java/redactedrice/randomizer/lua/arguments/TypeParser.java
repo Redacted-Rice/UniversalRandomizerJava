@@ -87,38 +87,15 @@ public class TypeParser {
                 }
                 return TypeDefinition.listOf(parse(elementSpec));
 
-            case "map":
-                // maps need keydefinition and valuedefinition fields
+            case "table":
+                // tables need keyDefinition and valueDefinition fields
                 Object keySpec = typeMap.get("keyDefinition");
                 Object valueSpec = typeMap.get("valueDefinition");
                 if (keySpec == null || valueSpec == null) {
                     throw new IllegalArgumentException(
-                            "Map type must specify 'keyDefinition' and 'valueDefinition'");
+                            "Table type must specify 'keyDefinition' and 'valueDefinition'");
                 }
-                return TypeDefinition.mapOf(parse(keySpec), parse(valueSpec));
-
-            case "group":
-                // map where values are lists automatically converted to lua randomizer group
-                Object groupKeySpec = typeMap.get("keyDefinition");
-                Object listElementDefSpec = typeMap.get("listElementDefinition");
-
-                if (groupKeySpec == null) {
-                    throw new IllegalArgumentException("Group type must specify 'keyDefinition'");
-                }
-
-                if (listElementDefSpec == null) {
-                    throw new IllegalArgumentException(
-                            "Group type must specify 'listElementDefinition' (element type)");
-                }
-
-                // parse key type and element type
-                TypeDefinition keyTypeDef = parse(groupKeySpec);
-                // listelementdefinition is the element type
-                // automatically wrap it in a list for the value type
-                TypeDefinition elementTypeDef = parse(listElementDefSpec);
-                TypeDefinition valueTypeDef = TypeDefinition.listOf(elementTypeDef);
-
-                return TypeDefinition.groupOf(keyTypeDef, valueTypeDef);
+                return TypeDefinition.tableOf(parse(keySpec), parse(valueSpec));
 
             default:
                 throw new IllegalArgumentException("Unknown type: " + baseTypeStr);

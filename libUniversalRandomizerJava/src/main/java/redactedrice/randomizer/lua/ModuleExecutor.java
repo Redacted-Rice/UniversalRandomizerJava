@@ -27,7 +27,7 @@ public class ModuleExecutor {
         this.sandbox = sandbox;
         this.results = new ArrayList<>();
         this.argumentValidator = new ModuleArgumentValidator();
-        this.argumentConverter = new ModuleArgumentConverter(sandbox);
+        this.argumentConverter = new ModuleArgumentConverter();
     }
 
     private ExecutionResult executeModule(ExecutionRequest request, Module metadata,

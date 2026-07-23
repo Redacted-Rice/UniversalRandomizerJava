@@ -2,8 +2,8 @@ package redactedrice.randomizer.lua.arguments;
 
 import java.util.*;
 
-// type definition that supports primitives lists maps and enums
-// can handle nested types like list of maps or map of lists
+// type definition that supports primitives, lists, tables, and enums
+// can handle nested types like list of tables or table of lists
 public class TypeDefinition {
     private final ArgumentType baseType;
     private final String enumName;
@@ -71,19 +71,16 @@ public class TypeDefinition {
         return new TypeDefinition(ArgumentType.LIST, null, elementType, null, null, null);
     }
 
-    public static TypeDefinition mapOf(TypeDefinition keyType, TypeDefinition valueType) {
+    public static TypeDefinition tableOf(TypeDefinition keyType, TypeDefinition valueType) {
         if (keyType == null || valueType == null) {
             throw new IllegalArgumentException("Key and value types cannot be null");
         }
-        return new TypeDefinition(ArgumentType.MAP, null, null, keyType, valueType, null);
-    }
-
-    public static TypeDefinition groupOf(TypeDefinition keyType, TypeDefinition listValueType) {
-        if (keyType == null || listValueType == null) {
-            throw new IllegalArgumentException("Key and value types cannot be null");
+        if (!keyType.isSingleValueType()) {
+            throw new IllegalArgumentException(
+                    "Table key type must be a single-value type (string, integer, double, boolean, or enum), got: "
+                            + keyType);
         }
-        // value type should be a list
-        return new TypeDefinition(ArgumentType.GROUP, null, null, keyType, listValueType, null);
+        return new TypeDefinition(ArgumentType.TABLE, null, null, keyType, valueType, null);
     }
 
     public static TypeDefinition parse(Object typeSpec) {
@@ -120,16 +117,21 @@ public class TypeDefinition {
         return baseType == ArgumentType.ENUM;
     }
 
+    // Primitive or enum — the only types allowed as table keys (values may be any type).
+    public boolean isSingleValueType() {
+        return isPrimitive() || isEnum();
+    }
+
     public boolean isList() {
         return baseType == ArgumentType.LIST;
     }
 
-    public boolean isMap() {
-        return baseType == ArgumentType.MAP;
+    public boolean isTable() {
+        return baseType == ArgumentType.TABLE;
     }
 
     public boolean isComplex() {
-        return isList() || isMap();
+        return isList() || isTable();
     }
 
     public ArgumentConstraint getConstraint() {
@@ -151,10 +153,8 @@ public class TypeDefinition {
                 return "Enum<" + enumName + ">";
             case LIST:
                 return "List<" + elementType + ">";
-            case MAP:
-                return "Map<" + keyType + ", " + valueType + ">";
-            case GROUP:
-                return "Group<" + keyType + ", " + valueType + ">";
+            case TABLE:
+                return "Table<" + keyType + ", " + valueType + ">";
             default:
                 return "Unknown";
         }
