@@ -25,7 +25,7 @@ public class ArgumentConverter {
         // check constraints for primitive types
         if (typeDef.isPrimitive()) {
             ArgumentConstraint constraint = typeDef.getConstraint();
-            if (constraint != null && !validateConstraint(converted, constraint)) {
+            if (constraint != null && !constraint.validate(converted, typeDef.getBaseType())) {
                 throw new IllegalArgumentException(
                         String.format("Value '%s' does not satisfy constraint: %s", value,
                                 constraint.getDescription()));
@@ -238,57 +238,5 @@ public class ArgumentConverter {
         }
 
         return result;
-    }
-
-    private static boolean validateConstraint(Object value, ArgumentConstraint constraint) {
-        if (constraint == null || constraint.getType() == ConstraintType.ANY) {
-            return true;
-        }
-
-        switch (constraint.getType()) {
-            case RANGE:
-                // check if value is in min max range
-                if (!(value instanceof Number)) {
-                    return false;
-                }
-                double numValue = ((Number) value).doubleValue();
-                return numValue >= constraint.getMin() && numValue <= constraint.getMax();
-
-            case DISCRETE_RANGE:
-                // check if value is in range and on the right step
-                if (!(value instanceof Number)) {
-                    return false;
-                }
-                double discreteValue = ((Number) value).doubleValue();
-                if (discreteValue < constraint.getMin() || discreteValue > constraint.getMax()) {
-                    return false;
-                }
-                // check if the value is on a valid step
-                double diff = discreteValue - constraint.getMin();
-                double remainder = diff % constraint.getStep();
-                return Math.abs(remainder) < 0.0001
-                        || Math.abs(remainder - constraint.getStep()) < 0.0001;
-
-            case ENUM:
-                // check if value is in the allowed list; compare numerically when both sides are
-                // Number to handle Lua's habit of converting whole-number doubles to Integer
-                // (e.g. constraint value 2 vs UI-supplied Double 2.0)
-                List<Object> allowed = constraint.getAllowedValues();
-                for (Object allowedValue : allowed) {
-                    if (allowedValue.equals(value)
-                            || allowedValue.toString().equals(value.toString())) {
-                        return true;
-                    }
-                    if (allowedValue instanceof Number && value instanceof Number
-                            && ((Number) allowedValue).doubleValue() == ((Number) value)
-                                    .doubleValue()) {
-                        return true;
-                    }
-                }
-                return false;
-
-            default:
-                return true;
-        }
     }
 }

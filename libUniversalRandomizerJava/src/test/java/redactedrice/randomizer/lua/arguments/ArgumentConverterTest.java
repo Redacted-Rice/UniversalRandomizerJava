@@ -314,6 +314,22 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testConvertAndValidateWithNumericEnumConstraint() {
+        ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList(1, 2, 3));
+        TypeDefinition typeDef = TypeDefinition.integer(constraint);
+
+        assertEquals(2, ArgumentConverter.convertAndValidate(2, typeDef, null));
+        assertEquals(2, ArgumentConverter.convertAndValidate(2.0, typeDef, null));
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            ArgumentConverter.convertAndValidate(4, typeDef, null);
+        });
+        assertThrows(IllegalArgumentException.class, () -> {
+            ArgumentConverter.convertAndValidate(4.0, typeDef, null);
+        });
+    }
+
+    @Test
     public void testConvertAndValidateNullThrows() {
         TypeDefinition typeDef = TypeDefinition.string();
         assertThrows(IllegalArgumentException.class, () -> {

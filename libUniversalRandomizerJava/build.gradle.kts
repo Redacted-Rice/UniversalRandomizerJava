@@ -39,6 +39,11 @@ tasks.named<Test>("test") {
 tasks.register<Test>("isolatedJvmTest") {
     group = "verification"
     description = "Runs tests tagged isolatedJvm in a dedicated JVM (forkEvery = 1)"
+
+    val testSourceSet = sourceSets["test"]
+    testClassesDirs = testSourceSet.output.classesDirs
+    classpath = testSourceSet.runtimeClasspath
+
     useJUnitPlatform {
         includeTags("isolatedJvm")
     }
@@ -46,7 +51,13 @@ tasks.register<Test>("isolatedJvmTest") {
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
-    dependsOn(tasks.named("test"))
+    dependsOn(tasks.named("test"), tasks.named("isolatedJvmTest"))
+
+    executionData.setFrom(
+        fileTree(layout.buildDirectory.dir("jacoco")) {
+            include("*.exec")
+        }
+    )
 
     classDirectories.setFrom(
         files(classDirectories.files.map {

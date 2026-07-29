@@ -10,11 +10,7 @@ import java.util.Map;
 // (including list and table) are passed through as plain Lua tables with no URC wrapper objects.
 public class ModuleArgumentConverter {
 
-    public LuaTable toLuaTable(Module module, Map<String, Object> arguments) {
-        if (module == null) {
-            throw new IllegalArgumentException("Module cannot be null");
-        }
-
+    public LuaTable toLuaTable(Map<String, Object> arguments) {
         LuaTable table = new LuaTable();
 
         if (arguments != null) {

@@ -7,6 +7,7 @@ import redactedrice.randomizer.lua.arguments.*;
 import redactedrice.support.test.TestEntity;
 import redactedrice.support.test.EntityType;
 import redactedrice.support.test.FlagEnum;
+import redactedrice.support.test.GroupedTestEntity;
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
@@ -81,6 +82,33 @@ public class EnhancedFeaturesTest {
         assertNotEquals("Test", entity.getName());
         assertTrue(entity.getHealth() > 100);
         assertTrue(entity.getDamage() > 10.0);
+    }
+
+    @Test
+    public void testExecuteModuleWithTableOfListsArguments() {
+        GroupedTestEntity warrior = new GroupedTestEntity("warrior", 100);
+        GroupedTestEntity mage = new GroupedTestEntity("mage", 100);
+
+        JavaContext context = new JavaContext();
+        context.register("entities", Arrays.asList(warrior, mage));
+
+        Map<String, List<Integer>> healthPools = new HashMap<>();
+        healthPools.put("warrior", Arrays.asList(150, 175, 200));
+        healthPools.put("mage", Arrays.asList(80, 90, 100));
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("healthPools", healthPools);
+
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset("table_of_lists_randomizer", args, 0);
+        ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
+
+        assertTrue(result.isSuccess(),
+                "Execution should succeed: " + result.getErrorMessage());
+        assertTrue(healthPools.get("warrior").contains(warrior.getHealth()));
+        assertTrue(healthPools.get("mage").contains(mage.getHealth()));
+        assertNotEquals(100, warrior.getHealth());
+        assertNotEquals(100, mage.getHealth());
     }
 
     @Test

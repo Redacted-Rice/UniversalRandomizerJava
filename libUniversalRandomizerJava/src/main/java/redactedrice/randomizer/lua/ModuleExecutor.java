@@ -63,7 +63,7 @@ public class ModuleExecutor {
             if (usesSeed) {
                 setSeedInLua(absoluteSeed);
             }
-            LuaTable argsTable = argumentConverter.toLuaTable(metadata, validatedArgs);
+            LuaTable argsTable = argumentConverter.toLuaTable(validatedArgs);
 
             // Execute and return the results
             LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);

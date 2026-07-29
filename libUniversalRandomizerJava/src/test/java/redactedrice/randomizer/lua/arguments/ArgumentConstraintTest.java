@@ -59,6 +59,17 @@ public class ArgumentConstraintTest {
     }
 
     @Test
+    public void testEnumConstraintNumericEquivalence() {
+        ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList(1, 2, 3));
+
+        assertTrue(constraint.validate(2, ArgumentType.INTEGER));
+        assertTrue(constraint.validate(2.0, ArgumentType.INTEGER));
+        assertTrue(constraint.validate(2.0, ArgumentType.DOUBLE));
+        assertFalse(constraint.validate(2.5, ArgumentType.DOUBLE));
+        assertFalse(constraint.validate(4, ArgumentType.INTEGER));
+    }
+
+    @Test
     public void testGetAllowedValues() {
         ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList("A", "B", "C"));
         assertNotNull(constraint.getAllowedValues());
