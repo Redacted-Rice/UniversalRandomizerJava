@@ -9,7 +9,7 @@ This utilizes the Universal Randomizer Core written in Lua to perform the random
 - Sandboxed Lua Environment: Execute untrusted Lua code safely with restricted access to dangerous functions
   - Pure Java: Uses LuaJ - no native Lua installation required
 - Module Defined Actions: Lua modules implement actions and define their metadata to provide an API for configuring
-  - Custom Arguments: Support for string, int, double, bool, lists, groups and maps with with more to come
+  - Custom Arguments: Support for string, int, double, bool, lists, and tables
   - Arguement Constraints: ANY, RANGE, DISCRETE_RANGE, and ENUM to allow bounding args
   - Reproducable Results: Metadata includes seed for randomization functions
 - Java-Lua Bridge: Define objects and enums in Java and pass then into Lua to use and modify

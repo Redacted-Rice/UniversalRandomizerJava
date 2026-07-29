@@ -459,13 +459,14 @@ public class RandomizerWrapperTest {
         // Get modules in the advanced group
         List<Module> advancedModules = wrapper.getModulesByGroup("advanced");
         assertNotNull(advancedModules);
-        assertEquals(2, advancedModules.size());
+        assertEquals(3, advancedModules.size());
         Set<String> advancedNames = new HashSet<>();
         for (Module module : advancedModules) {
             advancedNames.add(module.getName());
         }
         assertTrue(advancedNames.contains("Advanced Entity Randomizer"));
         assertTrue(advancedNames.contains("Enhanced Entity Randomizer"));
+        assertTrue(advancedNames.contains("Table Of Lists Randomizer"));
 
         // Test an undefined group
         List<Module> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
@@ -500,7 +501,7 @@ public class RandomizerWrapperTest {
 
         // Execute advanced group module (advanced_entity_randomizer)
         List<Module> advancedModules = wrapper.getModulesByGroup("advanced");
-        assertEquals(2, advancedModules.size()); // Advanced and Enhanced both in advanced group
+        assertEquals(3, advancedModules.size()); // Advanced, Enhanced, and Table Of Lists
 
         // Find and execute the advanced_entity_randomizer specifically
         Module advancedRandomizer = advancedModules.stream()
@@ -533,7 +534,7 @@ public class RandomizerWrapperTest {
         // Get modules that modify health
         List<Module> healthModules = wrapper.getModulesByModifies("health");
         assertNotNull(healthModules);
-        assertEquals(2, healthModules.size());
+        assertEquals(3, healthModules.size());
 
         // Verify module names that modify health
         Set<String> healthModuleNames = new HashSet<>();
@@ -542,6 +543,7 @@ public class RandomizerWrapperTest {
         }
         assertTrue(healthModuleNames.contains("Simple Entity Randomizer"));
         assertTrue(healthModuleNames.contains("Advanced Entity Randomizer"));
+        assertTrue(healthModuleNames.contains("Table Of Lists Randomizer"));
 
         // Test undefined modifies
         List<Module> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
@@ -562,7 +564,7 @@ public class RandomizerWrapperTest {
 
         // Get and execute modules that modify health
         List<Module> healthModules = wrapper.getModulesByModifies("health");
-        assertEquals(2, healthModules.size());
+        assertEquals(3, healthModules.size());
 
         // Execute simple_entity_randomizer
         Module simpleRandomizer =
