@@ -1,6 +1,5 @@
-package redactedrice.randomizer;
+package redactedrice.randomizer.lua.sandbox;
 
-import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import redactedrice.randomizer.lua.sandbox.monitoring.ResourceMonitor;
 import redactedrice.randomizer.lua.sandbox.monitoring.MemoryLimitExceededException;
 import redactedrice.randomizer.lua.sandbox.monitoring.TimeoutException;
@@ -23,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 // Testing the sandboxing of lua files in a functional way (i.e. with real lua scripts that try
 // to do things)
-public class RandomizerSandboxTest {
+public class LuaSandboxTest {
 
     private static final long MEMORY_TEST_TIMEOUT_MS = 30 * 1000; // safety timeout for heavy scripts
 

@@ -1,5 +1,7 @@
 package redactedrice.randomizer.context;
 
+import redactedrice.randomizer.context.testsupport.DefinitionTestEnum;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -125,29 +127,14 @@ public class EnumDefinitionTest {
     }
 
     @Test
-    public void testExpandWithEmptyListReturnsUnchanged() {
+    public void testExpandWithNoChangesReturnsUnchanged() {
         EnumDefinition original = new EnumDefinition("Test",
                 Arrays.asList("A", "B"),
                 Map.of("A", 0, "B", 1),
                 null);
 
-        EnumDefinition expanded = original.expandWith(Collections.emptyList(), null);
-
-        // Should return the same instance since nothing changed
-        assertSame(original, expanded);
-    }
-
-    @Test
-    public void testExpandWithNullListReturnsUnchanged() {
-        EnumDefinition original = new EnumDefinition("Test",
-                Arrays.asList("A", "B"),
-                Map.of("A", 0, "B", 1),
-                null);
-
-        EnumDefinition expanded = original.expandWith(null, null);
-
-        // Should return the same instance since nothing changed
-        assertSame(original, expanded);
+        assertSame(original, original.expandWith(Collections.emptyList(), null));
+        assertSame(original, original.expandWith(null, null));
     }
 
     @Test
@@ -186,16 +173,15 @@ public class EnumDefinitionTest {
 
     @Test
     public void testEnumClassPreservedAfterExpansion() {
-        enum TestEnum { VALUE1, VALUE2 }
 
-        EnumDefinition original = new EnumDefinition("TestEnum",
+        EnumDefinition original = new EnumDefinition("DefinitionTestEnum",
                 Arrays.asList("VALUE1", "VALUE2"),
                 Map.of("VALUE1", 0, "VALUE2", 1),
-                TestEnum.class);
+                DefinitionTestEnum.class);
 
         EnumDefinition expanded = original.expandWith(Arrays.asList("VALUE3"), Map.of("VALUE3", 2));
 
         // Enum class reference should be preserved
-        assertEquals(TestEnum.class, expanded.getEnumClass());
+        assertEquals(DefinitionTestEnum.class, expanded.getEnumClass());
     }
 }

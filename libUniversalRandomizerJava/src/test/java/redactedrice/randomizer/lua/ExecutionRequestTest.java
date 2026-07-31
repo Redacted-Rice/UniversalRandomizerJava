@@ -9,13 +9,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ExecutionRequestTest {
-    private Module createModule(String id, int seedOffset, boolean fromMetadata) {
-        return createModule(id, seedOffset, fromMetadata, true);
-    }
-
-    private Module createModule(String id, int seedOffset, boolean fromMetadata,
-            boolean seeded) {
+class ExecutionRequestTest {
+    private Module createModule(String id, int seedOffset, boolean fromMetadata, boolean seeded) {
         LuaFunction executeFunc = new ZeroArgFunction() {
             @Override
             public LuaValue call() {
@@ -28,8 +23,8 @@ public class ExecutionRequestTest {
     }
 
     @Test
-    public void testForModuleUsesModuleSeedOffset() {
-        Module module = createModule("offset_module", 77, true);
+    void forModuleUsesModuleSeedOffset() {
+        Module module = createModule("offset_module", 77, true, true);
         ExecutionRequest request = ExecutionRequest.forModule(module, Map.of());
 
         assertEquals(77, request.getSeedOffset());
@@ -38,8 +33,8 @@ public class ExecutionRequestTest {
     }
 
     @Test
-    public void testForModuleWithSeedOffsetOverridesModuleDefault() {
-        Module module = createModule("offset_module", 77, true);
+    void forModuleWithSeedOffsetOverridesModuleDefault() {
+        Module module = createModule("offset_module", 77, true, true);
         ExecutionRequest request =
                 ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
 
@@ -49,21 +44,18 @@ public class ExecutionRequestTest {
     }
 
     @Test
-    public void testUnseededModuleSkipsSeedOffset() {
+    void unseededModuleSkipsSeedOffset() {
         Module module = createModule("unseeded_module", 77, true, false);
-        ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
+        ExecutionRequest request =
+                ExecutionRequest.forModuleWithSeedOffset(module, Map.of(), 99);
 
         assertFalse(request.usesSeed());
         assertEquals(0, request.getSeedOffset());
         assertThrows(IllegalStateException.class, () -> request.resolveAbsoluteSeed(12345));
-    }
 
-    @Test
-    public void testForUnseededModuleFactory() {
-        Module module = createModule("unseeded_module", 0, false, false);
-        ExecutionRequest request = ExecutionRequest.forUnseededModule(module, Map.of());
-
-        assertFalse(request.usesSeed());
-        assertFalse(request.hasExplicitSeedOffset());
+        Module unseeded = createModule("unseeded_module", 0, false, false);
+        ExecutionRequest factoryRequest = ExecutionRequest.forUnseededModule(unseeded, Map.of());
+        assertFalse(factoryRequest.usesSeed());
+        assertFalse(factoryRequest.hasExplicitSeedOffset());
     }
 }

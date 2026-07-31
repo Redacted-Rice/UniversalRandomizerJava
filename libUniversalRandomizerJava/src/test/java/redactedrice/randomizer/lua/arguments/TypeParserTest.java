@@ -10,39 +10,25 @@ import static org.junit.jupiter.api.Assertions.*;
 public class TypeParserTest {
 
     @Test
-    public void testParseSimpleType() {
-        TypeDefinition stringType = TypeParser.parse("string");
-        assertEquals(ArgumentType.STRING, stringType.getBaseType());
-
-        TypeDefinition intType = TypeParser.parse("integer");
-        assertEquals(ArgumentType.INTEGER, intType.getBaseType());
-
-        TypeDefinition intType2 = TypeParser.parse("int");
-        assertEquals(ArgumentType.INTEGER, intType2.getBaseType());
+    public void testParseAllSimpleTypes() {
+        assertEquals(ArgumentType.STRING, TypeParser.parse("string").getBaseType());
+        assertEquals(ArgumentType.INTEGER, TypeParser.parse("integer").getBaseType());
+        assertEquals(ArgumentType.INTEGER, TypeParser.parse("int").getBaseType());
+        assertEquals(ArgumentType.DOUBLE, TypeParser.parse("double").getBaseType());
+        assertEquals(ArgumentType.DOUBLE, TypeParser.parse("number").getBaseType());
+        assertEquals(ArgumentType.BOOLEAN, TypeParser.parse("boolean").getBaseType());
+        assertEquals(ArgumentType.BOOLEAN, TypeParser.parse("bool").getBaseType());
     }
 
     @Test
-    public void testParseComplexType() {
-        Map<String, Object> enumSpec = new HashMap<>();
-        enumSpec.put("type", "enum");
-        enumSpec.put("enumName", "EntityType");
-        TypeDefinition enumType = TypeParser.parse(enumSpec);
-        assertEquals(ArgumentType.ENUM, enumType.getBaseType());
-        assertEquals("EntityType", enumType.getEnumName());
-    }
-
-    @Test
-    public void testParseListType() {
+    public void testParseListAndTableTypes() {
         Map<String, Object> listSpec = new HashMap<>();
         listSpec.put("type", "list");
         listSpec.put("elementDefinition", "integer");
         TypeDefinition listType = TypeParser.parse(listSpec);
         assertEquals(ArgumentType.LIST, listType.getBaseType());
         assertEquals(ArgumentType.INTEGER, listType.getElementType().getBaseType());
-    }
 
-    @Test
-    public void testParseTableType() {
         Map<String, Object> tableSpec = new HashMap<>();
         tableSpec.put("type", "table");
         tableSpec.put("keyDefinition", "string");
@@ -54,61 +40,37 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseInvalidType() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse("invalid");
-        });
+    public void testParseInvalidInputs() {
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse("invalid"));
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(123));
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(new HashMap<>()));
     }
 
     @Test
-    public void testParseInvalidTypeSpec() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(123); // Not String or Map
-        });
-    }
+    public void testParseEnumTypeVariants() {
+        Map<String, Object> withEnumName = new HashMap<>();
+        withEnumName.put("type", "enum");
+        withEnumName.put("enumName", "EntityType");
+        TypeDefinition namedEnum = TypeParser.parse(withEnumName);
+        assertEquals(ArgumentType.ENUM, namedEnum.getBaseType());
+        assertEquals("EntityType", namedEnum.getEnumName());
 
-    @Test
-    public void testParseComplexTypeMissingTypeField() {
-        Map<String, Object> spec = new HashMap<>();
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(spec);
-        });
-    }
+        Map<String, Object> withConstraint = new HashMap<>();
+        withConstraint.put("type", "enum");
+        withConstraint.put("constraint", "EntityType");
+        TypeDefinition constrainedEnum = TypeParser.parse(withConstraint);
+        assertEquals(ArgumentType.ENUM, constrainedEnum.getBaseType());
 
-    @Test
-    public void testParseEnumTypeWithConstraint() {
-        Map<String, Object> enumSpec = new HashMap<>();
-        enumSpec.put("type", "enum");
-        enumSpec.put("constraint", "EntityType");
-        TypeDefinition enumType = TypeParser.parse(enumSpec);
-        assertEquals(ArgumentType.ENUM, enumType.getBaseType());
-    }
-
-    @Test
-    public void testParseEnumTypeWithEnumName() {
-        Map<String, Object> enumSpec = new HashMap<>();
-        enumSpec.put("type", "enum");
-        enumSpec.put("enumName", "EntityType");
-        TypeDefinition enumType = TypeParser.parse(enumSpec);
-        assertEquals("EntityType", enumType.getEnumName());
-    }
-
-    @Test
-    public void testParseEnumTypeMissingNameThrows() {
-        Map<String, Object> enumSpec = new HashMap<>();
-        enumSpec.put("type", "enum");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(enumSpec);
-        });
+        Map<String, Object> missingName = new HashMap<>();
+        missingName.put("type", "enum");
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(missingName));
     }
 
     @Test
     public void testParseListTypeMissingElementDefinition() {
         Map<String, Object> listSpec = new HashMap<>();
         listSpec.put("type", "list");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(listSpec);
-        });
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(listSpec));
     }
 
     @Test
@@ -132,59 +94,20 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseWithConstraint() {
-        Map<String, Object> constraintMap = new HashMap<>();
-        constraintMap.put("type", "range");
-        constraintMap.put("min", 1.0);
-        constraintMap.put("max", 100.0);
+    public void testParseWithConstraints() {
+        Map<String, Object> rangeConstraint = Map.of("type", "range", "min", 1.0, "max", 100.0);
+        Map<String, Object> rangeType = Map.of("type", "integer", "constraint", rangeConstraint);
+        assertNotNull(TypeParser.parse(rangeType).getConstraint());
 
-        Map<String, Object> typeSpec = new HashMap<>();
-        typeSpec.put("type", "integer");
-        typeSpec.put("constraint", constraintMap);
+        Map<String, Object> stepConstraint = Map.of("type", "discrete_range", "min", 0.0, "max",
+                100.0, "step", 10.0);
+        Map<String, Object> stepType = Map.of("type", "integer", "constraint", stepConstraint);
+        assertNotNull(TypeParser.parse(stepType).getConstraint());
 
-        TypeDefinition type = TypeParser.parse(typeSpec);
-        assertNotNull(type.getConstraint());
-    }
-
-    @Test
-    public void testParseWithDiscreteRangeConstraint() {
-        Map<String, Object> constraintMap = new HashMap<>();
-        constraintMap.put("type", "discrete_range");
-        constraintMap.put("min", 0.0);
-        constraintMap.put("max", 100.0);
-        constraintMap.put("step", 10.0);
-
-        Map<String, Object> typeSpec = new HashMap<>();
-        typeSpec.put("type", "integer");
-        typeSpec.put("constraint", constraintMap);
-
-        TypeDefinition type = TypeParser.parse(typeSpec);
-        assertNotNull(type.getConstraint());
-    }
-
-    @Test
-    public void testParseWithEnumConstraint() {
-        Map<String, Object> constraintMap = new HashMap<>();
-        constraintMap.put("type", "enum");
-        constraintMap.put("values", java.util.Arrays.asList("A", "B", "C"));
-
-        Map<String, Object> typeSpec = new HashMap<>();
-        typeSpec.put("type", "string");
-        typeSpec.put("constraint", constraintMap);
-
-        TypeDefinition type = TypeParser.parse(typeSpec);
-        assertNotNull(type.getConstraint());
-    }
-
-    @Test
-    public void testParseAllSimpleTypes() {
-        assertEquals(ArgumentType.STRING, TypeParser.parse("string").getBaseType());
-        assertEquals(ArgumentType.INTEGER, TypeParser.parse("integer").getBaseType());
-        assertEquals(ArgumentType.INTEGER, TypeParser.parse("int").getBaseType());
-        assertEquals(ArgumentType.DOUBLE, TypeParser.parse("double").getBaseType());
-        assertEquals(ArgumentType.DOUBLE, TypeParser.parse("number").getBaseType());
-        assertEquals(ArgumentType.BOOLEAN, TypeParser.parse("boolean").getBaseType());
-        assertEquals(ArgumentType.BOOLEAN, TypeParser.parse("bool").getBaseType());
+        Map<String, Object> enumConstraint =
+                Map.of("type", "enum", "values", java.util.Arrays.asList("A", "B", "C"));
+        Map<String, Object> enumType = Map.of("type", "string", "constraint", enumConstraint);
+        assertNotNull(TypeParser.parse(enumType).getConstraint());
     }
 
     @Test
@@ -228,30 +151,21 @@ public class TypeParserTest {
     }
 
     @Test
-    public void testParseTableWithListKeyThrows() {
-        Map<String, Object> tableSpec = new HashMap<>();
-        tableSpec.put("type", "table");
-        tableSpec.put("keyDefinition", Map.of("type", "list", "elementDefinition", "string"));
-        tableSpec.put("valueDefinition", "integer");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(tableSpec);
-        });
-    }
+    public void testParseTableKeyValidation() {
+        Map<String, Object> listKeyTable = new HashMap<>();
+        listKeyTable.put("type", "table");
+        listKeyTable.put("keyDefinition",
+                Map.of("type", "list", "elementDefinition", "string"));
+        listKeyTable.put("valueDefinition", "integer");
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(listKeyTable));
 
-    @Test
-    public void testParseTableWithNestedTableKeyThrows() {
-        Map<String, Object> innerTable = new HashMap<>();
-        innerTable.put("type", "table");
-        innerTable.put("keyDefinition", "string");
-        innerTable.put("valueDefinition", "integer");
-
-        Map<String, Object> tableSpec = new HashMap<>();
-        tableSpec.put("type", "table");
-        tableSpec.put("keyDefinition", innerTable);
-        tableSpec.put("valueDefinition", "integer");
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeParser.parse(tableSpec);
-        });
+        Map<String, Object> innerTable = Map.of("type", "table", "keyDefinition", "string",
+                "valueDefinition", "integer");
+        Map<String, Object> nestedKeyTable = new HashMap<>();
+        nestedKeyTable.put("type", "table");
+        nestedKeyTable.put("keyDefinition", innerTable);
+        nestedKeyTable.put("valueDefinition", "integer");
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(nestedKeyTable));
     }
 
     @Test

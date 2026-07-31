@@ -1,13 +1,12 @@
 package redactedrice.randomizer;
 
+import redactedrice.randomizer.example.ExampleEntityType;
+
 // example entity with private fields and public getters setters
 public class ExampleEntity {
-    public enum EntityType {
-        WARRIOR, MAGE, ROGUE, CLERIC, RANGER
-    }
 
     String name;
-    EntityType type;
+    ExampleEntityType type;
     String startingItem;
 
     int health;
@@ -16,10 +15,10 @@ public class ExampleEntity {
     int defense;
 
     public ExampleEntity(String name) {
-        this("Unnamed", EntityType.WARRIOR, 100, 10.0, 10, 10);
+        this("Unnamed", ExampleEntityType.WARRIOR, 100, 10.0, 10, 10);
     }
 
-    public ExampleEntity(String name, EntityType type, int health, double damage, int speed,
+    public ExampleEntity(String name, ExampleEntityType type, int health, double damage, int speed,
             int defense) {
         this.name = name;
         this.type = type;
@@ -70,11 +69,11 @@ public class ExampleEntity {
         this.defense = defense;
     }
 
-    public EntityType getType() {
+    public ExampleEntityType getType() {
         return type;
     }
 
-    public void setType(EntityType type) {
+    public void setType(ExampleEntityType type) {
         this.type = type;
     }
 

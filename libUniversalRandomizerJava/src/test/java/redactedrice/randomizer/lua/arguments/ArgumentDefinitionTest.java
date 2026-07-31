@@ -10,36 +10,35 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ArgumentDefinitionTest {
 
     @Test
-    public void testStringArgument() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        ArgumentDefinition argDef = new ArgumentDefinition("name", typeDef, null);
-        assertEquals("name", argDef.getName());
-        assertEquals(typeDef, argDef.getTypeDefinition());
-        assertNull(argDef.getDefaultValue());
+    public void testConstruction() {
+        TypeDefinition stringType = TypeDefinition.string();
+        ArgumentDefinition required = new ArgumentDefinition("name", stringType, null);
+        assertEquals("name", required.getName());
+        assertEquals(stringType, required.getTypeDefinition());
+        assertNull(required.getDefaultValue());
+
+        TypeDefinition intType = TypeDefinition.integer();
+        ArgumentDefinition withDefault = new ArgumentDefinition("level", intType, 50);
+        assertEquals("level", withDefault.getName());
+        assertEquals(50, withDefault.getDefaultValue());
     }
 
     @Test
-    public void testArgumentWithDefault() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, 50);
-        assertEquals("level", argDef.getName());
-        assertEquals(50, argDef.getDefaultValue());
-    }
+    public void testConvertAndValidatePrimitiveTypes() {
+        ArgumentDefinition intArg =
+                new ArgumentDefinition("value", TypeDefinition.integer(), null);
+        assertEquals(42, intArg.convertAndValidate(42, null));
 
-    @Test
-    public void testConvertAndValidateInteger() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("value", typeDef, null);
-        Object result = argDef.convertAndValidate(42, null);
-        assertEquals(42, result);
-    }
+        ArgumentDefinition stringArg =
+                new ArgumentDefinition("name", TypeDefinition.string(), null);
+        assertEquals("test", stringArg.convertAndValidate("test", null));
 
-    @Test
-    public void testConvertAndValidateString() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        ArgumentDefinition argDef = new ArgumentDefinition("name", typeDef, null);
-        Object result = argDef.convertAndValidate("test", null);
-        assertEquals("test", result);
+        ArgumentDefinition doubleArg =
+                new ArgumentDefinition("value", TypeDefinition.doubleType(), null);
+        assertEquals(42.5, doubleArg.convertAndValidate(42.5, null));
+
+        ArgumentDefinition boolArg = new ArgumentDefinition("flag", TypeDefinition.bool(), null);
+        assertEquals(true, boolArg.convertAndValidate(true, null));
     }
 
     @Test
@@ -48,12 +47,8 @@ public class ArgumentDefinitionTest {
         TypeDefinition typeDef = TypeDefinition.integer(constraint);
         ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, null);
 
-        Object result = argDef.convertAndValidate(50, null);
-        assertEquals(50, result);
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            argDef.convertAndValidate(150, null);
-        });
+        assertEquals(50, argDef.convertAndValidate(50, null));
+        assertThrows(IllegalArgumentException.class, () -> argDef.convertAndValidate(150, null));
     }
 
     @Test
@@ -64,196 +59,105 @@ public class ArgumentDefinitionTest {
         TypeDefinition enumType = TypeDefinition.enumType("Difficulty");
         ArgumentDefinition argDef = new ArgumentDefinition("difficulty", enumType, null);
 
-        Object result = argDef.convertAndValidate("EASY", enumContext);
-        assertEquals("EASY", result);
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            argDef.convertAndValidate("INVALID", enumContext);
-        });
+        assertEquals("EASY", argDef.convertAndValidate("EASY", enumContext));
+        assertThrows(IllegalArgumentException.class,
+                () -> argDef.convertAndValidate("INVALID", enumContext));
     }
 
     @Test
-    public void testConvertAndValidateList() {
-        TypeDefinition listType = TypeDefinition.listOf(TypeDefinition.integer());
-        ArgumentDefinition argDef = new ArgumentDefinition("values", listType, null);
+    public void testConvertAndValidateListAndMap() {
+        ArgumentDefinition listArg = new ArgumentDefinition("values",
+                TypeDefinition.listOf(TypeDefinition.integer()), null);
+        Object listResult = listArg.convertAndValidate(Arrays.asList(1, 2, 3), null);
+        assertNotNull(listResult);
+        assertTrue(listResult instanceof java.util.List);
 
-        java.util.List<Integer> input = java.util.Arrays.asList(1, 2, 3);
-        Object result = argDef.convertAndValidate(input, null);
-        assertNotNull(result);
-        assertTrue(result instanceof java.util.List);
+        ArgumentDefinition mapArg = new ArgumentDefinition("mapping",
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()), null);
+        java.util.Map<String, Integer> input = new java.util.HashMap<>();
+        input.put("key1", 1);
+        input.put("key2", 2);
+        Object mapResult = mapArg.convertAndValidate(input, null);
+        assertNotNull(mapResult);
+        assertTrue(mapResult instanceof java.util.Map);
     }
 
     @Test
-    public void testUseDefaultValue() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, 50);
-        Object result = argDef.convertAndValidate(null, null);
-        assertEquals(50, result);
+    public void testDefaultValueHandling() {
+        ArgumentDefinition intDefault = new ArgumentDefinition("level",
+                TypeDefinition.integer(), 50);
+        assertEquals(50, intDefault.convertAndValidate(null, null));
+        assertTrue(intDefault.validate(null, null));
+
+        ArgumentDefinition stringDefault = new ArgumentDefinition("name",
+                TypeDefinition.string(), "default");
+        assertEquals("default", stringDefault.convertAndValidate(null, null));
     }
 
     @Test
     public void testMissingRequiredArgument() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        ArgumentDefinition argDef = new ArgumentDefinition("name", typeDef, null);
-        assertThrows(IllegalArgumentException.class, () -> {
-            argDef.convertAndValidate(null, null);
-        });
+        ArgumentDefinition required = new ArgumentDefinition("name", TypeDefinition.string(), null);
+        assertThrows(IllegalArgumentException.class, () -> required.convertAndValidate(null, null));
+        assertFalse(required.validate(null, null));
     }
 
     @Test
-    public void testConstructorNullNameThrows() {
+    public void testConstructorRejectsInvalidArguments() {
         TypeDefinition typeDef = TypeDefinition.string();
-        assertThrows(IllegalArgumentException.class, () -> {
-            new ArgumentDefinition(null, typeDef, null);
-        });
-    }
-
-    @Test
-    public void testConstructorEmptyNameThrows() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        assertThrows(IllegalArgumentException.class, () -> {
-            new ArgumentDefinition("", typeDef, null);
-        });
-    }
-
-    @Test
-    public void testConstructorWhitespaceNameThrows() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        assertThrows(IllegalArgumentException.class, () -> {
-            new ArgumentDefinition("   ", typeDef, null);
-        });
-    }
-
-    @Test
-    public void testConstructorNullTypeThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            new ArgumentDefinition("name", null, null);
-        });
+        assertThrows(IllegalArgumentException.class, () -> new ArgumentDefinition(null, typeDef, null));
+        assertThrows(IllegalArgumentException.class, () -> new ArgumentDefinition("", typeDef, null));
+        assertThrows(IllegalArgumentException.class, () -> new ArgumentDefinition("   ", typeDef, null));
+        assertThrows(IllegalArgumentException.class, () -> new ArgumentDefinition("name", null, null));
     }
 
     @Test
     public void testValidate() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("value", typeDef, null);
+        ArgumentDefinition intArg = new ArgumentDefinition("value", TypeDefinition.integer(), null);
+        assertTrue(intArg.validate(42, null));
+        assertFalse(intArg.validate("invalid", null));
 
-        assertTrue(argDef.validate(42, null));
-        assertFalse(argDef.validate(null, null));
-        assertFalse(argDef.validate("invalid", null));
-    }
-
-    @Test
-    public void testValidateWithDefault() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("value", typeDef, 50);
-
-        // Should return true for null when default exists
-        assertTrue(argDef.validate(null, null));
-        assertTrue(argDef.validate(42, null));
-    }
-
-    @Test
-    public void testValidateWithConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.range(1, 100);
-        TypeDefinition typeDef = TypeDefinition.integer(constraint);
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, null);
+        ArgumentDefinition constrained = new ArgumentDefinition("level",
+                TypeDefinition.integer(constraint), null);
+        assertTrue(constrained.validate(50, null));
+        assertFalse(constrained.validate(150, null));
+        assertFalse(constrained.validate(null, null));
 
-        assertTrue(argDef.validate(50, null));
-        assertFalse(argDef.validate(150, null));
-        assertFalse(argDef.validate(null, null));
-    }
-
-    @Test
-    public void testValidateWithEnum() {
         EnumRegistry enumContext = new EnumRegistry();
         enumContext.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
-
-        TypeDefinition enumType = TypeDefinition.enumType("Difficulty");
-        ArgumentDefinition argDef = new ArgumentDefinition("difficulty", enumType, null);
-
-        assertTrue(argDef.validate("EASY", enumContext));
-        assertFalse(argDef.validate("INVALID", enumContext));
-        assertFalse(argDef.validate(null, enumContext));
+        ArgumentDefinition enumArg = new ArgumentDefinition("difficulty",
+                TypeDefinition.enumType("Difficulty"), null);
+        assertTrue(enumArg.validate("EASY", enumContext));
+        assertFalse(enumArg.validate("INVALID", enumContext));
+        assertFalse(enumArg.validate(null, enumContext));
     }
 
     @Test
     public void testGetConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.range(1, 100);
-        TypeDefinition typeDef = TypeDefinition.integer(constraint);
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, null);
+        ArgumentDefinition constrained = new ArgumentDefinition("level",
+                TypeDefinition.integer(constraint), null);
+        assertEquals(constraint, constrained.getConstraint());
 
-        assertEquals(constraint, argDef.getConstraint());
-    }
-
-    @Test
-    public void testGetConstraintNoConstraint() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("value", typeDef, null);
-
-        ArgumentConstraint constraint = argDef.getConstraint();
-        assertNotNull(constraint);
-        assertEquals(ConstraintType.ANY, constraint.getType());
+        ArgumentDefinition unconstrained = new ArgumentDefinition("value",
+                TypeDefinition.integer(), null);
+        ArgumentConstraint anyConstraint = unconstrained.getConstraint();
+        assertNotNull(anyConstraint);
+        assertEquals(ConstraintType.ANY, anyConstraint.getType());
     }
 
     @Test
     public void testToString() {
-        TypeDefinition typeDef = TypeDefinition.integer();
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, 50);
+        ArgumentDefinition withDefault = new ArgumentDefinition("level",
+                TypeDefinition.integer(), 50);
+        String defaultText = withDefault.toString();
+        assertTrue(defaultText.contains("ArgumentDefinition"));
+        assertTrue(defaultText.contains("name='level'"));
+        assertTrue(defaultText.contains("type=Integer"));
+        assertTrue(defaultText.contains("default=50"));
 
-        String str = argDef.toString();
-        assertTrue(str.contains("ArgumentDefinition"));
-        assertTrue(str.contains("name='level'"));
-        assertTrue(str.contains("type=Integer"));
-        assertTrue(str.contains("default=50"));
-    }
-
-    @Test
-    public void testToStringWithConstraint() {
-        ArgumentConstraint constraint = ArgumentConstraint.range(1, 100);
-        TypeDefinition typeDef = TypeDefinition.integer(constraint);
-        ArgumentDefinition argDef = new ArgumentDefinition("level", typeDef, null);
-
-        String str = argDef.toString();
-        assertTrue(str.contains("constraint="));
-    }
-
-    @Test
-    public void testConvertAndValidateDouble() {
-        TypeDefinition typeDef = TypeDefinition.doubleType();
-        ArgumentDefinition argDef = new ArgumentDefinition("value", typeDef, null);
-        Object result = argDef.convertAndValidate(42.5, null);
-        assertEquals(42.5, result);
-    }
-
-    @Test
-    public void testConvertAndValidateBoolean() {
-        TypeDefinition typeDef = TypeDefinition.bool();
-        ArgumentDefinition argDef = new ArgumentDefinition("flag", typeDef, null);
-        Object result = argDef.convertAndValidate(true, null);
-        assertEquals(true, result);
-    }
-
-    @Test
-    public void testConvertAndValidateMap() {
-        TypeDefinition mapType =
-                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer());
-        ArgumentDefinition argDef = new ArgumentDefinition("mapping", mapType, null);
-
-        java.util.Map<String, Integer> input = new java.util.HashMap<>();
-        input.put("key1", 1);
-        input.put("key2", 2);
-
-        Object result = argDef.convertAndValidate(input, null);
-        assertNotNull(result);
-        assertTrue(result instanceof java.util.Map);
-    }
-
-    @Test
-    public void testConvertAndValidateWithDefaultValueNull() {
-        TypeDefinition typeDef = TypeDefinition.string();
-        ArgumentDefinition argDef = new ArgumentDefinition("name", typeDef, "default");
-
-        Object result = argDef.convertAndValidate(null, null);
-        assertEquals("default", result);
+        ArgumentDefinition withConstraint = new ArgumentDefinition("level",
+                TypeDefinition.integer(ArgumentConstraint.range(1, 100)), null);
+        assertTrue(withConstraint.toString().contains("constraint="));
     }
 }
-

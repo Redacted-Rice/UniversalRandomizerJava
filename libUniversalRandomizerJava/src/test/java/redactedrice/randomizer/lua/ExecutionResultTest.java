@@ -7,14 +7,13 @@ import org.luaj.vm2.LuaValue;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ExecutionResultTest {
+class ExecutionResultTest {
 
     @Test
-    public void testSuccessfulExecutionStoresResult() {
+    void successCapturesResultAndSeed() {
         LuaValue luaValue = LuaString.valueOf("success");
         ExecutionRequest request =
                 ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 100);
-
         ExecutionResult execResult = ExecutionResult.success(request, 12445, luaValue);
 
         assertEquals("TestModule", execResult.getModuleId());
@@ -22,20 +21,17 @@ public class ExecutionResultTest {
         assertNull(execResult.getErrorMessage());
         assertEquals(luaValue, execResult.getResult());
         assertEquals(12445, execResult.getSeedUsed());
-    }
 
-    @Test
-    public void testSuccessfulExecutionWithNullResult() {
-        ExecutionRequest request =
+        ExecutionRequest nullResultRequest =
                 ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 50);
-        ExecutionResult execResult = ExecutionResult.success(request, 12395, null);
-
-        assertNull(execResult.getResult());
-        assertEquals(12395, execResult.getSeedUsed());
+        ExecutionResult nullResult =
+                ExecutionResult.success(nullResultRequest, 12395, null);
+        assertNull(nullResult.getResult());
+        assertEquals(12395, nullResult.getSeedUsed());
     }
 
     @Test
-    public void testFailedExecutionPopulatesError() {
+    void failureCapturesErrorMessage() {
         ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 0);
         ExecutionResult execResult = ExecutionResult.scriptFailure(request, "Error message");
 
@@ -47,29 +43,26 @@ public class ExecutionResultTest {
     }
 
     @Test
-    public void testToStringSuccessful() {
-        ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 10);
-        ExecutionResult execResult = ExecutionResult.success(request, 12355, null);
+    void toStringReflectsOutcome() {
+        ExecutionRequest successRequest =
+                ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 10);
+        ExecutionResult success = ExecutionResult.success(successRequest, 12355, null);
+        String successText = success.toString();
+        assertTrue(successText.contains("TestModule"));
+        assertTrue(successText.contains("success=true"));
+        assertTrue(successText.contains("seed=12355"));
 
-        String text = execResult.toString();
-        assertTrue(text.contains("TestModule"));
-        assertTrue(text.contains("success=true"));
-        assertTrue(text.contains("seed=12355"));
+        ExecutionRequest failureRequest =
+                ExecutionRequest.forModuleWithSeedOffset("BrokenModule", null, 0);
+        ExecutionResult failure = ExecutionResult.scriptFailure(failureRequest, "Test error");
+        String failureText = failure.toString();
+        assertTrue(failureText.contains("BrokenModule"));
+        assertTrue(failureText.contains("success=false"));
+        assertTrue(failureText.contains("error='Test error'"));
     }
 
     @Test
-    public void testToStringFailed() {
-        ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset("BrokenModule", null, 0);
-        ExecutionResult execResult = ExecutionResult.scriptFailure(request, "Test error");
-
-        String text = execResult.toString();
-        assertTrue(text.contains("BrokenModule"));
-        assertTrue(text.contains("success=false"));
-        assertTrue(text.contains("error='Test error'"));
-    }
-
-    @Test
-    public void testLuaResultValueIsPreserved() {
+    void luaResultValueIsPreserved() {
         LuaInteger luaInt = LuaInteger.valueOf(42);
         ExecutionRequest request = ExecutionRequest.forModuleWithSeedOffset("TestModule", null, 5);
         ExecutionResult execResult = ExecutionResult.success(request, 12350, luaInt);

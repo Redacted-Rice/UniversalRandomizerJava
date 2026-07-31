@@ -2,36 +2,25 @@ package redactedrice.randomizer.lua.arguments;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class TypeDefinitionTest {
 
     @Test
-    public void testStringType() {
-        TypeDefinition type = TypeDefinition.string();
-        assertEquals(ArgumentType.STRING, type.getBaseType());
-        assertTrue(type.isPrimitive());
-    }
+    public void testPrimitiveTypes() {
+        assertEquals(ArgumentType.STRING, TypeDefinition.string().getBaseType());
+        assertTrue(TypeDefinition.string().isPrimitive());
 
-    @Test
-    public void testIntegerType() {
-        TypeDefinition type = TypeDefinition.integer();
-        assertEquals(ArgumentType.INTEGER, type.getBaseType());
-        assertTrue(type.isPrimitive());
-    }
+        assertEquals(ArgumentType.INTEGER, TypeDefinition.integer().getBaseType());
+        assertTrue(TypeDefinition.integer().isPrimitive());
 
-    @Test
-    public void testDoubleType() {
-        TypeDefinition type = TypeDefinition.doubleType();
-        assertEquals(ArgumentType.DOUBLE, type.getBaseType());
-        assertTrue(type.isPrimitive());
-    }
+        assertEquals(ArgumentType.DOUBLE, TypeDefinition.doubleType().getBaseType());
+        assertTrue(TypeDefinition.doubleType().isPrimitive());
 
-    @Test
-    public void testBooleanType() {
-        TypeDefinition type = TypeDefinition.bool();
-        assertEquals(ArgumentType.BOOLEAN, type.getBaseType());
-        assertTrue(type.isPrimitive());
+        assertEquals(ArgumentType.BOOLEAN, TypeDefinition.bool().getBaseType());
+        assertTrue(TypeDefinition.bool().isPrimitive());
     }
 
     @Test
@@ -76,67 +65,19 @@ public class TypeDefinitionTest {
     }
 
     @Test
-    public void testToString() {
-        TypeDefinition stringType = TypeDefinition.string();
-        assertEquals("String", stringType.toString());
-
-        TypeDefinition enumType = TypeDefinition.enumType("EntityType");
-        assertEquals("Enum<EntityType>", enumType.toString());
-
-        TypeDefinition listType = TypeDefinition.listOf(TypeDefinition.integer());
-        assertEquals("List<Integer>", listType.toString());
-    }
-
-    @Test
-    public void testEnumTypeNullNameThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.enumType(null);
-        });
-    }
-
-    @Test
-    public void testEnumTypeEmptyNameThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.enumType("");
-        });
-    }
-
-    @Test
-    public void testListOfNullElementThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.listOf(null);
-        });
-    }
-
-    @Test
-    public void testTableOfNullKeyThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.tableOf(null, TypeDefinition.string());
-        });
-    }
-
-    @Test
-    public void testTableOfNullValueThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.tableOf(TypeDefinition.string(), null);
-        });
-    }
-
-    @Test
-    public void testTableOfListKeyThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.tableOf(TypeDefinition.listOf(TypeDefinition.string()),
-                    TypeDefinition.integer());
-        });
-    }
-
-    @Test
-    public void testTableOfTableKeyThrows() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            TypeDefinition.tableOf(
-                    TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()),
-                    TypeDefinition.integer());
-        });
+    public void testInvalidFactoryArgumentsThrow() {
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.enumType(null));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.enumType(""));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.listOf(null));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.tableOf(null,
+                TypeDefinition.string()));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.tableOf(
+                TypeDefinition.string(), null));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.tableOf(
+                TypeDefinition.listOf(TypeDefinition.string()), TypeDefinition.integer()));
+        assertThrows(IllegalArgumentException.class, () -> TypeDefinition.tableOf(
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()),
+                TypeDefinition.integer()));
     }
 
     @Test
@@ -151,23 +92,20 @@ public class TypeDefinitionTest {
     }
 
     @Test
-    public void testToStringForAllTypes() {
+    public void testToString() {
         assertEquals("String", TypeDefinition.string().toString());
         assertEquals("Integer", TypeDefinition.integer().toString());
         assertEquals("Double", TypeDefinition.doubleType().toString());
         assertEquals("Boolean", TypeDefinition.bool().toString());
         assertEquals("Enum<TestEnum>", TypeDefinition.enumType("TestEnum").toString());
-
-        TypeDefinition listType = TypeDefinition.listOf(TypeDefinition.string());
-        assertEquals("List<String>", listType.toString());
-
-        TypeDefinition tableType =
-                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer());
-        assertEquals("Table<String, Integer>", tableType.toString());
+        assertEquals("List<String>", TypeDefinition.listOf(TypeDefinition.string()).toString());
+        assertEquals("Table<String, Integer>",
+                TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer())
+                        .toString());
     }
 
     @Test
-    public void testIsPrimitive() {
+    public void testTypePredicates() {
         assertTrue(TypeDefinition.string().isPrimitive());
         assertTrue(TypeDefinition.integer().isPrimitive());
         assertTrue(TypeDefinition.doubleType().isPrimitive());
@@ -176,32 +114,20 @@ public class TypeDefinitionTest {
         assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isPrimitive());
         assertFalse(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer())
                 .isPrimitive());
-    }
 
-    @Test
-    public void testIsEnum() {
         assertTrue(TypeDefinition.enumType("Test").isEnum());
         assertFalse(TypeDefinition.string().isEnum());
         assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isEnum());
-    }
 
-    @Test
-    public void testIsList() {
         assertTrue(TypeDefinition.listOf(TypeDefinition.string()).isList());
         assertFalse(TypeDefinition.string().isList());
         assertFalse(
                 TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()).isList());
-    }
 
-    @Test
-    public void testIsTable() {
         assertTrue(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer()).isTable());
         assertFalse(TypeDefinition.string().isTable());
         assertFalse(TypeDefinition.listOf(TypeDefinition.string()).isTable());
-    }
 
-    @Test
-    public void testIsComplex() {
         assertTrue(TypeDefinition.listOf(TypeDefinition.string()).isComplex());
         assertTrue(TypeDefinition.tableOf(TypeDefinition.string(), TypeDefinition.integer())
                 .isComplex());
@@ -210,7 +136,7 @@ public class TypeDefinitionTest {
     }
 
     @Test
-    public void testEquals() {
+    public void testEqualsAndHashCode() {
         TypeDefinition type1 = TypeDefinition.string();
         TypeDefinition type2 = TypeDefinition.string();
         TypeDefinition type3 = TypeDefinition.integer();
@@ -218,12 +144,6 @@ public class TypeDefinitionTest {
         assertEquals(type1, type2);
         assertNotEquals(type1, type3);
         assertNotEquals(type1, null);
-    }
-
-    @Test
-    public void testHashCode() {
-        TypeDefinition type1 = TypeDefinition.string();
-        TypeDefinition type2 = TypeDefinition.string();
         assertEquals(type1.hashCode(), type2.hashCode());
     }
 
@@ -236,9 +156,7 @@ public class TypeDefinitionTest {
 
     @Test
     public void testParseDelegation() {
-        // Verify TypeDefinition.parse() properly delegates to TypeParser
         TypeDefinition type = TypeDefinition.parse("string");
         assertEquals(ArgumentType.STRING, type.getBaseType());
     }
 }
-

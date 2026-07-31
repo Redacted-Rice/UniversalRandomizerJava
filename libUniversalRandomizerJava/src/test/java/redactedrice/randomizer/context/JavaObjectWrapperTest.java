@@ -127,21 +127,7 @@ public class JavaObjectWrapperTest {
     }
 
     @Test
-    public void wrappedReturnValuesCanBePassedBackToJavaMethods() {
-        JavaContext context = new JavaContext();
-        ValueHolder holder = new ValueHolder(7);
-        context.register("holder", holder);
-
-        LuaValue holderWrapper = context.toLuaTable().get("holder");
-        LuaValue copied = holderWrapper.get("copy").call(holderWrapper);
-        assertTrue(copied.istable());
-
-        LuaValue accepted = holderWrapper.get("accept").call(holderWrapper, copied);
-        assertTrue(accepted.toboolean());
-    }
-
-    @Test
-    public void wrappedReturnValuesWorkWithTwoArgOverload() {
+    public void wrappedReturnValuesWorkWithJavaMethodOverloads() {
         JavaContext context = new JavaContext();
         ValueHolder holder = new ValueHolder(7);
         ValueHolder different = new ValueHolder(99);
@@ -150,6 +136,11 @@ public class JavaObjectWrapperTest {
 
         LuaValue holderWrapper = context.toLuaTable().get("holder");
         LuaValue differentWrapper = context.toLuaTable().get("different");
+        LuaValue copied = holderWrapper.get("copy").call(holderWrapper);
+        assertTrue(copied.istable());
+
+        LuaValue accepted = holderWrapper.get("accept").call(holderWrapper, copied);
+        assertTrue(accepted.toboolean());
 
         LuaValue rejected = holderWrapper.get("accept").call(holderWrapper, differentWrapper);
         assertFalse(rejected.toboolean());

@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Functional tests for LuaRandomizerWrapper - similar to appExample. Tests end-to-end functionality
  * of loading and executing modules.
  */
-public class RandomizerWrapperTest {
+public class LuaRandomizerWrapperTest {
 
     private static final int TEST_BASE_SEED = 12345;
 

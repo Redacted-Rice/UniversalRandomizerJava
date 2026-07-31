@@ -120,66 +120,43 @@ public class ModuleRegistryTest {
     }
 
     @Test
-    public void testGetDefinedGroupValuesReturnWhenSet() {
-        // Create wrapper with defined groups values
-        Set<String> definedGroups = new HashSet<>();
-        definedGroups.add("health");
-        definedGroups.add("damage");
+    public void testGetDefinedGroupValues() {
+        wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
+                Arrays.asList(modulesPath), Set.of("health", "damage"), null);
+        wrapper.loadModules();
+
+        Set<String> presetGroups = wrapper.getDefinedGroupValues();
+        assertEquals(2, presetGroups.size());
+        assertTrue(presetGroups.contains("health"));
+        assertTrue(presetGroups.contains("damage"));
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), definedGroups, null);
-
+                Arrays.asList(modulesPath), null, null);
         wrapper.loadModules();
-
-        // getDefinedGroupValues should return the specified values
-        Set<String> returnedGroups = wrapper.getDefinedGroupValues();
-        assertEquals(2, returnedGroups.size());
-        assertTrue(returnedGroups.contains("health"));
-        assertTrue(returnedGroups.contains("damage"));
+        Set<String> loadedGroups = wrapper.getDefinedGroupValues();
+        assertTrue(loadedGroups.contains("health"));
+        assertTrue(loadedGroups.contains("damage"));
     }
 
     @Test
-    public void testGetDefinedModifiesValuesReturnWhenSet() {
-        // Create wrapper with defined modifies values
-        Set<String> definedModifies = new HashSet<>();
-        definedModifies.add("health");
-        definedModifies.add("stats");
-        definedModifies.add("damage");
+    public void testGetDefinedModifiesValues() {
+        wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
+                Arrays.asList(modulesPath), null, Set.of("health", "stats", "damage"));
+        wrapper.loadModules();
+
+        Set<String> presetModifies = wrapper.getDefinedModifiesValues();
+        assertEquals(3, presetModifies.size());
+        assertTrue(presetModifies.contains("health"));
+        assertTrue(presetModifies.contains("stats"));
+        assertTrue(presetModifies.contains("damage"));
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, definedModifies);
-
+                Arrays.asList(modulesPath), null, null);
         wrapper.loadModules();
-
-        // getDefinedModifiesValues should return the specified values
-        Set<String> returnedModifies = wrapper.getDefinedModifiesValues();
-        assertEquals(3, returnedModifies.size());
-        assertTrue(returnedModifies.contains("health"));
-        assertTrue(returnedModifies.contains("stats"));
-        assertTrue(returnedModifies.contains("damage"));
-    }
-
-    @Test
-    public void testGetDefinedGroupValuesReturnWhenDynamicallyLoaded() {
-        // Don't set any filter
-        wrapper.loadModules();
-
-        // getDefinedGroupValues should return actual loaded groups
-        Set<String> definedGroups = wrapper.getDefinedGroupValues();
-        assertTrue(definedGroups.contains("health"));
-        assertTrue(definedGroups.contains("damage"));
-    }
-
-    @Test
-    public void testGetDefinedModifiesValuesReturnWhenDynamicallyLoaded() {
-        // Don't set any filter
-        wrapper.loadModules();
-
-        // getDefinedModifiesValues should return actual loaded modifies
-        Set<String> definedModifies = wrapper.getDefinedModifiesValues();
-        assertTrue(definedModifies.contains("health"));
-        assertTrue(definedModifies.contains("damage"));
-        assertTrue(definedModifies.contains("stats"));
+        Set<String> loadedModifies = wrapper.getDefinedModifiesValues();
+        assertTrue(loadedModifies.contains("health"));
+        assertTrue(loadedModifies.contains("damage"));
+        assertTrue(loadedModifies.contains("stats"));
     }
 
     @Test

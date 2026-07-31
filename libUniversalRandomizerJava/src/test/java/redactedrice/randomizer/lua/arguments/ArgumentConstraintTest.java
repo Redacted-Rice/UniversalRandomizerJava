@@ -14,6 +14,7 @@ public class ArgumentConstraintTest {
         assertEquals(ConstraintType.ANY, constraint.getType());
         assertTrue(constraint.validate(42, ArgumentType.INTEGER));
         assertTrue(constraint.validate("test", ArgumentType.STRING));
+        assertNotNull(constraint.getDescription());
     }
 
     @Test
@@ -22,6 +23,7 @@ public class ArgumentConstraintTest {
         assertEquals(ConstraintType.RANGE, constraint.getType());
         assertEquals(1.0, constraint.getMin());
         assertEquals(100.0, constraint.getMax());
+        assertNotNull(constraint.getDescription());
 
         assertTrue(constraint.validate(50, ArgumentType.INTEGER));
         assertTrue(constraint.validate(1, ArgumentType.INTEGER));
@@ -36,13 +38,11 @@ public class ArgumentConstraintTest {
         assertEquals(ConstraintType.DISCRETE_RANGE, constraint.getType());
         assertEquals(5.0, constraint.getStep());
 
-        // valid values
         assertTrue(constraint.validate(0, ArgumentType.INTEGER));
         assertTrue(constraint.validate(5, ArgumentType.INTEGER));
         assertTrue(constraint.validate(10, ArgumentType.INTEGER));
         assertTrue(constraint.validate(15, ArgumentType.INTEGER));
         assertTrue(constraint.validate(20, ArgumentType.INTEGER));
-        // invalid - not on step boundary
         assertFalse(constraint.validate(7, ArgumentType.INTEGER));
         assertFalse(constraint.validate(22, ArgumentType.INTEGER));
     }
@@ -51,6 +51,9 @@ public class ArgumentConstraintTest {
     public void testEnumConstraint() {
         ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList("A", "B", "C"));
         assertEquals(ConstraintType.ENUM, constraint.getType());
+        assertNotNull(constraint.getDescription());
+        assertNotNull(constraint.getAllowedValues());
+        assertEquals(3, constraint.getAllowedValues().size());
 
         assertTrue(constraint.validate("A", ArgumentType.STRING));
         assertTrue(constraint.validate("B", ArgumentType.STRING));
@@ -68,24 +71,4 @@ public class ArgumentConstraintTest {
         assertFalse(constraint.validate(2.5, ArgumentType.DOUBLE));
         assertFalse(constraint.validate(4, ArgumentType.INTEGER));
     }
-
-    @Test
-    public void testGetAllowedValues() {
-        ArgumentConstraint constraint = ArgumentConstraint.enumValues(Arrays.asList("A", "B", "C"));
-        assertNotNull(constraint.getAllowedValues());
-        assertEquals(3, constraint.getAllowedValues().size());
-    }
-
-    @Test
-    public void testGetDescription() {
-        ArgumentConstraint any = ArgumentConstraint.any();
-        assertNotNull(any.getDescription());
-
-        ArgumentConstraint range = ArgumentConstraint.range(1, 100);
-        assertNotNull(range.getDescription());
-
-        ArgumentConstraint enumConst = ArgumentConstraint.enumValues(Arrays.asList("A", "B"));
-        assertNotNull(enumConst.getDescription());
-    }
 }
-
