@@ -138,6 +138,30 @@ public class TypeDefinition {
         return constraint;
     }
 
+    // Constraint enforced at validation/UI time. Booleans are always ANY; strings ignore
+    // range/discrete constraints that do not apply to that type.
+    public ArgumentConstraint getEnforcedConstraint() {
+        if (!isPrimitive()) {
+            return constraint;
+        }
+        if (baseType == ArgumentType.BOOLEAN) {
+            return ArgumentConstraint.any();
+        }
+        if (baseType == ArgumentType.STRING
+                && (constraint.getType() == ConstraintType.RANGE
+                        || constraint.getType() == ConstraintType.DISCRETE_RANGE)) {
+            return ArgumentConstraint.any();
+        }
+        return constraint;
+    }
+
+    public boolean declaresIgnoredConstraint() {
+        if (!isPrimitive() || constraint.getType() == ConstraintType.ANY) {
+            return false;
+        }
+        return getEnforcedConstraint().getType() == ConstraintType.ANY;
+    }
+
     @Override
     public String toString() {
         switch (baseType) {

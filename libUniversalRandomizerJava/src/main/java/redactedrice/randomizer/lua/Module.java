@@ -1,13 +1,8 @@
 package redactedrice.randomizer.lua;
 
 import org.luaj.vm2.LuaFunction;
-import org.luaj.vm2.LuaTable;
-import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
-import redactedrice.randomizer.lua.arguments.ArgumentParser;
-import redactedrice.randomizer.utils.ErrorTracker;
 
-import java.io.File;
 import java.util.*;
 
 // holds metadata and execution function for a lua randomizer module
