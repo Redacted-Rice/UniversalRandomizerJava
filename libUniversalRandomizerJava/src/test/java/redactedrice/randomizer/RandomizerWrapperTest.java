@@ -6,7 +6,6 @@ import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.lua.Module;
-import redactedrice.randomizer.lua.ModuleRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

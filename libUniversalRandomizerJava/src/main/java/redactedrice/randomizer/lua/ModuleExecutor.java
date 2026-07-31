@@ -3,6 +3,7 @@ package redactedrice.randomizer.lua;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 
 import org.luaj.vm2.LuaError;
@@ -18,7 +19,6 @@ public class ModuleExecutor {
     LuaSandbox sandbox;
     List<ExecutionResult> results;
     ModuleArgumentValidator argumentValidator;
-    ModuleArgumentConverter argumentConverter;
 
     public ModuleExecutor(LuaSandbox sandbox) {
         if (sandbox == null) {
@@ -27,7 +27,6 @@ public class ModuleExecutor {
         this.sandbox = sandbox;
         this.results = new ArrayList<>();
         this.argumentValidator = new ModuleArgumentValidator();
-        this.argumentConverter = new ModuleArgumentConverter();
     }
 
     private ExecutionResult executeModule(ExecutionRequest request, Module metadata,
@@ -63,7 +62,7 @@ public class ModuleExecutor {
             if (usesSeed) {
                 setSeedInLua(absoluteSeed);
             }
-            LuaTable argsTable = argumentConverter.toLuaTable(validatedArgs);
+            LuaTable argsTable = toLuaTable(validatedArgs);
 
             // Execute and return the results
             LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);
@@ -287,5 +286,18 @@ public class ModuleExecutor {
         // TODO: Handle this better - probably means making non static
         ErrorTracker.clearErrors();
         results.clear();
+    }
+
+    private static LuaTable toLuaTable(Map<String, Object> arguments) {
+        LuaTable table = new LuaTable();
+
+        if (arguments != null) {
+            for (Map.Entry<String, Object> entry : arguments.entrySet()) {
+                LuaValue luaValue = LuaJavaConverter.javaToLua(entry.getValue());
+                table.set(entry.getKey(), luaValue);
+            }
+        }
+
+        return table;
     }
 }

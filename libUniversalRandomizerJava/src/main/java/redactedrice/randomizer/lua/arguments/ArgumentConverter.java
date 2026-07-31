@@ -24,7 +24,7 @@ public class ArgumentConverter {
 
         // check constraints for primitive types
         if (typeDef.isPrimitive()) {
-            ArgumentConstraint constraint = typeDef.getConstraint();
+            ArgumentConstraint constraint = typeDef.getEnforcedConstraint();
             if (constraint != null && !constraint.validate(converted, typeDef.getBaseType())) {
                 throw new IllegalArgumentException(
                         String.format("Value '%s' does not satisfy constraint: %s", value,
