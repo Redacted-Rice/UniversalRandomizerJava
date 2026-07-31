@@ -1,5 +1,7 @@
 package redactedrice.randomizer;
 
+import redactedrice.randomizer.example.ExampleEntityType;
+import redactedrice.randomizer.example.ItemRarity;
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.LuaRandomizerWrapper;
@@ -113,32 +115,32 @@ public class ExampleApp {
         // Clerics: High health, low damage, moderate speed/defense
         // Rangers: Moderate health, moderate damage/defense, high speed
         List<ExampleEntity> entitiesOriginal = Arrays.asList(
-                new ExampleEntity("Player1", ExampleEntity.EntityType.WARRIOR, 150, 15.0, 5, 20),
-                new ExampleEntity("Player2", ExampleEntity.EntityType.MAGE, 80, 35.0, 10, 5),
-                new ExampleEntity("Player3", ExampleEntity.EntityType.ROGUE, 100, 20.0, 25, 8),
-                new ExampleEntity("Player4", ExampleEntity.EntityType.CLERIC, 120, 12.0, 12, 15),
-                new ExampleEntity("Player5", ExampleEntity.EntityType.RANGER, 110, 18.0, 22, 12),
-                new ExampleEntity("Player6", ExampleEntity.EntityType.WARRIOR, 140, 18.0, 6, 22),
-                new ExampleEntity("Player7", ExampleEntity.EntityType.MAGE, 75, 40.0, 8, 4),
-                new ExampleEntity("Player8", ExampleEntity.EntityType.ROGUE, 90, 15.0, 20, 7));
+                new ExampleEntity("Player1", ExampleEntityType.WARRIOR, 150, 15.0, 5, 20),
+                new ExampleEntity("Player2", ExampleEntityType.MAGE, 80, 35.0, 10, 5),
+                new ExampleEntity("Player3", ExampleEntityType.ROGUE, 100, 20.0, 25, 8),
+                new ExampleEntity("Player4", ExampleEntityType.CLERIC, 120, 12.0, 12, 15),
+                new ExampleEntity("Player5", ExampleEntityType.RANGER, 110, 18.0, 22, 12),
+                new ExampleEntity("Player6", ExampleEntityType.WARRIOR, 140, 18.0, 6, 22),
+                new ExampleEntity("Player7", ExampleEntityType.MAGE, 75, 40.0, 8, 4),
+                new ExampleEntity("Player8", ExampleEntityType.ROGUE, 90, 15.0, 20, 7));
 
         // Create test items with varied stats by rarity
         List<ExampleItem> itemsOriginal = Arrays.asList(
                 // Common items (4 items)
-                new ExampleItem("Rusty Sword", ExampleItem.ItemRarity.COMMON, 2, 0, 5, 0),
-                new ExampleItem("Leather Armor", ExampleItem.ItemRarity.COMMON, 0, 3, 10, -1),
-                new ExampleItem("Wooden Staff", ExampleItem.ItemRarity.COMMON, 3, 1, 0, 0),
-                new ExampleItem("Basic Dagger", ExampleItem.ItemRarity.COMMON, 1, 0, 0, 2),
+                new ExampleItem("Rusty Sword", ItemRarity.COMMON, 2, 0, 5, 0),
+                new ExampleItem("Leather Armor", ItemRarity.COMMON, 0, 3, 10, -1),
+                new ExampleItem("Wooden Staff", ItemRarity.COMMON, 3, 1, 0, 0),
+                new ExampleItem("Basic Dagger", ItemRarity.COMMON, 1, 0, 0, 2),
                 // Uncommon items (3 items)
-                new ExampleItem("Steel Sword", ExampleItem.ItemRarity.UNCOMMON, 5, 2, 15, 0),
-                new ExampleItem("Chain Mail", ExampleItem.ItemRarity.UNCOMMON, 0, 8, 20, -2),
-                new ExampleItem("Enchanted Bow", ExampleItem.ItemRarity.UNCOMMON, 6, 0, 10, 3),
+                new ExampleItem("Steel Sword", ItemRarity.UNCOMMON, 5, 2, 15, 0),
+                new ExampleItem("Chain Mail", ItemRarity.UNCOMMON, 0, 8, 20, -2),
+                new ExampleItem("Enchanted Bow", ItemRarity.UNCOMMON, 6, 0, 10, 3),
                 // Rare items (2 items)
-                new ExampleItem("Flaming Blade", ExampleItem.ItemRarity.RARE, 12, 3, 25, 1),
-                new ExampleItem("Mithril Armor", ExampleItem.ItemRarity.RARE, 2, 15, 40, -1),
+                new ExampleItem("Flaming Blade", ItemRarity.RARE, 12, 3, 25, 1),
+                new ExampleItem("Mithril Armor", ItemRarity.RARE, 2, 15, 40, -1),
                 // Legendary items (2 items)
-                new ExampleItem("Excalibur", ExampleItem.ItemRarity.LEGENDARY, 25, 8, 50, 5),
-                new ExampleItem("Dragon Scale Armor", ExampleItem.ItemRarity.LEGENDARY, 5, 30, 80,
+                new ExampleItem("Excalibur", ItemRarity.LEGENDARY, 25, 8, 50, 5),
+                new ExampleItem("Dragon Scale Armor", ItemRarity.LEGENDARY, 5, 30, 80,
                         0));
 
         // Create deep copies for modification
@@ -159,8 +161,8 @@ public class ExampleApp {
         context.register("itemsOriginal", itemsOriginal);
         context.register("itemsModified", itemsModified);
         // Register enums with custom names to be used in Lua context
-        context.registerEnum("EE_EntityTypes", ExampleEntity.EntityType.class);
-        context.registerEnum("ItemRarity", ExampleItem.ItemRarity.class);
+        context.registerEnum("EE_EntityTypes", ExampleEntityType.class);
+        context.registerEnum("ItemRarity", ItemRarity.class);
 
         // Enable change detection. The scripts will handle logging it to the logger
         context.setConfig("changeDetectionActive", true);
@@ -239,14 +241,14 @@ public class ExampleApp {
         // demo)
         Map<String, Object> module6Args = new HashMap<>();
         // COMMON: 50%, UNCOMMON: 30%, RARE: 15%, LEGENDARY: 5%
-        List<ExampleItem.ItemRarity> weightedPool = new ArrayList<>();
+        List<ItemRarity> weightedPool = new ArrayList<>();
         for (int j = 0; j < 10; j++)
-            weightedPool.add(ExampleItem.ItemRarity.COMMON);
+            weightedPool.add(ItemRarity.COMMON);
         for (int j = 0; j < 6; j++)
-            weightedPool.add(ExampleItem.ItemRarity.UNCOMMON);
+            weightedPool.add(ItemRarity.UNCOMMON);
         for (int j = 0; j < 3; j++)
-            weightedPool.add(ExampleItem.ItemRarity.RARE);
-        weightedPool.add(ExampleItem.ItemRarity.LEGENDARY);
+            weightedPool.add(ItemRarity.RARE);
+        weightedPool.add(ItemRarity.LEGENDARY);
         module6Args.put("weightedRarityPool", weightedPool);
         executionRequests
                 .add(ExecutionRequest.forModule(wrapper.getModule(scriptNames[5]), module6Args));

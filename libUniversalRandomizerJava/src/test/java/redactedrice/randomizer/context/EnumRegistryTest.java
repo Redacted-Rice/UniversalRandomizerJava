@@ -1,5 +1,8 @@
 package redactedrice.randomizer.context;
 
+import redactedrice.randomizer.context.testsupport.TestEnumWithValue;
+import redactedrice.randomizer.context.testsupport.RegistryTestEnum;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -8,32 +11,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class EnumRegistryTest {
 
-    enum TestEnum {
-        VALUE1, VALUE2, VALUE3
-    }
-
-    enum TestEnumWithValue implements EnumValueProvider {
-        LOW(1), MEDIUM(10), HIGH(100);
-
-        private final int value;
-
-        TestEnumWithValue(int value) {
-            this.value = value;
-        }
-
-        @Override
-        public int getIntValue() {
-            return value;
-        }
-    }
-
     @Test
     public void testRegisterEnumFromClass() {
         EnumRegistry context = new EnumRegistry();
-        context.registerEnum(TestEnum.class);
+        context.registerEnum(RegistryTestEnum.class);
 
-        assertTrue(context.hasEnum("TestEnum"));
-        EnumDefinition def = context.getEnum("TestEnum");
+        assertTrue(context.hasEnum("RegistryTestEnum"));
+        EnumDefinition def = context.getEnum("RegistryTestEnum");
         assertNotNull(def);
         assertTrue(def.hasValue("VALUE1"));
         assertTrue(def.hasValue("VALUE2"));
@@ -43,10 +27,10 @@ public class EnumRegistryTest {
     @Test
     public void testRegisterEnumWithCustomName() {
         EnumRegistry context = new EnumRegistry();
-        context.registerEnum("CustomName", TestEnum.class);
+        context.registerEnum("CustomName", RegistryTestEnum.class);
 
         assertTrue(context.hasEnum("CustomName"));
-        assertFalse(context.hasEnum("TestEnum"));
+        assertFalse(context.hasEnum("RegistryTestEnum"));
     }
 
     @Test
@@ -90,12 +74,12 @@ public class EnumRegistryTest {
     @Test
     public void testStringToEnum() {
         EnumRegistry context = new EnumRegistry();
-        context.registerEnum("TestEnum", TestEnum.class);
+        context.registerEnum("RegistryTestEnum", RegistryTestEnum.class);
 
-        Object result = context.stringToEnum("TestEnum", "VALUE1");
-        assertEquals(TestEnum.VALUE1, result);
+        Object result = context.stringToEnum("RegistryTestEnum", "VALUE1");
+        assertEquals(RegistryTestEnum.VALUE1, result);
 
-        Object result2 = context.stringToEnum("TestEnum", "INVALID");
+        Object result2 = context.stringToEnum("RegistryTestEnum", "INVALID");
         assertNull(result2);
     }
 
@@ -142,14 +126,14 @@ public class EnumRegistryTest {
     @Test
     public void testToLuaTablesNamedMembersUseJavaConstants() {
         EnumRegistry context = new EnumRegistry();
-        context.registerEnum(TestEnum.class);
+        context.registerEnum(RegistryTestEnum.class);
 
-        org.luaj.vm2.LuaTable table = context.toLuaTables().get("TestEnum");
+        org.luaj.vm2.LuaTable table = context.toLuaTables().get("RegistryTestEnum");
         assertNotNull(table);
         assertEquals("VALUE1", table.get(1).tojstring());
         assertTrue(table.get("VALUE1").isuserdata());
-        assertSame(TestEnum.VALUE1, table.get("VALUE1").touserdata());
-        assertSame(TestEnum.VALUE2, table.get("VALUE2").touserdata());
+        assertSame(RegistryTestEnum.VALUE1, table.get("VALUE1").touserdata());
+        assertSame(RegistryTestEnum.VALUE2, table.get("VALUE2").touserdata());
     }
 
     @Test
@@ -167,10 +151,10 @@ public class EnumRegistryTest {
     @Test
     public void testExtendEnumOnExisting() {
         EnumRegistry registry = new EnumRegistry();
-        registry.registerEnum(TestEnum.class);
+        registry.registerEnum(RegistryTestEnum.class);
 
         // Extend with new values
-        EnumDefinition extended = registry.extendEnum("TestEnum", Arrays.asList("VALUE4", "VALUE5"),
+        EnumDefinition extended = registry.extendEnum("RegistryTestEnum", Arrays.asList("VALUE4", "VALUE5"),
                 Map.of("VALUE4", 10, "VALUE5", 20));
 
         assertNotNull(extended);
@@ -197,43 +181,24 @@ public class EnumRegistryTest {
     }
 
     @Test
-    public void testRegisterEnumThrowsIfAlreadyExists() {
+    public void testRegisterEnumRejectsDuplicates() {
         EnumRegistry registry = new EnumRegistry();
-        
-        // First registration should succeed
-        registry.registerEnum(TestEnum.class);
-        
-        // Second registration should throw
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerEnum(TestEnum.class);
-        });
-        assertTrue(exception.getMessage().contains("already registered"));
-    }
 
-    @Test
-    public void testRegisterEnumWithCustomNameThrowsIfExists() {
-        EnumRegistry registry = new EnumRegistry();
-        
-        registry.registerEnum("CustomName", TestEnum.class);
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerEnum("CustomName", TestEnum.class);
-        });
-        assertTrue(exception.getMessage().contains("already registered"));
-    }
+        registry.registerEnum(RegistryTestEnum.class);
+        IllegalArgumentException classDuplicate = assertThrows(IllegalArgumentException.class,
+                () -> registry.registerEnum(RegistryTestEnum.class));
+        assertTrue(classDuplicate.getMessage().contains("already registered"));
 
-    @Test
-    public void testRegisterEnumWithValuesThrowsIfExists() {
-        EnumRegistry registry = new EnumRegistry();
-        
+        registry.registerEnum("CustomName", RegistryTestEnum.class);
+        IllegalArgumentException nameDuplicate = assertThrows(IllegalArgumentException.class,
+                () -> registry.registerEnum("CustomName", RegistryTestEnum.class));
+        assertTrue(nameDuplicate.getMessage().contains("already registered"));
+
         registry.registerEnum("Test", Arrays.asList("A", "B"));
-        
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            registry.registerEnum("Test", Arrays.asList("C", "D"));
-        });
-        assertTrue(exception.getMessage().contains("already registered"));
-        
-        // Original should be unchanged
+        IllegalArgumentException valuesDuplicate = assertThrows(IllegalArgumentException.class,
+                () -> registry.registerEnum("Test", Arrays.asList("C", "D")));
+        assertTrue(valuesDuplicate.getMessage().contains("already registered"));
+
         EnumDefinition original = registry.getEnum("Test");
         assertEquals(2, original.getValues().size());
         assertTrue(original.hasValue("A"));

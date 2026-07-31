@@ -2,6 +2,7 @@ package redactedrice.randomizer.lua.requirements;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -174,6 +175,26 @@ class RequirementValidatorTest {
         List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
+    }
+
+    @Test
+    void versionComparisonHandlesEqualityGreaterShorterFormsAndInvalidInput() {
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("1.0.0", "1.0.0"));
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("0.2.0", "0.1.0"));
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("0.5.0", "0.4.0"));
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("1.0.0", "0.9.0"));
+
+        assertFalse(RequirementValidator.satisfiesMinimumVersion("0.1.0", "0.2.0"));
+        assertFalse(RequirementValidator.satisfiesMinimumVersion("0.9.9", "1.0.0"));
+
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("1.0.0", "1.0"));
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("1.0", "1.0.0"));
+        assertTrue(RequirementValidator.satisfiesMinimumVersion("1.0.1", "1"));
+
+        assertFalse(RequirementValidator.satisfiesMinimumVersion("1.0.0", ""));
+        assertFalse(RequirementValidator.satisfiesMinimumVersion("1.a.0", "1.0.0"));
+        assertThrows(IllegalArgumentException.class,
+                () -> RequirementValidator.parseVersionParts(""));
     }
 
     @Test

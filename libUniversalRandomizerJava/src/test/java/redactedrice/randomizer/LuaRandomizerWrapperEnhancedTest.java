@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Functional tests for enhanced features - similar to appExample. Tests end-to-end functionality
  * with enums, complex types, and module execution.
  */
-public class EnhancedFeaturesTest {
+public class LuaRandomizerWrapperEnhancedTest {
 
     private static final int TEST_BASE_SEED = 12345;
 

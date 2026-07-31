@@ -1,10 +1,9 @@
 package redactedrice.randomizer;
 
+import redactedrice.randomizer.example.ItemRarity;
+
 // example item with public fields
 public class ExampleItem {
-    public enum ItemRarity {
-        COMMON, UNCOMMON, RARE, LEGENDARY
-    }
 
     public String name;
     public ItemRarity rarity;
