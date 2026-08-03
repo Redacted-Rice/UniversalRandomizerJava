@@ -1,7 +1,7 @@
 package redactedrice.randomizer;
 
 import redactedrice.randomizer.context.JavaContext;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.support.test.TestEntity;
 import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.ExecutionRequest;
@@ -190,7 +190,7 @@ public class LuaRandomizerWrapperTest {
 
         assertNotEquals("Entity1", entity1.getName());
         assertNotEquals("Entity2", entity2.getName());
-        assertFalse(ErrorTracker.hasErrors());
+        assertFalse(IssueTracker.hasErrors());
     }
 
     @Test
@@ -365,7 +365,7 @@ public class LuaRandomizerWrapperTest {
         assertNull(wrapper.getModule("test_pre_module"));
         assertTrue(wrapper.getModule("simple_entity_randomizer").isSeeded());
 
-        assertFalse(ErrorTracker.hasErrors());
+        assertFalse(IssueTracker.hasErrors());
     }
 
     private Module findLoadedModule(String name) {

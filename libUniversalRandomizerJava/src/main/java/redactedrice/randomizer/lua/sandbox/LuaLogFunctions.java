@@ -4,12 +4,13 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.VarArgFunction;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.utils.Logger;
 
 import java.util.HashSet;
 import java.util.Set;
 
-// lua function wrappers for logging that modules can call via the logger table
+// Lua function wrappers for logger.* (stream) and issues.* (collect + log)
 public class LuaLogFunctions {
     private static String concatenateArgs(Varargs args) {
         // if no args return empty string
@@ -66,6 +67,44 @@ public class LuaLogFunctions {
                 return LuaValue.NIL;
             }
         };
+    }
+
+    // Collect + log once via IssueTracker (host may display later)
+    public static LuaValue createIssueWarnFunction() {
+        return new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                IssueTracker.addWarning(concatenateArgs(args));
+                return LuaValue.NIL;
+            }
+        };
+    }
+
+    public static LuaValue createIssueErrorFunction() {
+        return new VarArgFunction() {
+            @Override
+            public Varargs invoke(Varargs args) {
+                IssueTracker.addError(concatenateArgs(args));
+                return LuaValue.NIL;
+            }
+        };
+    }
+
+    public static LuaTable createLoggerTable() {
+        LuaTable loggerTable = new LuaTable();
+        loggerTable.set("debug", createDebugFunction());
+        loggerTable.set("info", createInfoFunction());
+        loggerTable.set("warn", createWarnFunction());
+        loggerTable.set("error", createErrorFunction());
+        loggerTable.set("tableToString", createTableToStringFunction());
+        return loggerTable;
+    }
+
+    public static LuaTable createIssuesTable() {
+        LuaTable issuesTable = new LuaTable();
+        issuesTable.set("warn", createIssueWarnFunction());
+        issuesTable.set("error", createIssueErrorFunction());
+        return issuesTable;
     }
 
     public static LuaValue createTableToStringFunction() {

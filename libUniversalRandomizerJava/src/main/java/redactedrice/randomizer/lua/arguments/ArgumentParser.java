@@ -3,7 +3,7 @@ package redactedrice.randomizer.lua.arguments;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 import redactedrice.randomizer.utils.LuaJavaConverter;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ public class ArgumentParser {
             return new ArrayList<>();
         }
         if (!argsValue.istable()) {
-            ErrorTracker.addError(context + " 'arguments' field must be a table");
+            IssueTracker.addError(context + " 'arguments' field must be a table");
             return null;
         }
         return parseArguments(argsValue.checktable(), context);
@@ -37,7 +37,7 @@ public class ArgumentParser {
 
             LuaValue argValue = argsTable.get(key);
             if (!argValue.istable()) {
-                ErrorTracker.addError(context + " argument entry must be a table");
+                IssueTracker.addError(context + " argument entry must be a table");
                 return null;
             }
 
@@ -48,7 +48,7 @@ public class ArgumentParser {
                     arguments.add(argDef);
                 }
             } catch (Exception e) {
-                ErrorTracker.addError(context + " error parsing argument: " + e.getMessage());
+                IssueTracker.addError(context + " error parsing argument: " + e.getMessage());
                 return null;
             }
         }
@@ -59,14 +59,14 @@ public class ArgumentParser {
     private static ArgumentDefinition parseArgumentDefinition(LuaTable argTable, String context) {
         String name = LuaJavaConverter.tryGetStringFromTable(argTable, "name", null, context);
         if (name == null || name.trim().isEmpty()) {
-            ErrorTracker.addError(context + " argument missing 'name' field");
+            IssueTracker.addError(context + " argument missing 'name' field");
             return null;
         }
 
         // get the type definition which can be string or table
         LuaValue definitionValue = argTable.get("definition");
         if (definitionValue.isnil()) {
-            ErrorTracker.addError(context + " argument '" + name + "' missing 'definition' field");
+            IssueTracker.addError(context + " argument '" + name + "' missing 'definition' field");
             return null;
         }
 
@@ -79,12 +79,12 @@ public class ArgumentParser {
                 // complex type with constraints embedded
                 typeDef = TypeDefinition.parse(LuaJavaConverter.luaToJava(definitionValue));
             } else {
-                ErrorTracker.addError(
+                IssueTracker.addError(
                         context + " argument '" + name + "' has invalid definition field");
                 return null;
             }
         } catch (IllegalArgumentException e) {
-            ErrorTracker.addError(context + " invalid argument definition: " + e.getMessage());
+            IssueTracker.addError(context + " invalid argument definition: " + e.getMessage());
             return null;
         }
 

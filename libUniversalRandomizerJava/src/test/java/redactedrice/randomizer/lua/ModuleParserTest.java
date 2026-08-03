@@ -17,7 +17,7 @@ import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
 
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 
 public class ModuleParserTest {
 
@@ -72,9 +72,9 @@ public class ModuleParserTest {
         assertTrue(defaultOffset.isScript());
         assertFalse(defaultOffset.isSeeded());
         assertEquals(0, defaultOffset.getSeedOffset());
-        assertTrue(ErrorTracker.hasErrors());
+        assertTrue(IssueTracker.hasErrors());
 
-        ErrorTracker.clearErrors();
+        IssueTracker.clear();
         Module seededField = parse(writeScript("""
                 return {
                     id = "bad_script_seeded",
@@ -90,7 +90,7 @@ public class ModuleParserTest {
         assertTrue(seededField.isScript());
         assertFalse(seededField.isSeeded());
         assertEquals(0, seededField.getSeedOffset());
-        assertTrue(ErrorTracker.hasErrors());
+        assertTrue(IssueTracker.hasErrors());
     }
 
     @Test
@@ -134,7 +134,7 @@ public class ModuleParserTest {
     }
 
     private Module parse(Path luaFile) {
-        ErrorTracker.clearErrors();
+        IssueTracker.clear();
         LuaSandbox sandbox = new LuaSandbox(java.util.List.of(tempDir.toString()));
         LuaValue loaded = new ModuleLoader(sandbox).loadFile(luaFile);
         if (loaded == null) {

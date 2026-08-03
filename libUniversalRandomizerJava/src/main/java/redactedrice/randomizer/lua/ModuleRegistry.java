@@ -1,7 +1,7 @@
 package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.utils.Logger;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.lua.requirements.RequirementIssue;
 import redactedrice.randomizer.lua.requirements.RequirementValidator;
@@ -49,18 +49,18 @@ public class ModuleRegistry {
 
     public int loadModulesFromDirectory(String directoryPath) {
         if (directoryPath == null || directoryPath.trim().isEmpty()) {
-            ErrorTracker.addError("Directory path cannot be null or empty");
+            IssueTracker.addError("Directory path cannot be null or empty");
             return 0;
         }
 
         File directory = new File(directoryPath);
         if (!directory.exists()) {
-            ErrorTracker.addError("Directory does not exist: " + directoryPath);
+            IssueTracker.addError("Directory does not exist: " + directoryPath);
             return 0;
         }
 
         if (!directory.isDirectory()) {
-            ErrorTracker.addError("Path is not a directory: " + directoryPath);
+            IssueTracker.addError("Path is not a directory: " + directoryPath);
             return 0;
         }
 
@@ -101,7 +101,7 @@ public class ModuleRegistry {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                ErrorTracker.addError("Error loading script from " + file + ": " + e.getMessage());
+                IssueTracker.addError("Error loading script from " + file + ": " + e.getMessage());
             }
         }
 
@@ -121,7 +121,7 @@ public class ModuleRegistry {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                ErrorTracker.addError("Error loading script from " + file + ": " + e.getMessage());
+                IssueTracker.addError("Error loading script from " + file + ": " + e.getMessage());
             }
         }
 
@@ -190,11 +190,10 @@ public class ModuleRegistry {
         List<RequirementIssue> issues =
                 RequirementValidator.validate(requirementContext, repository);
         for (RequirementIssue issue : issues) {
-            // TODO later: Make a more cohesive error collection and dsiplay appraoch
             if (issue.isError()) {
-                ErrorTracker.addError(issue.getMessage());
+                IssueTracker.addError("module requirements", issue.getMessage());
             } else {
-                Logger.warn(issue.getMessage());
+                IssueTracker.addWarning("module requirements", issue.getMessage());
             }
         }
         return issues;
@@ -202,7 +201,6 @@ public class ModuleRegistry {
 
     public void clear() {
         repository.clear();
-        // TODO: Handle this better - probably means making non static
-        ErrorTracker.clearErrors();
+        IssueTracker.clear();
     }
 }

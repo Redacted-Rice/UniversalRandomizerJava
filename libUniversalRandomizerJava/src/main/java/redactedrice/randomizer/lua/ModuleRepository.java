@@ -2,7 +2,7 @@ package redactedrice.randomizer.lua;
 
 import java.util.*;
 
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 
 // Stores and indexes modules for efficient querying
 // Provides lookup by id, group, modifies, and script type
@@ -105,7 +105,7 @@ public class ModuleRepository {
 
     public boolean isIdAvailable(String id, String kind) {
         if (modules.containsKey(id) || scriptsById.containsKey(id)) {
-            ErrorTracker.addError("Duplicate " + kind + " id '" + id
+            IssueTracker.addError("Duplicate " + kind + " id '" + id
                     + "': a module or script with this id is already registered");
             return false;
         }
