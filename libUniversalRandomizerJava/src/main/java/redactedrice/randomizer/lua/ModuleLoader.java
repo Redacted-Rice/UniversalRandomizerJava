@@ -1,7 +1,7 @@
 package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
 
@@ -36,16 +36,16 @@ public class ModuleLoader {
         try {
             LuaValue result = sandbox.executeFile(file.getAbsolutePath());
             if (!result.istable()) {
-                ErrorTracker.addError(
+                IssueTracker.addError(
                         file.getName() + " did not return a table (got " + result.typename() + ")");
                 return null;
             }
             return result;
         } catch (LuaError e) {
-            ErrorTracker.addError("Lua error in " + file.getName() + ": " + e.getMessage());
+            IssueTracker.addError("Lua error in " + file.getName() + ": " + e.getMessage());
             return null;
         } catch (Exception e) {
-            ErrorTracker.addError("Error loading " + file.getName() + ": " + e.getMessage());
+            IssueTracker.addError("Error loading " + file.getName() + ": " + e.getMessage());
             return null;
         }
     }

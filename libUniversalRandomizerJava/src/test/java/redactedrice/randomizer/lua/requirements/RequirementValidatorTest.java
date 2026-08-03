@@ -17,7 +17,7 @@ import org.luaj.vm2.lib.ZeroArgFunction;
 
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 
 class RequirementValidatorTest {
     private ModuleRepository repository;
@@ -25,7 +25,7 @@ class RequirementValidatorTest {
     @BeforeEach
     void setUp() {
         repository = new ModuleRepository(null, null);
-        ErrorTracker.clearErrors();
+        IssueTracker.clear();
     }
 
     @Test
@@ -138,8 +138,8 @@ class RequirementValidatorTest {
         assertTrue(repository.registerModule(first, m -> true));
         assertFalse(repository.registerModule(second, m -> true));
         assertEquals("First", repository.getModule("same_id").getName());
-        assertTrue(ErrorTracker.hasErrors());
-        assertTrue(ErrorTracker.getErrors().stream().anyMatch(msg -> msg.contains("same_id")));
+        assertTrue(IssueTracker.hasErrors());
+        assertTrue(IssueTracker.getErrors().stream().anyMatch(msg -> msg.contains("same_id")));
     }
 
     @Test

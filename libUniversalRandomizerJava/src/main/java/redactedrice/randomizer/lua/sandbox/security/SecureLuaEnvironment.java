@@ -1,7 +1,6 @@
 package redactedrice.randomizer.lua.sandbox.security;
 
 import org.luaj.vm2.Globals;
-import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.lib.DebugLib;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import redactedrice.randomizer.lua.sandbox.LuaLogFunctions;
@@ -43,9 +42,9 @@ public class SecureLuaEnvironment {
         fileSystemPolicy.applyToGlobals(globals);
         packagePolicy.applyToGlobals(globals);
 
-        // Add logger if requested
+        // Add logger and issues if requested
         if (includeLogger) {
-            setupLoggerFunctions(globals);
+            setupLoggerAndIssuesFunctions(globals);
         }
 
         // Apply (setup policy) GlobalsPolicy last
@@ -78,13 +77,8 @@ public class SecureLuaEnvironment {
         return packagePolicy.isModuleAllowed(moduleName);
     }
 
-    private void setupLoggerFunctions(Globals globals) {
-        LuaTable loggerTable = new LuaTable();
-        loggerTable.set("debug", LuaLogFunctions.createDebugFunction());
-        loggerTable.set("info", LuaLogFunctions.createInfoFunction());
-        loggerTable.set("warn", LuaLogFunctions.createWarnFunction());
-        loggerTable.set("error", LuaLogFunctions.createErrorFunction());
-        loggerTable.set("tableToString", LuaLogFunctions.createTableToStringFunction());
-        globals.set("logger", loggerTable);
+    private void setupLoggerAndIssuesFunctions(Globals globals) {
+        globals.set("logger", LuaLogFunctions.createLoggerTable());
+        globals.set("issues", LuaLogFunctions.createIssuesTable());
     }
 }

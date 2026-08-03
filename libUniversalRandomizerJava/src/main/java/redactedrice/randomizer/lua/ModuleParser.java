@@ -4,7 +4,7 @@ import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
 import redactedrice.randomizer.lua.arguments.ArgumentParser;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 
 import java.nio.file.Path;
@@ -57,11 +57,11 @@ public class ModuleParser {
         if (isScript) {
             // Treat these as non-fatal for the script
             if (!moduleTable.get("defaultSeedOffset").isnil()) {
-                ErrorTracker.addError(
+                IssueTracker.addError(
                         fileName + " field 'defaultSeedOffset' is not allowed on scripts");
             }
             if (!moduleTable.get("seeded").isnil()) {
-                ErrorTracker.addError(fileName + " field 'seeded' is not allowed on scripts");
+                IssueTracker.addError(fileName + " field 'seeded' is not allowed on scripts");
             }
         } else {
             Boolean parsedSeeded =
@@ -107,7 +107,7 @@ public class ModuleParser {
                     seedOffsetFromMetadata, seeded, when, author, version, requires, source,
                     license, about);
         } catch (IllegalArgumentException e) {
-            ErrorTracker.addError(fileName + " validation failed: " + e.getMessage());
+            IssueTracker.addError(fileName + " validation failed: " + e.getMessage());
             return null;
         }
     }

@@ -11,7 +11,7 @@ import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.utils.RandomizerBundledResources;
 import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.Logger;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -101,9 +101,9 @@ public class ExampleApp {
 
         System.out.println("Loading modules...");
         int loaded = wrapper.loadModules();
-        if (ErrorTracker.hasErrors()) {
+        if (IssueTracker.hasErrors()) {
             throw new IllegalStateException(
-                    "Module requirement validation failed: " + ErrorTracker.getErrors());
+                    "Module requirement validation failed: " + IssueTracker.getErrors());
         }
         System.out.println("Loaded " + loaded + " modules\n");
         wrapper.printModuleSummary();

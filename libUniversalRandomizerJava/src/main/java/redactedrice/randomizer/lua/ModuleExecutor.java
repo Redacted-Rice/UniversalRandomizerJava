@@ -2,7 +2,7 @@ package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.Logger;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 
@@ -49,6 +49,7 @@ public class ModuleExecutor {
         String moduleName = metadata.getName();
         String previousModuleName = Logger.getCurrentModuleName();
         ExecutionResult execResult = null;
+        IssueTracker.snapshot();
 
         Logger.setCurrentModuleName(moduleName);
         try {
@@ -69,19 +70,19 @@ public class ModuleExecutor {
             execResult = ExecutionResult.success(request, seedUsed, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(metadata, e);
-            ErrorTracker.addError(errorMsg);
-            Logger.error(errorMsg);
+            IssueTracker.addError(errorMsg);
             execResult = ExecutionResult.failure(request, seedUsed, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = ExecutionErrorFormatter.formatJavaError(metadata, e);
-            ErrorTracker.addError(errorMsg);
-            Logger.error(errorMsg);
+            IssueTracker.addError(errorMsg);
             execResult = ExecutionResult.failure(request, seedUsed, errorMsg);
         } finally {
-            if (execResult != null && execResult.isSuccess()) {
+            if (!IssueTracker.logDeltaSummary("Module '" + moduleName + "'")
+                    && execResult != null && execResult.isSuccess()) {
                 Logger.info("Finished execution of '" + moduleName + "'");
             }
+            IssueTracker.clearSnapshot();
             // Always set the module name back to support recursive calls
             Logger.setCurrentModuleName(previousModuleName);
         }
@@ -103,6 +104,7 @@ public class ModuleExecutor {
         String moduleName = script.getName();
         String previousModuleName = Logger.getCurrentModuleName();
         ExecutionResult execResult = null;
+        IssueTracker.snapshot();
 
         Logger.setCurrentModuleName(moduleName);
         try {
@@ -118,17 +120,19 @@ public class ModuleExecutor {
             execResult = ExecutionResult.scriptSuccess(request, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(script, e);
-            ErrorTracker.addError(errorMsg);
+            IssueTracker.addError(errorMsg);
             execResult = ExecutionResult.scriptFailure(request, errorMsg);
         } catch (Exception e) {
             e.printStackTrace();
             String errorMsg = ExecutionErrorFormatter.formatJavaError(script, e);
-            ErrorTracker.addError(errorMsg);
+            IssueTracker.addError(errorMsg);
             execResult = ExecutionResult.scriptFailure(request, errorMsg);
         } finally {
             if (executionModuleName != null) {
                 context.clearExecutionModuleName();
             }
+            IssueTracker.logDeltaSummary("Script '" + moduleName + "'");
+            IssueTracker.clearSnapshot();
 
             // Always set the module name back to support recursive calls
             Logger.setCurrentModuleName(previousModuleName);
@@ -262,7 +266,7 @@ public class ModuleExecutor {
             Module module = moduleRegistry.getModule(request.getModuleId());
             if (module == null) {
                 String errorMsg = "Module not found: " + request.getModuleId();
-                ErrorTracker.addError(errorMsg);
+                IssueTracker.addError(errorMsg);
                 int seedUsed = request.usesSeed() ? request.resolveAbsoluteSeed(baseSeed) : 0;
                 ExecutionResult errorResult = ExecutionResult.failure(request, seedUsed, errorMsg);
                 execResults.add(errorResult);
@@ -283,8 +287,6 @@ public class ModuleExecutor {
     }
 
     public void clearResults() {
-        // TODO: Handle this better - probably means making non static
-        ErrorTracker.clearErrors();
         results.clear();
     }
 

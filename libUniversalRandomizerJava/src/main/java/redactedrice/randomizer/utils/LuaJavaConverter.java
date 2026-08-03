@@ -208,7 +208,7 @@ public class LuaJavaConverter {
             return defaultValue;
         }
         if (!value.isstring()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be a string (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be a string (got "
                     + value.typename() + ")");
             return null;
         }
@@ -222,7 +222,7 @@ public class LuaJavaConverter {
             return defaultValue;
         }
         if (!value.isnumber() || !value.isint()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be an integer (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be an integer (got "
                     + value.typename() + "). Defaulting to " + defaultValue);
             return defaultValue;
         }
@@ -240,7 +240,7 @@ public class LuaJavaConverter {
             return defaultValue;
         }
         if (!value.isboolean()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be a boolean (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be a boolean (got "
                     + value.typename() + "). Defaulting to " + defaultValue);
             return defaultValue;
         }
@@ -258,7 +258,7 @@ public class LuaJavaConverter {
             return null;
         }
         if (!value.isfunction()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be a function (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be a function (got "
                     + value.typename() + ")");
             return null;
         }
@@ -275,7 +275,7 @@ public class LuaJavaConverter {
         }
 
         if (!value.istable()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be a table (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be a table (got "
                     + value.typename() + ")");
             return null;
         }
@@ -294,7 +294,7 @@ public class LuaJavaConverter {
                     result.add(str.toLowerCase());
                 }
             } else {
-                ErrorTracker.addError(context + " field '" + fieldName
+                IssueTracker.addError(context + " field '" + fieldName
                         + "' must contain strings (got " + tableValue.typename() + ")");
                 return null;
             }
@@ -312,7 +312,7 @@ public class LuaJavaConverter {
         }
 
         if (!value.istable()) {
-            ErrorTracker.addError(context + " field '" + fieldName + "' must be a table (got "
+            IssueTracker.addError(context + " field '" + fieldName + "' must be a table (got "
                     + value.typename() + ")");
             return null;
         }
@@ -331,7 +331,7 @@ public class LuaJavaConverter {
             if (key.isstring() && mapValue.isstring()) {
                 result.put(key.tojstring(), mapValue.tojstring());
             } else {
-                ErrorTracker.addError(context + " field '" + fieldName
+                IssueTracker.addError(context + " field '" + fieldName
                         + "' must contain string keys and string values (got " + key.typename()
                         + " and " + mapValue.typename() + ")");
                 return null;

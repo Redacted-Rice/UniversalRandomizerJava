@@ -5,7 +5,7 @@ import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.LogLevel;
-import redactedrice.randomizer.utils.ErrorTracker;
+import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import redactedrice.randomizer.lua.Module;
@@ -38,7 +38,6 @@ public class LuaRandomizerWrapper {
         }
 
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
-
         this.sandbox = new LuaSandbox(allowedDirectories);
         this.moduleRegistry =
                 new ModuleRegistry(sandbox, definedGroups, definedModifies, requirementContext);
@@ -68,6 +67,7 @@ public class LuaRandomizerWrapper {
 
     public int loadModules() {
         moduleRegistry.clear();
+        IssueTracker.snapshot();
         int totalLoaded = 0;
 
         // Register every module and script before validating requires so filesystem load order
@@ -79,6 +79,8 @@ public class LuaRandomizerWrapper {
         // Validate requirements for loaded modules
         moduleRegistry.validateAllRequirements();
         callModuleOnLoadFunctions();
+        IssueTracker.logDeltaSummary("Module load");
+        IssueTracker.clearSnapshot();
         return totalLoaded;
     }
 
@@ -131,7 +133,6 @@ public class LuaRandomizerWrapper {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
-
         // Ensure enums are up to date
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
@@ -148,7 +149,6 @@ public class LuaRandomizerWrapper {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
-
         // Ensure enums are up to date
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
@@ -168,7 +168,6 @@ public class LuaRandomizerWrapper {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException("Requests list cannot be null or empty");
         }
-
         // add the shared enum registry from onLoad to the execution context
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
         // Clear any old wrappers
@@ -209,7 +208,6 @@ public class LuaRandomizerWrapper {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null");
         }
-
         // add the shared enum registry from onLoad to the execution context
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
@@ -262,13 +260,6 @@ public class LuaRandomizerWrapper {
                         + arg.getConstraint().getDescription() + defaultInfo);
             });
             System.out.println("  File: " + module.getFilePath());
-            System.out.println();
-        }
-
-        // print any errors encountered during loading
-        if (ErrorTracker.hasErrors()) {
-            System.out.println("=== Load Errors ===");
-            ErrorTracker.getErrors().forEach(System.out::println);
             System.out.println();
         }
     }
