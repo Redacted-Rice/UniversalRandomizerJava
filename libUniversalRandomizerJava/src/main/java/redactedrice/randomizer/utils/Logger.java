@@ -19,7 +19,7 @@ public class Logger {
     private static boolean showTimestamp = false;
     private static boolean showModuleName = false;
     private static String currentModuleName = null;
-    private static LogLevel minLogLevel = LogLevel.DEBUG;
+    private static LogLevel minLogLevel = LogLevel.INFO;
     private static String formatString = DEFAULT_FORMAT_STRING;
     private static int maxModuleNameLength = DEFAULT_MAX_MODULE_NAME_LENGTH;
     private static boolean forceModuleWidth = DEFAULT_FORCE_MODULE_WIDTH;
@@ -397,7 +397,7 @@ public class Logger {
         showTimestamp = false;
         showModuleName = false;
         currentModuleName = null;
-        minLogLevel = LogLevel.DEBUG;
+        minLogLevel = LogLevel.INFO;
         formatString = DEFAULT_FORMAT_STRING;
         maxModuleNameLength = DEFAULT_MAX_MODULE_NAME_LENGTH;
         forceModuleWidth = DEFAULT_FORCE_MODULE_WIDTH;
