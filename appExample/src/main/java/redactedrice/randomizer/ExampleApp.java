@@ -140,8 +140,7 @@ public class ExampleApp {
                 new ExampleItem("Mithril Armor", ItemRarity.RARE, 2, 15, 40, -1),
                 // Legendary items (2 items)
                 new ExampleItem("Excalibur", ItemRarity.LEGENDARY, 25, 8, 50, 5),
-                new ExampleItem("Dragon Scale Armor", ItemRarity.LEGENDARY, 5, 30, 80,
-                        0));
+                new ExampleItem("Dragon Scale Armor", ItemRarity.LEGENDARY, 5, 30, 80, 0));
 
         // Create deep copies for modification
         List<ExampleEntity> entitiesModified = new ArrayList<>();
@@ -267,6 +266,14 @@ public class ExampleApp {
             if (!result.isSuccess()) {
                 System.err.println("   Failed: " + result.getErrorMessage());
             }
+        }
+
+        // Host popup pattern: issues accumulate across the whole batch; read once after, then clear
+        if (IssueTracker.hasIssues()) {
+            System.out.println("\n=== Batch Issues (popup summary) ===");
+            IssueTracker.getIssues().forEach(
+                    issue -> System.out.println("  [" + issue.severity() + "] " + issue.message()));
+            IssueTracker.clear();
         }
 
         // Print modified state
