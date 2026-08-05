@@ -144,6 +144,15 @@ public class ArgumentDefinitionTest {
         ArgumentConstraint anyConstraint = unconstrained.getConstraint();
         assertNotNull(anyConstraint);
         assertEquals(ConstraintType.ANY, anyConstraint.getType());
+
+        // Display/API exposes enforced constraints (ignored declarations become ANY)
+        ArgumentDefinition boolWithRange = new ArgumentDefinition("flag",
+                TypeDefinition.bool(ArgumentConstraint.range(0, 1)), null);
+        assertEquals(ConstraintType.ANY, boolWithRange.getConstraint().getType());
+
+        ArgumentDefinition stringWithRange = new ArgumentDefinition("name",
+                TypeDefinition.string(ArgumentConstraint.range(1, 10)), null);
+        assertEquals(ConstraintType.ANY, stringWithRange.getConstraint().getType());
     }
 
     @Test

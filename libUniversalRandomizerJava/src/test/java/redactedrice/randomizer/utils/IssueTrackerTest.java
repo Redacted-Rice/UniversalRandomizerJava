@@ -77,17 +77,15 @@ class IssueTrackerTest {
     }
 
     @Test
-    void nestedSnapshotsAreIndependent() {
+    void snapshotOverwritesPreviousBaseline() {
         IssueTracker.addError("prior");
-        IssueTracker.snapshot(); // outer
-        IssueTracker.addError("outer-only");
-        IssueTracker.snapshot(); // inner
-        IssueTracker.addError("inner-only");
+        IssueTracker.snapshot();
+        IssueTracker.addError("between");
+        IssueTracker.snapshot(); // overwrite
+        IssueTracker.addError("after");
 
         assertEquals(1, IssueTracker.getErrorCountSinceSnapshot());
-        IssueTracker.clearSnapshot(); // pop inner
-        assertEquals(2, IssueTracker.getErrorCountSinceSnapshot());
-        IssueTracker.clearSnapshot(); // pop outer
+        IssueTracker.clearSnapshot();
     }
 
     @Test
@@ -96,6 +94,38 @@ class IssueTrackerTest {
         assertFalse(IssueTracker.logDeltaSummary("Module 'x'"));
         IssueTracker.addWarning("w");
         assertTrue(IssueTracker.logDeltaSummary("Module 'x'"));
+        IssueTracker.clearSnapshot();
+    }
+
+    @Test
+    void clearErrorsResetsActiveErrorSnapshotBaseline() {
+        IssueTracker.addError("prior");
+        IssueTracker.snapshot();
+        IssueTracker.addError("during");
+        assertEquals(1, IssueTracker.getErrorCountSinceSnapshot());
+
+        IssueTracker.clearErrors();
+        assertEquals(0, IssueTracker.getErrorCount());
+        assertEquals(0, IssueTracker.getErrorCountSinceSnapshot());
+
+        IssueTracker.addError("after clear");
+        assertEquals(1, IssueTracker.getErrorCountSinceSnapshot());
+        IssueTracker.clearSnapshot();
+    }
+
+    @Test
+    void clearWarningsResetsActiveWarningSnapshotBaseline() {
+        IssueTracker.addWarning("prior");
+        IssueTracker.snapshot();
+        IssueTracker.addWarning("during");
+        assertEquals(1, IssueTracker.getWarningCountSinceSnapshot());
+
+        IssueTracker.clearWarnings();
+        assertEquals(0, IssueTracker.getWarningCount());
+        assertEquals(0, IssueTracker.getWarningCountSinceSnapshot());
+
+        IssueTracker.addWarning("after clear");
+        assertEquals(1, IssueTracker.getWarningCountSinceSnapshot());
         IssueTracker.clearSnapshot();
     }
 }

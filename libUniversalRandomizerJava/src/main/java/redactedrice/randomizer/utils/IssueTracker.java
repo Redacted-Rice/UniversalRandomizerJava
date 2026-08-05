@@ -1,25 +1,26 @@
 package redactedrice.randomizer.utils;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
 
 // Static collector for warnings and errors.
 //
-// Logging happens immediately in addWarning/addError via Logger — do not iterate the store
+// Logging happens immediately in addWarning/addError via Logger - do not iterate the store
 // afterwards to re-log. The store exists so hosts can query failure state (hasErrors) and
 // present a popup summary, then clear when the phase is finished.
 //
-// Snapshot API (internal baselines, no Counts returned to callers):
-//   snapshot()                     — remember current totals (stack-aware for nesting)
-//   getErrorCountSinceSnapshot()   — errors added since the latest snapshot
-//   getWarningCountSinceSnapshot() — warnings added since the latest snapshot
-//   clearSnapshot()                — pop the latest snapshot
-//   logDeltaSummary(label)         — log a one-line count summary if anything changed
+// Snapshot API (single baseline pair - call sites are sequential, not nested):
+// snapshot() - remember current totals
+// getErrorCountSinceSnapshot() - errors added since the snapshot (or all, if none)
+// getWarningCountSinceSnapshot() - warnings added since the snapshot (or all, if none)
+// clearSnapshot() - reset baselines to 0
+// logDeltaSummary(label) - log a one-line count summary if anything changed
+// clearErrors()/clearWarnings() - also reset matching snapshot baselines to 0
 //
-// Plain Logger.* never collects. Clear at phase end (after display / after host is done
-// inspecting), and again at the start of the next phase if needed.
+// Plain Logger.* never collects. A "phase" is one host batch (e.g. loadModules or one
+// executeModules / randomize run), not each module inside it. Library entry points clear at
+// phase start. Hosts can read getIssues after the batch for a popup, then clear after display
+// (or rely on the next phase start).
 public final class IssueTracker {
     public enum Severity {
         WARNING, ERROR
@@ -45,8 +46,8 @@ public final class IssueTracker {
     }
 
     private static final List<Issue> issues = new ArrayList<>();
-    private static final Deque<Integer> errorSnapshots = new ArrayDeque<>();
-    private static final Deque<Integer> warningSnapshots = new ArrayDeque<>();
+    private static int errorSnapshotBaseline = 0;
+    private static int warningSnapshotBaseline = 0;
 
     private IssueTracker() {}
 
@@ -110,26 +111,24 @@ public final class IssueTracker {
         }
     }
 
-    // Remember current totals so later get*CountSinceSnapshot() reports only new issues.
-    // Nested calls push; pair with clearSnapshot() in a finally block.
+    // Remember current totals so later get*CountSinceSnapshot reports only new issues.
+    // Pair with clearSnapshot in a finally block. A second snapshot overwrites.
     public static void snapshot() {
         synchronized (issues) {
-            errorSnapshots.push(countErrorsLocked());
-            warningSnapshots.push(countWarningsLocked());
+            errorSnapshotBaseline = countErrorsLocked();
+            warningSnapshotBaseline = countWarningsLocked();
         }
     }
 
     public static int getErrorCountSinceSnapshot() {
         synchronized (issues) {
-            int baseline = errorSnapshots.isEmpty() ? 0 : errorSnapshots.peek();
-            return Math.max(0, countErrorsLocked() - baseline);
+            return Math.max(0, countErrorsLocked() - errorSnapshotBaseline);
         }
     }
 
     public static int getWarningCountSinceSnapshot() {
         synchronized (issues) {
-            int baseline = warningSnapshots.isEmpty() ? 0 : warningSnapshots.peek();
-            return Math.max(0, countWarningsLocked() - baseline);
+            return Math.max(0, countWarningsLocked() - warningSnapshotBaseline);
         }
     }
 
@@ -137,20 +136,16 @@ public final class IssueTracker {
         return getErrorCountSinceSnapshot() > 0 || getWarningCountSinceSnapshot() > 0;
     }
 
-    // Pop the latest snapshot baseline. No-op if none.
+    // Reset baselines to 0 (deltas then count from an empty prior state).
     public static void clearSnapshot() {
         synchronized (issues) {
-            if (!errorSnapshots.isEmpty()) {
-                errorSnapshots.pop();
-            }
-            if (!warningSnapshots.isEmpty()) {
-                warningSnapshots.pop();
-            }
+            errorSnapshotBaseline = 0;
+            warningSnapshotBaseline = 0;
         }
     }
 
-    // Logs a one-line count summary for issues added since the latest snapshot. No-op if
-    // unchanged. Does not pop the snapshot — call clearSnapshot() when the scope ends.
+    // Logs a one line count summary for issues added since the snapshot. No op if
+    // unchanged. Does not clear the snapshot - call clearSnapshot when the scope ends.
     public static boolean logDeltaSummary(String label) {
         int errors = getErrorCountSinceSnapshot();
         int warnings = getWarningCountSinceSnapshot();
@@ -192,20 +187,22 @@ public final class IssueTracker {
     public static void clear() {
         synchronized (issues) {
             issues.clear();
-            errorSnapshots.clear();
-            warningSnapshots.clear();
+            errorSnapshotBaseline = 0;
+            warningSnapshotBaseline = 0;
         }
     }
 
     public static void clearWarnings() {
         synchronized (issues) {
             issues.removeIf(Issue::isWarning);
+            warningSnapshotBaseline = 0;
         }
     }
 
     public static void clearErrors() {
         synchronized (issues) {
             issues.removeIf(Issue::isError);
+            errorSnapshotBaseline = 0;
         }
     }
 

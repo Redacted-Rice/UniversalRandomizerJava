@@ -99,8 +99,8 @@ public class LuaRandomizerWrapperTest {
         arguments.put("healthMax", 200);
         arguments.put("damageMultiplier", 1.5);
 
-        ExecutionRequest request =
-                ExecutionRequest.forModule(wrapper.getModule("simple_entity_randomizer"), arguments);
+        ExecutionRequest request = ExecutionRequest
+                .forModule(wrapper.getModule("simple_entity_randomizer"), arguments);
         ExecutionResult result = wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess());
@@ -145,15 +145,15 @@ public class LuaRandomizerWrapperTest {
         TestEntity entity1 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context1 = new JavaContext();
         context1.register("entity", entity1);
-        ExecutionRequest request1 = ExecutionRequest
-                .forModuleWithSeedOffset("simple_entity_randomizer", args, 999);
+        ExecutionRequest request1 =
+                ExecutionRequest.forModuleWithSeedOffset("simple_entity_randomizer", args, 999);
         wrapper.executeModule(request1, context1, TEST_BASE_SEED);
 
         TestEntity entity2 = new TestEntity("Hero", 100, 10.0, true);
         JavaContext context2 = new JavaContext();
         context2.register("entity", entity2);
-        ExecutionRequest request2 = ExecutionRequest
-                .forModuleWithSeedOffset("simple_entity_randomizer", args, 999);
+        ExecutionRequest request2 =
+                ExecutionRequest.forModuleWithSeedOffset("simple_entity_randomizer", args, 999);
         wrapper.executeModule(request2, context2, TEST_BASE_SEED);
 
         assertEquals(entity1.getName(), entity2.getName());
@@ -174,8 +174,8 @@ public class LuaRandomizerWrapperTest {
         args1.put("healthMin", 80);
         args1.put("healthMax", 120);
         args1.put("damageMultiplier", 1.2);
-        ExecutionRequest request1 = ExecutionRequest
-                .forModule(wrapper.getModule("simple_entity_randomizer"), args1);
+        ExecutionRequest request1 =
+                ExecutionRequest.forModule(wrapper.getModule("simple_entity_randomizer"), args1);
         wrapper.executeModule(request1, context1, TEST_BASE_SEED);
 
         JavaContext context2 = new JavaContext();
@@ -184,8 +184,8 @@ public class LuaRandomizerWrapperTest {
         args2.put("entityType", "mage");
         args2.put("level", 16);
         args2.put("applyBonus", false);
-        ExecutionRequest request2 = ExecutionRequest
-                .forModule(wrapper.getModule("advanced_entity_randomizer"), args2);
+        ExecutionRequest request2 =
+                ExecutionRequest.forModule(wrapper.getModule("advanced_entity_randomizer"), args2);
         wrapper.executeModule(request2, context2, TEST_BASE_SEED);
 
         assertNotEquals("Entity1", entity1.getName());
@@ -229,8 +229,8 @@ public class LuaRandomizerWrapperTest {
         args.put("healthMax", 110);
         args.put("damageMultiplier", 1.0);
 
-        ExecutionRequest request = ExecutionRequest
-                .forModule(wrapper.getModule("simple_entity_randomizer"), args);
+        ExecutionRequest request =
+                ExecutionRequest.forModule(wrapper.getModule("simple_entity_randomizer"), args);
         wrapper.executeModule(request, context, TEST_BASE_SEED);
 
         assertTrue(context.contains("entity"));
@@ -247,8 +247,8 @@ public class LuaRandomizerWrapperTest {
         args.put("healthMax", 100);
         args.put("damageMultiplier", 1.0);
 
-        ExecutionRequest request = ExecutionRequest
-                .forModule(wrapper.getModule("simple_entity_randomizer"), args);
+        ExecutionRequest request =
+                ExecutionRequest.forModule(wrapper.getModule("simple_entity_randomizer"), args);
         ExecutionResult result = wrapper.executeModule(request, emptyContext, TEST_BASE_SEED);
 
         assertFalse(result.isSuccess());
@@ -395,6 +395,40 @@ public class LuaRandomizerWrapperTest {
     }
 
     @Test
+    public void testExecuteModulesClearsPriorIssuesOncePerBatch() {
+        wrapper.loadModules();
+        BatchTestData data = new BatchTestData();
+
+        IssueTracker.addError("stale from previous run");
+        assertTrue(IssueTracker.hasErrors());
+
+        List<ExecutionResult> results =
+                wrapper.executeModules(data.requests, data.context, TEST_BASE_SEED);
+        assertEquals(2, results.size());
+        assertTrue(results.stream().allMatch(ExecutionResult::isSuccess));
+        // Prior-run error wiped at batch start; successful batch leaves store clean
+        assertFalse(IssueTracker.hasErrors());
+        assertFalse(IssueTracker.getErrors().contains("stale from previous run"));
+    }
+
+    @Test
+    public void testExecuteModuleLoopAccumulatesIssuesUntilHostClears() {
+        wrapper.loadModules();
+        BatchTestData data = new BatchTestData();
+
+        IssueTracker.clear();
+        IssueTracker.addError("pre-loop marker");
+
+        // Single module API does not clear - host clears once before the loop if needed
+        wrapper.executeModule(data.requests.get(0), data.context, TEST_BASE_SEED);
+        assertTrue(IssueTracker.getErrors().contains("pre-loop marker"));
+
+        wrapper.executePreRandomizeScripts(data.context);
+        assertFalse(IssueTracker.getErrors().contains("pre-loop marker"));
+        assertFalse(IssueTracker.hasErrors());
+    }
+
+    @Test
     public void testIndividualProcessingWithPrePostRandomizeScripts() {
         wrapper.loadModules();
         BatchTestData data = new BatchTestData();
@@ -428,8 +462,8 @@ public class LuaRandomizerWrapperTest {
         Module module = wrapper.getModule("simple_entity_randomizer");
         int defaultSeed = TEST_BASE_SEED + module.getSeedOffset();
 
-        ExecutionRequest explicitRequest = ExecutionRequest
-                .forModuleWithSeedOffset("simple_entity_randomizer", args, 424242);
+        ExecutionRequest explicitRequest =
+                ExecutionRequest.forModuleWithSeedOffset("simple_entity_randomizer", args, 424242);
         ExecutionResult result = wrapper.executeModule(explicitRequest, context, TEST_BASE_SEED);
 
         assertTrue(result.isSuccess());
@@ -503,9 +537,9 @@ public class LuaRandomizerWrapperTest {
         assertEquals(3, advancedModules.size()); // Advanced, Enhanced, and Table Of Lists
 
         // Find and execute the advanced_entity_randomizer specifically
-        Module advancedRandomizer = advancedModules.stream()
-                .filter(m -> m.getId().equals("advanced_entity_randomizer")).findFirst()
-                .orElse(null);
+        Module advancedRandomizer =
+                advancedModules.stream().filter(m -> m.getId().equals("advanced_entity_randomizer"))
+                        .findFirst().orElse(null);
         assertNotNull(advancedRandomizer);
 
         Map<String, Object> args2 = new HashMap<>();
@@ -566,9 +600,8 @@ public class LuaRandomizerWrapperTest {
         assertEquals(3, healthModules.size());
 
         // Execute simple_entity_randomizer
-        Module simpleRandomizer =
-                healthModules.stream().filter(m -> m.getId().equals("simple_entity_randomizer"))
-                        .findFirst().orElse(null);
+        Module simpleRandomizer = healthModules.stream()
+                .filter(m -> m.getId().equals("simple_entity_randomizer")).findFirst().orElse(null);
         assertNotNull(simpleRandomizer);
 
         Map<String, Object> args1 = new HashMap<>();

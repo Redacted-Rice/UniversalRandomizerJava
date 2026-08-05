@@ -62,7 +62,8 @@ public class ArgumentDefinition {
     }
 
     public ArgumentConstraint getConstraint() {
-        return typeDefinition.getConstraint();
+        // Generally should always use the enforced constraint
+        return typeDefinition.getEnforcedConstraint();
     }
 
     public Object getDefaultValue() {
@@ -72,7 +73,7 @@ public class ArgumentDefinition {
     @Override
     public String toString() {
         return String.format("ArgumentDefinition{name='%s', type=%s, constraint=%s, default=%s}",
-                name, typeDefinition, typeDefinition.getConstraint().getDescription(),
+                name, typeDefinition, typeDefinition.getEnforcedConstraint().getDescription(),
                 defaultValue);
     }
 }

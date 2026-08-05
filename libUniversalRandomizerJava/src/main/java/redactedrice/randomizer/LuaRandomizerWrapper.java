@@ -129,6 +129,9 @@ public class LuaRandomizerWrapper {
         return sharedEnumContext;
     }
 
+    // Start of a randomize batch manually executed piece by piece. This clears prior execution
+    // results and issues so the host can accumulate across executeModule calls, then read
+    // IssueTracker later if desired.
     public void executePreRandomizeScripts(JavaContext context) {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
@@ -138,6 +141,7 @@ public class LuaRandomizerWrapper {
 
         // Clear previous results
         moduleExecutor.clearResults();
+        IssueTracker.clear();
         // get the pre randomize scripts and run them
         List<Module> preRandomizeScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
@@ -159,7 +163,8 @@ public class LuaRandomizerWrapper {
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
     }
 
-    // Will return only the module results, not the script results
+    // Full randomize batch. This clears prior results/issues once, runs all modules/scripts, then
+    // leaves issues in IssueTracker so the host can read them later if desired.
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
             JavaContext context, int baseSeed) {
         if (context == null) {
@@ -185,6 +190,7 @@ public class LuaRandomizerWrapper {
 
         // Clear results and execute pre randomize scripts
         moduleExecutor.clearResults();
+        IssueTracker.clear();
         moduleExecutor.executeScripts(preRandomizeScripts, context,
                 ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
@@ -199,7 +205,8 @@ public class LuaRandomizerWrapper {
         return results;
     }
 
-    // Will return only the module result, not the script results
+    // Single module (plus its pre/post module scripts). Does not clear issues - call
+    // IssueTracker.clear or executePreRandomizeScripts once before a multi module host loop.
     public ExecutionResult executeModule(ExecutionRequest request, JavaContext context,
             int baseSeed) {
         if (context == null) {
