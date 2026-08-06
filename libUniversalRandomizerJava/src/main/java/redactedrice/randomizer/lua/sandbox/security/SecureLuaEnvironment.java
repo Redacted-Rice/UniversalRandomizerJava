@@ -42,9 +42,9 @@ public class SecureLuaEnvironment {
         fileSystemPolicy.applyToGlobals(globals);
         packagePolicy.applyToGlobals(globals);
 
-        // Add logger and issues if requested
+        // Add logger if requested
         if (includeLogger) {
-            setupLoggerAndIssuesFunctions(globals);
+            setupLoggerFunctions(globals);
         }
 
         // Apply (setup policy) GlobalsPolicy last
@@ -77,8 +77,7 @@ public class SecureLuaEnvironment {
         return packagePolicy.isModuleAllowed(moduleName);
     }
 
-    private void setupLoggerAndIssuesFunctions(Globals globals) {
+    private void setupLoggerFunctions(Globals globals) {
         globals.set("logger", LuaLogFunctions.createLoggerTable());
-        globals.set("issues", LuaLogFunctions.createIssuesTable());
     }
 }
