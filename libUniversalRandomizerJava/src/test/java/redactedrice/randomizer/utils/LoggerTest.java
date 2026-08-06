@@ -73,9 +73,74 @@ class LoggerTest {
     }
 
     @Test
+    void errorCollectsToIssueTrackerByDefault() {
+        Logger.setFormatString("%MESSAGE");
+        Logger.error("popup error");
+
+        assertTrue(IssueTracker.hasErrors());
+        assertEquals(List.of("popup error"), IssueTracker.getErrors());
+    }
+
+    @Test
+    void errorDoesNotCollectWhenDisabled() {
+        Logger.setCollectErrorsToIssueTracker(false);
+        Logger.error("log only");
+
+        assertFalse(IssueTracker.hasErrors());
+    }
+
+    @Test
     void addWarningDoesNotDoubleCollectWhenLoggerCollectionEnabled() {
         IssueTracker.addWarning("via tracker");
         assertEquals(1, IssueTracker.getWarningCount());
         assertEquals(List.of("via tracker"), IssueTracker.getWarnings());
+    }
+
+    @Test
+    void addErrorDoesNotDoubleCollectWhenLoggerCollectionEnabled() {
+        IssueTracker.addError("via tracker");
+        assertEquals(1, IssueTracker.getErrorCount());
+        assertEquals(List.of("via tracker"), IssueTracker.getErrors());
+    }
+
+    @Test
+    void blankWarnDoesNotCollectOrLog() {
+        ByteArrayOutputStream capture = new ByteArrayOutputStream();
+        Logger.addStreamForAllLevels(capture);
+        Logger.setFormatString("%MESSAGE");
+
+        Logger.warn(null);
+        Logger.warn("");
+        Logger.warn("   ");
+
+        assertFalse(IssueTracker.hasWarnings());
+        assertTrue(capture.toString(StandardCharsets.UTF_8).isEmpty());
+    }
+
+    @Test
+    void blankErrorDoesNotCollectOrLog() {
+        ByteArrayOutputStream capture = new ByteArrayOutputStream();
+        Logger.addStreamForAllLevels(capture);
+        Logger.setFormatString("%MESSAGE");
+
+        Logger.error(null);
+        Logger.error("");
+        Logger.error("   ");
+
+        assertFalse(IssueTracker.hasErrors());
+        assertTrue(capture.toString(StandardCharsets.UTF_8).isEmpty());
+    }
+
+    @Test
+    void warnTrimsBeforeCollectAndLog() {
+        ByteArrayOutputStream capture = new ByteArrayOutputStream();
+        Logger.addStreamForAllLevels(capture);
+        Logger.setFormatString("%MESSAGE");
+
+        Logger.warn("  trimmed warning  ");
+
+        assertEquals(List.of("trimmed warning"), IssueTracker.getWarnings());
+        assertTrue(capture.toString(StandardCharsets.UTF_8).contains("trimmed warning"));
+        assertFalse(capture.toString(StandardCharsets.UTF_8).contains("  trimmed warning  "));
     }
 }
