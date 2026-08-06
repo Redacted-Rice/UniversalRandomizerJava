@@ -55,6 +55,13 @@ class LuaLoggerBridgeTest {
     }
 
     @Test
+    void loggerErrorDoesNotCollectWhenDisabled() {
+        Logger.setCollectErrorsToIssueTracker(false);
+        sandbox.execute("logger.error('not collected')");
+        assertFalse(IssueTracker.hasErrors());
+    }
+
+    @Test
     void issuesGlobalIsNotAvailable() {
         assertTrue(sandbox.execute("return issues == nil").toboolean());
     }

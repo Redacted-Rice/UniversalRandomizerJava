@@ -228,17 +228,25 @@ public class Logger {
     }
 
     public static void warn(String message) {
-        if (collectWarningsToIssueTracker) {
-            IssueTracker.recordWarning(null, message);
+        if (message == null || message.isBlank()) {
+            return;
         }
-        log(LogLevel.WARN, message);
+        String normalized = message.trim();
+        if (collectWarningsToIssueTracker) {
+            IssueTracker.recordWarning(null, normalized);
+        }
+        log(LogLevel.WARN, normalized);
     }
 
     public static void error(String message) {
-        if (collectErrorsToIssueTracker) {
-            IssueTracker.recordError(null, message);
+        if (message == null || message.isBlank()) {
+            return;
         }
-        log(LogLevel.ERROR, message);
+        String normalized = message.trim();
+        if (collectErrorsToIssueTracker) {
+            IssueTracker.recordError(null, normalized);
+        }
+        log(LogLevel.ERROR, normalized);
     }
 
     public static void log(LogLevel level, String message) {
