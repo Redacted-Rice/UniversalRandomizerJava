@@ -24,6 +24,8 @@ public class Logger {
     private static int maxModuleNameLength = DEFAULT_MAX_MODULE_NAME_LENGTH;
     private static boolean forceModuleWidth = DEFAULT_FORCE_MODULE_WIDTH;
     private static String timestampFormat = DEFAULT_TIMESTAMP_FORMAT;
+    private static boolean collectWarningsToIssueTracker = true;
+    private static boolean collectErrorsToIssueTracker = true;
 
     // Map of log levels to their output streams
     private static Map<LogLevel, List<OutputStream>> levelStreams = new HashMap<>();
@@ -182,6 +184,29 @@ public class Logger {
         return minLogLevel;
     }
 
+    /** When true, {@link #warn} also records into {@link IssueTracker} for host popups. */
+    public static void setCollectWarningsToIssueTracker(boolean collect) {
+        collectWarningsToIssueTracker = collect;
+    }
+
+    public static boolean isCollectWarningsToIssueTracker() {
+        return collectWarningsToIssueTracker;
+    }
+
+    /** When true, {@link #error} also records into {@link IssueTracker} for host popups. */
+    public static void setCollectErrorsToIssueTracker(boolean collect) {
+        collectErrorsToIssueTracker = collect;
+    }
+
+    public static boolean isCollectErrorsToIssueTracker() {
+        return collectErrorsToIssueTracker;
+    }
+
+    public static void setCollectToIssueTracker(boolean collectWarnings, boolean collectErrors) {
+        collectWarningsToIssueTracker = collectWarnings;
+        collectErrorsToIssueTracker = collectErrors;
+    }
+
     public static void setFormatString(String format) {
         if (format != null && !format.isEmpty()) {
             formatString = format;
@@ -203,10 +228,16 @@ public class Logger {
     }
 
     public static void warn(String message) {
+        if (collectWarningsToIssueTracker) {
+            IssueTracker.recordWarning(null, message);
+        }
         log(LogLevel.WARN, message);
     }
 
     public static void error(String message) {
+        if (collectErrorsToIssueTracker) {
+            IssueTracker.recordError(null, message);
+        }
         log(LogLevel.ERROR, message);
     }
 
@@ -402,6 +433,8 @@ public class Logger {
         maxModuleNameLength = DEFAULT_MAX_MODULE_NAME_LENGTH;
         forceModuleWidth = DEFAULT_FORCE_MODULE_WIDTH;
         timestampFormat = DEFAULT_TIMESTAMP_FORMAT;
+        collectWarningsToIssueTracker = true;
+        collectErrorsToIssueTracker = true;
 
         // Reset streams to defaults (clearAllStreams already ensures System.out/err remain)
         clearAllStreams();

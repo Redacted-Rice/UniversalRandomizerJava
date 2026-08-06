@@ -13,8 +13,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import redactedrice.randomizer.utils.IssueTracker;
+import redactedrice.randomizer.utils.Logger;
 
-class LuaIssuesBridgeTest {
+class LuaLoggerBridgeTest {
     @TempDir
     Path tempDir;
 
@@ -23,32 +24,38 @@ class LuaIssuesBridgeTest {
     @BeforeEach
     void setUp() {
         IssueTracker.clear();
+        Logger.reset();
         sandbox = new LuaSandbox(List.of(tempDir.toAbsolutePath().toString()));
     }
 
     @AfterEach
     void tearDown() {
         IssueTracker.clear();
+        Logger.reset();
     }
 
     @Test
-    void issuesWarnAndErrorCollectOnTracker() {
-        sandbox.execute("""
-                logger.warn("stream only")
-                issues.warn("tracked warning")
-                issues.error("tracked error")
-                """);
+    void loggerWarnCollectsByDefault() {
+        sandbox.execute("logger.warn('via logger')");
+        assertEquals(List.of("via logger"), IssueTracker.getWarnings());
+    }
 
-        assertFalse(IssueTracker.getWarnings().contains("stream only"));
-        assertEquals(List.of("tracked warning"), IssueTracker.getWarnings());
-        assertEquals(List.of("tracked error"), IssueTracker.getErrors());
+    @Test
+    void loggerErrorCollectsByDefault() {
+        sandbox.execute("logger.error('via logger')");
+        assertEquals(List.of("via logger"), IssueTracker.getErrors());
         assertTrue(IssueTracker.hasErrors());
     }
 
     @Test
-    void loggerWarnDoesNotCollect() {
+    void loggerWarnDoesNotCollectWhenDisabled() {
+        Logger.setCollectWarningsToIssueTracker(false);
         sandbox.execute("logger.warn('not collected')");
         assertFalse(IssueTracker.hasWarnings());
-        assertFalse(IssueTracker.hasErrors());
+    }
+
+    @Test
+    void issuesGlobalIsNotAvailable() {
+        assertTrue(sandbox.execute("return issues == nil").toboolean());
     }
 }

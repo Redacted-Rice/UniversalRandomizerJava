@@ -17,10 +17,9 @@ import java.util.List;
 // logDeltaSummary(label) - log a one-line count summary if anything changed
 // clearErrors()/clearWarnings() - also reset matching snapshot baselines to 0
 //
-// Plain Logger.* never collects. A "phase" is one host batch (e.g. loadModules or one
-// executeModules / randomize run), not each module inside it. Library entry points clear at
-// phase start. Hosts can read getIssues after the batch for a popup, then clear after display
-// (or rely on the next phase start).
+// Plain Logger.warn/error collect into IssueTracker when Logger collection is enabled (default on).
+// IssueTracker.addWarning/addError always collect and log once via Logger.log. A "phase" is one
+// host batch (e.g. loadModules or one executeModules / randomize run), not each module inside it.
 public final class IssueTracker {
     public enum Severity {
         WARNING, ERROR
@@ -60,10 +59,8 @@ public final class IssueTracker {
             return;
         }
         String normalized = message.trim();
-        synchronized (issues) {
-            issues.add(new Issue(Severity.WARNING, normalized, context));
-        }
-        Logger.warn(formatForLog(context, normalized));
+        recordWarning(context, normalized);
+        Logger.log(LogLevel.WARN, formatForLog(context, normalized));
     }
 
     public static void addError(String message) {
@@ -75,10 +72,30 @@ public final class IssueTracker {
             return;
         }
         String normalized = message.trim();
+        recordError(context, normalized);
+        Logger.log(LogLevel.ERROR, formatForLog(context, normalized));
+    }
+
+    /** Store a warning without logging. Used by {@link Logger#warn} to avoid double collection. */
+    static void recordWarning(String context, String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        String normalized = message.trim();
+        synchronized (issues) {
+            issues.add(new Issue(Severity.WARNING, normalized, context));
+        }
+    }
+
+    /** Store an error without logging. Used by {@link Logger#error} to avoid double collection. */
+    static void recordError(String context, String message) {
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        String normalized = message.trim();
         synchronized (issues) {
             issues.add(new Issue(Severity.ERROR, normalized, context));
         }
-        Logger.error(formatForLog(context, normalized));
     }
 
     public static boolean hasErrors() {
