@@ -16,7 +16,6 @@ import org.luaj.vm2.lib.ZeroArgFunction;
 
 import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.ExecutionPlan;
-import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 import redactedrice.randomizer.utils.IssueTracker;
@@ -152,6 +151,21 @@ class DynamicVarValidatorTest {
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
         assertTrue(issues.get(0).getMessage().contains("no earlier step"));
+    }
+
+    @Test
+    void executionPlanFailsWhenEarlierProvideHasIncompatibleType() {
+        Module wrongType = module("wrong_type", "Wrong Type",
+                List.of(new DynamicVar("evoLineId", "string")), List.of());
+        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
+                List.of(new DynamicVar("evoLineId", "integer")));
+
+        List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
+                ExecutionPlan.fromSteps(List.of(wrongType, consumer)), null);
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+        assertTrue(issues.get(0).getMessage().contains("incompatible"));
     }
 
     private static Module module(String id, String name, List<DynamicVar> provides,

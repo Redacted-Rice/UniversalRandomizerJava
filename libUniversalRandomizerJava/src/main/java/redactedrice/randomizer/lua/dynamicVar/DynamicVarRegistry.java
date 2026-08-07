@@ -11,8 +11,8 @@ import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
 /**
- * Load time registry of dynamic var providers and consumer needs. Built in two passes so provider
- * collection finishes before any need is checked.
+ * Load time registry of declared providers and consumer needs. metadata only. built in two passes
+ * so provider collection finishes before any need is checked.
  */
 public final class DynamicVarRegistry {
     private List<DynamicVarProvide> allProviders = List.of();

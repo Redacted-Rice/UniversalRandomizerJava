@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import redactedrice.randomizer.lua.ExecutionPlan;
 import redactedrice.randomizer.lua.Issue;
@@ -12,8 +11,9 @@ import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
 /**
- * Validates module provides/needs dynamic var metadata at load time and builds the registry for
- * later runtime validation.
+ * Validates module provides/needs metadata at load time and checks execution order before a batch
+ * runs. Does not inspect or enforce actual Lua context values. modules own reading and writing
+ * those values. validation only checks that declared names and types can be satisfied in order.
  */
 public final class DynamicVarValidator {
     public static final String CATEGORY = "module dynamic vars";
@@ -144,13 +144,6 @@ public final class DynamicVarValidator {
         String needDescription = need.getNeed().toString();
         return consumerInfo + ": needs " + needDescription
                 + " but no loaded module or script provides a compatible value";
-    }
-
-    static String formatSatisfiedNeedMessage(DynamicVarNeed need) {
-        String providerIds =
-                need.getCompatibleProviderModuleIds().stream().collect(Collectors.joining(", "));
-        return moduleInfoString(need.getModule()) + ": needs " + need.getNeed() + " (providers: "
-                + providerIds + ")";
     }
 
     private static String moduleInfoString(Module module) {

@@ -11,7 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Parses provides and needs metadata arrays from module tables. */
+/** Parses provides and needs metadata arrays from module tables. values are not read here. */
 public final class DynamicVarParser {
     private DynamicVarParser() {}
 
