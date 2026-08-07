@@ -97,10 +97,13 @@ public class ModuleParser {
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "version", null, fileName);
         Map<String, String> requires =
                 LuaJavaConverter.tryGetStringMapFromTable(moduleTable, "requires", fileName);
+        int errorsBeforeDynamicVars = IssueTracker.getErrorCount();
         List<DynamicVar> provides =
                 DynamicVarParser.parseFromTable(moduleTable, "provides", fileName);
         List<DynamicVar> needs = DynamicVarParser.parseFromTable(moduleTable, "needs", fileName);
-        if (IssueTracker.hasErrors()) {
+        // only abort on provides/needs parse errors. other issues (e.g. script seed metadata) stay
+        // non fatal
+        if (IssueTracker.getErrorCount() > errorsBeforeDynamicVars) {
             return null;
         }
         String source =

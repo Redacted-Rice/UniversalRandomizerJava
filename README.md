@@ -15,6 +15,7 @@ This utilizes the Universal Randomizer Core written in Lua to perform the random
 - Java-Lua Bridge: Define objects and enums in Java and pass then into Lua to use and modify
   - Automatic Change Tracking: Tracks what lua modules modify and can report it
 - Module Discovery: Automatically scan directories for Lua modules
+- Dependency Metadata: `requires`, `provides`, and `needs` validated at load and execution time
 - Error Handling: Logging for any Lua errors encountered
 
 Note: Performances, both speed and for large data sets, was not considered
@@ -62,7 +63,25 @@ Please see the example app for usage. More documentation will be comming later (
 
 ## Creating Lua Modules
 
-See the lua modules in the example app for example structure. More documentation will be comming later (hopefully)
+See the lua modules in the example app for example structure.
+
+### Module metadata: requires, provides, needs
+
+**requires** — versioned dependencies on the host app, URJava, or other loaded modules/scripts. Checked when modules load (`loadModules` / `validateAllRequirements`).
+
+```lua
+requires = {
+    ExampleApp = "1.0.0",
+    other_module = "0.1",
+},
+```
+
+**provides / needs** — typed dynamic variables a module produces or consumes. URJ validates names and types only - your Lua code sets and reads the values. Load time checks that every need has a compatible provider somewhere. Before a batch runs, execution order is checked so each need is preceded by a compatible provide. `executeModules` returns `null` on order failure (details in `IssueTracker`).
+
+```lua
+provides = { { name = "evoLineId", type = "integer" } },
+needs = { { name = "numMoves", type = "integer" } },
+```
 
 ## Security
 

@@ -2,7 +2,11 @@ package redactedrice.randomizer.lua.dynamicVar;
 
 import java.util.Objects;
 
-/** Named dynamic variable declared by module provides or needs metadata. */
+/**
+ * Named dynamic variable declared in module provides or needs metadata. URJ does not read or write
+ * the runtime value. modules set and read values in Lua. this type only drives dependency
+ * validation so names and types line up across providers and consumers.
+ */
 public final class DynamicVar {
     private final String name;
     private final String type;

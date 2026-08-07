@@ -1,6 +1,7 @@
 package redactedrice.randomizer.lua.dynamicVar;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -25,26 +26,15 @@ class DynamicVarParserTest {
 
     @Test
     void parsesProvidesAndNeedsWithTypes() throws IOException {
-        Path file = tempDir.resolve("provider.lua");
-        Files.writeString(file, """
-                return {
-                    id = "provider",
-                    name = "Provider",
-                    groups = { "test" },
-                    author = "author",
-                    version = "1.0.0",
-                    provides = {
-                        { name = "evoLineId", type = "integer" },
-                        { name = "evoLineMaxStage", type = "EvolutionStage" },
-                    },
-                    needs = {
-                        { name = "numMoves", type = "integer" },
-                    },
-                    execute = function() end,
-                }
-                """);
-
-        Module module = parse(file);
+        Module module = parse(writeModule("""
+                provides = {
+                    { name = "evoLineId", type = "integer" },
+                    { name = "evoLineMaxStage", type = "EvolutionStage" },
+                },
+                needs = {
+                    { name = "numMoves", type = "integer" },
+                },
+                """));
         assertTrue(IssueTracker.getErrors().isEmpty(), () -> IssueTracker.getErrors().toString());
 
         assertEquals(2, module.getProvides().size());
@@ -55,6 +45,54 @@ class DynamicVarParserTest {
         assertEquals(1, module.getNeeds().size());
         assertEquals("numMoves", module.getNeeds().get(0).getName());
         assertEquals("integer", module.getNeeds().get(0).getType());
+    }
+
+    @Test
+    void rejectsProvidesWhenNotATable() throws IOException {
+        Module module = parse(writeModule("""
+                provides = "not a table",
+                """));
+        assertNull(module);
+        assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("provides")));
+    }
+
+    @Test
+    void rejectsDuplicateProvideNamesOnSameModule() throws IOException {
+        Module module = parse(writeModule("""
+                provides = {
+                    { name = "token", type = "integer" },
+                    { name = "token", type = "integer" },
+                },
+                """));
+        assertNull(module);
+        assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("duplicate")));
+    }
+
+    @Test
+    void rejectsProvideEntryMissingType() throws IOException {
+        Module module = parse(writeModule("""
+                provides = {
+                    { name = "token" },
+                },
+                """));
+        assertNull(module);
+        assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("type")));
+    }
+
+    private Path writeModule(String extraFields) throws IOException {
+        Path file = Files.createTempFile(tempDir, "module", ".lua");
+        Files.writeString(file, """
+                return {
+                    id = "test_module",
+                    name = "Test Module",
+                    groups = { "test" },
+                    author = "author",
+                    version = "1.0.0",
+                %s
+                    execute = function() end,
+                }
+                """.formatted(extraFields.strip()));
+        return file;
     }
 
     private Module parse(Path file) {

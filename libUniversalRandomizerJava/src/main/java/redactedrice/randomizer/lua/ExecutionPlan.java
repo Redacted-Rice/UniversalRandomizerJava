@@ -9,7 +9,8 @@ import redactedrice.randomizer.utils.IssueTracker;
 
 /**
  * Ordered run plan for a randomize batch or module only call. Built from the registry and request
- * list. Used for dynamic var validation and for driving batch execution.
+ * list. Used to validate provides/needs execution order (metadata only, not Lua values) and to
+ * drive batch execution.
  *
  * Hosts that add actions incrementally can rebuild with forRandomizeBatch as the list grows and
  * call validate before running.

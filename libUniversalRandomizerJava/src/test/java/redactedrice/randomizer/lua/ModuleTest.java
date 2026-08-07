@@ -145,14 +145,19 @@ public class ModuleTest {
         List<ArgumentDefinition> arguments = Arrays.asList(arg1);
 
         Module metadata = buildModule(TEST_ID, TEST_NAME, null, groups, modifies, arguments,
-                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", requires, null,
-                null, null, null, null);
+                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", requires,
+                List.of(new DynamicVar("token", "integer")),
+                List.of(new DynamicVar("count", "integer")), null, null, null);
 
         assertThrows(UnsupportedOperationException.class,
                 () -> metadata.getRequires().put("NewProgram", "1.0.0"));
         assertThrows(UnsupportedOperationException.class, () -> metadata.getModifies().add("new"));
         assertThrows(UnsupportedOperationException.class, () -> metadata.getArguments()
                 .add(new ArgumentDefinition("arg2", TypeDefinition.integer(), null)));
+        assertThrows(UnsupportedOperationException.class, () -> metadata.getProvides().add(
+                new DynamicVar("other", "integer")));
+        assertThrows(UnsupportedOperationException.class,
+                () -> metadata.getNeeds().add(new DynamicVar("other", "integer")));
     }
 
     @Test
