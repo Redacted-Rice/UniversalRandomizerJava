@@ -6,16 +6,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import redactedrice.randomizer.lua.ExecutionPlan;
 import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
 /**
- * Validates module provides/needs dynamic var metadata at load time and builds teh registry for
+ * Validates module provides/needs dynamic var metadata at load time and builds the registry for
  * later runtime validation.
  */
 public final class DynamicVarValidator {
     public static final String CATEGORY = "module dynamic vars";
+    public static final String EXECUTION_CATEGORY = "module dynamic vars (execution order)";
 
     private DynamicVarValidator() {}
 
@@ -40,6 +42,72 @@ public final class DynamicVarValidator {
         }
 
         return issues;
+    }
+
+    public static List<Issue> validateExecutionPlan(ExecutionPlan plan, List<Issue> issues) {
+        if (issues == null) {
+            issues = new ArrayList<>();
+        }
+        if (plan == null) {
+            return issues;
+        }
+
+        List<Module> steps = plan.getSteps();
+        Map<String, DynamicVar> provided = new LinkedHashMap<>();
+
+        for (int stepIndex = 0; stepIndex < steps.size(); stepIndex++) {
+            Module step = steps.get(stepIndex);
+            if (step == null) {
+                continue;
+            }
+
+            for (DynamicVar need : step.getNeeds()) {
+                DynamicVar available = provided.get(need.getName());
+                if (available != null && available.satisfiesNeed(need)) {
+                    continue;
+                }
+
+                issues.add(new Issue(step, need.getName(), EXECUTION_CATEGORY, true,
+                        formatExecutionOrderMessage(step, need, stepIndex, steps, provided)));
+            }
+
+            for (DynamicVar provide : step.getProvides()) {
+                provided.put(provide.getName(), provide);
+            }
+        }
+
+        return issues;
+    }
+
+    private static String formatExecutionOrderMessage(Module consumer, DynamicVar need,
+            int consumerIndex, List<Module> steps, Map<String, DynamicVar> provided) {
+        String consumerInfo = moduleInfoString(consumer);
+        DynamicVar available = provided.get(need.getName());
+        if (available != null && !available.satisfiesNeed(need)) {
+            return consumerInfo + ": needs " + need + " but earlier step provides incompatible "
+                    + available;
+        }
+
+        List<String> laterProviderIds = new ArrayList<>();
+        for (int i = consumerIndex + 1; i < steps.size(); i++) {
+            Module step = steps.get(i);
+            if (step == null) {
+                continue;
+            }
+            for (DynamicVar provide : step.getProvides()) {
+                if (provide.satisfiesNeed(need)) {
+                    laterProviderIds.add(step.getId());
+                }
+            }
+        }
+
+        if (!laterProviderIds.isEmpty()) {
+            return consumerInfo + ": needs " + need + " but compatible provider(s) run later in "
+                    + "the plan: " + String.join(", ", laterProviderIds);
+        }
+
+        return consumerInfo + ": needs " + need
+                + " but no earlier step in the execution plan provides a compatible value";
     }
 
     private static void collectDuplicateProvideWarnings(List<Module> allModules,

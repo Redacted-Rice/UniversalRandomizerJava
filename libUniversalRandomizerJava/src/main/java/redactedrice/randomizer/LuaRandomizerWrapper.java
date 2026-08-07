@@ -8,11 +8,13 @@ import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
-import redactedrice.randomizer.lua.Module;
-import redactedrice.randomizer.lua.ModuleRegistry;
-import redactedrice.randomizer.lua.ModuleExecutor;
+import redactedrice.randomizer.lua.ExecutionPlan;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.lua.ExecutionResult;
+import redactedrice.randomizer.lua.Issue;
+import redactedrice.randomizer.lua.Module;
+import redactedrice.randomizer.lua.ModuleExecutor;
+import redactedrice.randomizer.lua.ModuleRegistry;
 import redactedrice.randomizer.lua.dynamicVar.DynamicVarRegistry;
 
 import java.io.OutputStream;
@@ -179,28 +181,26 @@ public class LuaRandomizerWrapper {
         // Clear any old wrappers
         context.clearWrapperCache();
 
-        // get scripts by timing and when
-        List<Module> preRandomizeScripts = moduleRegistry
-                .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
-        List<Module> preModuleScripts = moduleRegistry.getScripts(ModuleRegistry.SCRIPT_TIMING_PRE,
-                ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<Module> postModuleScripts = moduleRegistry
-                .getScripts(ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<Module> postRandomizeScripts = moduleRegistry.getScripts(
-                ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
-
-        // Clear results and execute pre randomize scripts
+        // Clear any previous results or errors and create/validate the execution plan
         moduleExecutor.clearResults();
         IssueTracker.clear();
-        moduleExecutor.executeScripts(preRandomizeScripts, context,
+
+        ExecutionPlan plan = ExecutionPlan.forRandomizeBatch(moduleRegistry, requests);
+        if (!plan.validate()) {
+            return List.of();
+        }
+
+        // Execute the pre randomize scripts
+        moduleExecutor.executeScripts(plan.getPreRandomizeScripts(), context,
                 ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
         // Execute the modules running the pre/post scripts for each one
-        List<ExecutionResult> results = moduleExecutor.executeModules(requests, moduleRegistry,
-                context, preModuleScripts, postModuleScripts, baseSeed);
+        List<ExecutionResult> results =
+                moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry, context,
+                        plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
 
         // Execute post randomize scripts
-        moduleExecutor.executeScripts(postRandomizeScripts, context,
+        moduleExecutor.executeScripts(plan.getPostRandomizeScripts(), context,
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
         return results;
@@ -208,6 +208,9 @@ public class LuaRandomizerWrapper {
 
     // Single module (plus its pre/post module scripts). Does not clear issues - call
     // IssueTracker.clear or executePreRandomizeScripts once before a multi module host loop.
+    // Dynamic var order is not validated here. For one by one loops the host should build and
+    // validate an ExecutionPlan for the full request list up front (or revalidate as actions are
+    // added) via createExecutionPlan / validateExecutionPlan.
     public ExecutionResult executeModule(ExecutionRequest request, JavaContext context,
             int baseSeed) {
         if (context == null) {
@@ -219,16 +222,12 @@ public class LuaRandomizerWrapper {
         // add the shared enum registry from onLoad to the execution context
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
 
-        // get only module level scripts. Randomize level must be called by the caller
-        List<Module> preModuleScripts = moduleRegistry.getScripts(ModuleRegistry.SCRIPT_TIMING_PRE,
-                ModuleRegistry.SCRIPT_WHEN_MODULE);
-        List<Module> postModuleScripts = moduleRegistry
-                .getScripts(ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_MODULE);
-
         // Execute the module with only pre/post module scripts
+        // Do not validate here but assume outside orchestrator is validating the overall plan
+        ExecutionPlan plan = ExecutionPlan.forSingleModule(moduleRegistry, request);
         List<ExecutionResult> results =
-                moduleExecutor.executeModules(Collections.singletonList(request), moduleRegistry,
-                        context, preModuleScripts, postModuleScripts, baseSeed);
+                moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry, context,
+                        plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
 
         return results.get(0);
     }
@@ -305,5 +304,23 @@ public class LuaRandomizerWrapper {
 
     public DynamicVarRegistry getDynamicVarRegistry() {
         return moduleRegistry.getDynamicVarRegistry();
+    }
+
+    /**
+     * Builds the run plan for a full randomize batch. Hosts that execute modules one by one should
+     * create this from the complete (or growing) request list and call ExecutionPlan.validate
+     * before the loop, revalidating whenever the list changes.
+     */
+    public ExecutionPlan createExecutionPlan(List<ExecutionRequest> requests) {
+        return ExecutionPlan.forRandomizeBatch(moduleRegistry, requests);
+    }
+
+    /**
+     * Returns dynamic var execution order issues without reporting them to IssueTracker. Use
+     * createExecutionPlan and ExecutionPlan.validate when the host wants validation errors logged
+     * for popups.
+     */
+    public List<Issue> validateExecutionPlan(List<ExecutionRequest> requests) {
+        return ExecutionPlan.collectDynamicVarExecutionIssues(moduleRegistry, requests);
     }
 }

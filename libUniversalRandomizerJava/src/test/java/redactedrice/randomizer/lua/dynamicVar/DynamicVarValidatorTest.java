@@ -15,6 +15,8 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.ZeroArgFunction;
 
 import redactedrice.randomizer.lua.Issue;
+import redactedrice.randomizer.lua.ExecutionPlan;
+import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 import redactedrice.randomizer.utils.IssueTracker;
@@ -108,6 +110,48 @@ class DynamicVarValidatorTest {
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).getMessage().contains("evoLineId"));
+    }
+
+    @Test
+    void executionPlanPassesWhenProviderRunsBeforeConsumer() {
+        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
+                List.of(new DynamicVar("evoLineId", "integer")), List.of());
+        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
+                List.of(new DynamicVar("evoLineId", "integer")));
+
+        List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
+                ExecutionPlan.fromSteps(List.of(provider, consumer)), null);
+
+        assertTrue(issues.isEmpty(), () -> issues.toString());
+    }
+
+    @Test
+    void executionPlanFailsWhenProviderRunsAfterConsumer() {
+        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
+                List.of(new DynamicVar("evoLineId", "integer")), List.of());
+        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
+                List.of(new DynamicVar("evoLineId", "integer")));
+
+        List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
+                ExecutionPlan.fromSteps(List.of(consumer, provider)), null);
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+        assertTrue(issues.get(0).getMessage().contains("later"));
+        assertEquals("evoLineId", issues.get(0).getSubject());
+    }
+
+    @Test
+    void executionPlanFailsWhenProviderIsMissingFromPlan() {
+        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
+                List.of(new DynamicVar("evoLineId", "integer")));
+
+        List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
+                ExecutionPlan.fromSteps(List.of(consumer)), null);
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+        assertTrue(issues.get(0).getMessage().contains("no earlier step"));
     }
 
     private static Module module(String id, String name, List<DynamicVar> provides,
