@@ -7,6 +7,9 @@ import redactedrice.randomizer.lua.arguments.ArgumentParser;
 import redactedrice.randomizer.utils.IssueTracker;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 
+import redactedrice.randomizer.lua.dynamicVar.DynamicVar;
+import redactedrice.randomizer.lua.dynamicVar.DynamicVarParser;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +97,12 @@ public class ModuleParser {
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "version", null, fileName);
         Map<String, String> requires =
                 LuaJavaConverter.tryGetStringMapFromTable(moduleTable, "requires", fileName);
+        List<DynamicVar> provides =
+                DynamicVarParser.parseFromTable(moduleTable, "provides", fileName);
+        List<DynamicVar> needs = DynamicVarParser.parseFromTable(moduleTable, "needs", fileName);
+        if (IssueTracker.hasErrors()) {
+            return null;
+        }
         String source =
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "source", null, fileName);
         String license =
@@ -104,8 +113,8 @@ public class ModuleParser {
         try {
             return new Module(id, name, description, groups, modifies, arguments, executeFunction,
                     onLoadFunction, sourceFile.toAbsolutePath().toString(), seedOffset,
-                    seedOffsetFromMetadata, seeded, when, author, version, requires, source,
-                    license, about);
+                    seedOffsetFromMetadata, seeded, when, author, version, requires, provides,
+                    needs, source, license, about);
         } catch (IllegalArgumentException e) {
             IssueTracker.addError(fileName + " validation failed: " + e.getMessage());
             return null;

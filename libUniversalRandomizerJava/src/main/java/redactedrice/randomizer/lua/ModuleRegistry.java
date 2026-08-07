@@ -2,8 +2,10 @@ package redactedrice.randomizer.lua;
 
 import redactedrice.randomizer.utils.Logger;
 import redactedrice.randomizer.utils.IssueTracker;
+import redactedrice.randomizer.lua.Issue;
+import redactedrice.randomizer.lua.dynamicVar.DynamicVarRegistry;
+import redactedrice.randomizer.lua.dynamicVar.DynamicVarValidator;
 import redactedrice.randomizer.lua.requirements.CoreRequirements;
-import redactedrice.randomizer.lua.requirements.RequirementIssue;
 import redactedrice.randomizer.lua.requirements.RequirementValidator;
 import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 import org.luaj.vm2.LuaValue;
@@ -19,6 +21,7 @@ public class ModuleRegistry {
     private final ModuleRepository repository;
     private final ModuleFilter moduleFilter;
     private final CoreRequirements requirementContext;
+    private DynamicVarRegistry dynamicVarRegistry = DynamicVarRegistry.empty();
 
     public static final String SCRIPT_TIMING_PRE = ModuleRepository.SCRIPT_TIMING_PRE;
     public static final String SCRIPT_TIMING_POST = ModuleRepository.SCRIPT_TIMING_POST;
@@ -186,21 +189,31 @@ public class ModuleRegistry {
         return repository.getAllScripts(timing);
     }
 
-    public List<RequirementIssue> validateAllRequirements() {
-        List<RequirementIssue> issues =
-                RequirementValidator.validate(requirementContext, repository);
-        for (RequirementIssue issue : issues) {
+    public List<Issue> validateAllRequirements() {
+        List<Issue> issues = new ArrayList<>();
+        RequirementValidator.validate(requirementContext, repository, issues);
+        DynamicVarValidator.validate(repository, dynamicVarRegistry, issues);
+        reportIssues(issues);
+        return issues;
+    }
+
+    public DynamicVarRegistry getDynamicVarRegistry() {
+        return dynamicVarRegistry;
+    }
+
+    private void reportIssues(List<Issue> issues) {
+        for (Issue issue : issues) {
             if (issue.isError()) {
-                IssueTracker.addError("module requirements", issue.getMessage());
+                IssueTracker.addError(issue.getCategory(), issue.getMessage());
             } else {
-                IssueTracker.addWarning("module requirements", issue.getMessage());
+                IssueTracker.addWarning(issue.getCategory(), issue.getMessage());
             }
         }
-        return issues;
     }
 
     public void clear() {
         repository.clear();
+        dynamicVarRegistry.clear();
         IssueTracker.clear();
     }
 }

@@ -3,6 +3,8 @@ package redactedrice.randomizer.lua;
 import org.luaj.vm2.LuaFunction;
 import redactedrice.randomizer.lua.arguments.ArgumentDefinition;
 
+import redactedrice.randomizer.lua.dynamicVar.DynamicVar;
+
 import java.util.*;
 
 // holds metadata and execution function for a lua randomizer module
@@ -31,6 +33,8 @@ public class Module {
     String author;
     String version;
     Map<String, String> requires;
+    List<DynamicVar> provides;
+    List<DynamicVar> needs;
     // Optional info fields
     String source;
     String license;
@@ -40,8 +44,8 @@ public class Module {
             Set<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int seedOffset,
             boolean seedOffsetFromMetadata, boolean seeded, String when, String author,
-            String version, Map<String, String> requires, String source, String license,
-            String about) {
+            String version, Map<String, String> requires, List<DynamicVar> provides,
+            List<DynamicVar> needs, String source, String license, String about) {
         // validate required fields
         validateRequiredFields(id, name, executeFunction, author, version);
 
@@ -68,6 +72,8 @@ public class Module {
         this.author = author;
         this.version = version;
         this.requires = requires != null ? new HashMap<>(requires) : new HashMap<>();
+        this.provides = provides != null ? List.copyOf(provides) : List.of();
+        this.needs = needs != null ? List.copyOf(needs) : List.of();
         this.source = source;
         this.license = license;
         this.about = about;
@@ -202,6 +208,14 @@ public class Module {
 
     public Map<String, String> getRequires() {
         return Collections.unmodifiableMap(requires);
+    }
+
+    public List<DynamicVar> getProvides() {
+        return Collections.unmodifiableList(provides);
+    }
+
+    public List<DynamicVar> getNeeds() {
+        return Collections.unmodifiableList(needs);
     }
 
     public String getSource() {
