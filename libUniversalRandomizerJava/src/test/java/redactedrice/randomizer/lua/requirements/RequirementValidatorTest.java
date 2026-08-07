@@ -15,6 +15,7 @@ import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.ZeroArgFunction;
 
+import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 import redactedrice.randomizer.utils.IssueTracker;
@@ -35,10 +36,10 @@ class RequirementValidatorTest {
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
-        assertEquals("ExampleApp", issues.get(0).getRequirementKey());
+        assertEquals("ExampleApp", issues.get(0).getSubject());
     }
 
     @Test
@@ -52,7 +53,7 @@ class RequirementValidatorTest {
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
         context.addCoreRequirement("UniversalRandomizerJava", "0.5.0", false);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertEquals(1, issues.size());
         assertTrue(issues.stream()
                 .anyMatch(issue -> issue.isError() && issue.getModule().getId().equals("without")));
@@ -67,10 +68,10 @@ class RequirementValidatorTest {
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
         context.addCoreRequirement("UniversalRandomizerJava", "0.5.0", false);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertEquals(1, issues.size());
         assertFalse(issues.get(0).isError());
-        assertEquals("UniversalRandomizerJava", issues.get(0).getRequirementKey());
+        assertEquals("UniversalRandomizerJava", issues.get(0).getSubject());
     }
 
     @Test
@@ -83,18 +84,18 @@ class RequirementValidatorTest {
         };
         Module setupScript = new Module("changedetector_setup", "Change Detector Setup", null, null,
                 null, null, execute, null, null, 0, false, false, "randomize", "author", "1.0.0",
-                Map.of("ExampleApp", "1.0.0"), null, null, null);
+                Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
         Module consumer = new Module("downstream_action", "Downstream Action", null,
                 Set.of("players"), null, null, execute, null, null, 0, false, true, null, "author",
                 "1.0.0", Map.of("ExampleApp", "1.0.0", "changedetector_setup", "0.1.0"), null, null,
-                null);
+                null, null, null);
 
         repository.registerScript(setupScript, ModuleRepository.SCRIPT_TIMING_PRE);
         repository.registerModule(consumer, m -> true);
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertTrue(issues.isEmpty(), () -> issues.toString());
     }
 
@@ -109,7 +110,7 @@ class RequirementValidatorTest {
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertTrue(issues.isEmpty(), () -> issues.toString());
     }
 
@@ -124,10 +125,10 @@ class RequirementValidatorTest {
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertEquals(1, issues.size());
         assertFalse(issues.get(0).isError());
-        assertEquals("dependency", issues.get(0).getRequirementKey());
+        assertEquals("dependency", issues.get(0).getSubject());
     }
 
     @Test
@@ -152,10 +153,10 @@ class RequirementValidatorTest {
         };
         Module first = new Module("shared_script", "First Script", null, null, null, null, execute,
                 null, null, 0, false, false, "randomize", "author", "1.0.0",
-                Map.of("ExampleApp", "1.0.0"), null, null, null);
+                Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
         Module second = new Module("shared_script", "Second Script", null, null, null, null, execute,
                 null, null, 0, false, false, "randomize", "author", "1.0.0",
-                Map.of("ExampleApp", "1.0.0"), null, null, null);
+                Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
 
         assertTrue(repository.registerScript(first, ModuleRepository.SCRIPT_TIMING_PRE));
         assertFalse(repository.registerScript(second, ModuleRepository.SCRIPT_TIMING_PRE));
@@ -172,7 +173,7 @@ class RequirementValidatorTest {
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
     }
@@ -209,7 +210,7 @@ class RequirementValidatorTest {
 
         CoreRequirements context = requirements("ExampleApp", "1.0.0", true);
 
-        List<RequirementIssue> issues = RequirementValidator.validate(context, repository);
+        List<Issue> issues = RequirementValidator.validate(context, repository, null);
         assertTrue(issues.isEmpty(), () -> issues.toString());
     }
 
@@ -227,6 +228,6 @@ class RequirementValidatorTest {
             }
         };
         return new Module(id, name, null, Set.of("test"), null, null, execute, null, null, 0, false,
-                true, null, "author", version, requires, null, null, null);
+                true, null, "author", version, requires, null, null, null, null, null);
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
@@ -12,11 +13,15 @@ import redactedrice.randomizer.lua.ModuleRepository;
  * module/script ids.
  */
 public final class RequirementValidator {
+    public static final String CATEGORY = "module requirements";
+
     private RequirementValidator() {}
 
-    public static List<RequirementIssue> validate(CoreRequirements coreReqs,
-            ModuleRepository repository) {
-        List<RequirementIssue> issues = new ArrayList<>();
+    public static List<Issue> validate(CoreRequirements coreReqs, ModuleRepository repository,
+            List<Issue> issues) {
+        if (issues == null) {
+            issues = new ArrayList<>();
+        }
 
         for (Module module : repository.getAllModulesAndScripts()) {
             validateModule(coreReqs, repository, module, issues);
@@ -25,14 +30,13 @@ public final class RequirementValidator {
     }
 
     private static void validateModule(CoreRequirements coreReqs, ModuleRepository repository,
-            Module module, List<RequirementIssue> issues) {
+            Module module, List<Issue> issues) {
         Map<String, String> requires = module.getRequires();
 
         if (coreReqs != null) {
             for (CoreRequirement requirement : coreReqs.getRequirements()) {
                 if (requirement.isMandatory() && !requires.containsKey(requirement.getKey())) {
-                    issues.add(new RequirementIssue(module, requirement.getKey(), true,
-                            moduleInfoString(module) + ": missing mandatory require '"
+                    issues.add(new Issue(module, requirement.getKey(), CATEGORY, true, moduleInfoString(module) + ": missing mandatory require '"
                                     + requirement.getKey() + "'"));
                 }
             }
@@ -44,7 +48,7 @@ public final class RequirementValidator {
             CoreRequirement requirement = coreReqs != null ? coreReqs.getRequirement(key) : null;
             if (requirement != null) {
                 if (!satisfiesMinimumVersion(requirement.getCurrentVersion(), requiredVersion)) {
-                    issues.add(new RequirementIssue(module, key, false,
+                    issues.add(new Issue(module, key, CATEGORY, false,
                             moduleInfoString(module) + ": requires minimum " + key + " "
                                     + requiredVersion + " but current version is "
                                     + requirement.getCurrentVersion()));
@@ -57,14 +61,14 @@ public final class RequirementValidator {
                 dependency = repository.getScript(key);
             }
             if (dependency == null) {
-                issues.add(new RequirementIssue(module, key, true,
+                issues.add(new Issue(module, key, CATEGORY, true,
                         moduleInfoString(module) + ": requires '" + key + "' (" + requiredVersion
                                 + ") but no loaded module or script with that id"));
                 continue;
             }
 
             if (!satisfiesMinimumVersion(dependency.getVersion(), requiredVersion)) {
-                issues.add(new RequirementIssue(module, key, false,
+                issues.add(new Issue(module, key, CATEGORY, false,
                         moduleInfoString(module) + ": requires minimum " + key + " "
                                 + requiredVersion + " but loaded version is "
                                 + dependency.getVersion()));

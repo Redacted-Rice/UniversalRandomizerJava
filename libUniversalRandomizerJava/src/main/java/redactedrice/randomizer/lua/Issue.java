@@ -1,16 +1,16 @@
-package redactedrice.randomizer.lua.requirements;
+package redactedrice.randomizer.lua;
 
-import redactedrice.randomizer.lua.Module;
-
-public final class RequirementIssue {
+public final class Issue {
     private final Module module;
-    private final String requirementKey;
+    private final String subject;
+    private final String category;
     private final boolean isError;
     private final String message;
 
-    public RequirementIssue(Module module, String requirementKey, boolean isError, String message) {
+    public Issue(Module module, String subject, String category, boolean isError, String message) {
         this.module = module;
-        this.requirementKey = requirementKey;
+        this.subject = subject;
+        this.category = category;
         this.isError = isError;
         this.message = message;
     }
@@ -19,8 +19,12 @@ public final class RequirementIssue {
         return module;
     }
 
-    public String getRequirementKey() {
-        return requirementKey;
+    public String getSubject() {
+        return subject;
+    }
+
+    public String getCategory() {
+        return category;
     }
 
     public boolean isError() {

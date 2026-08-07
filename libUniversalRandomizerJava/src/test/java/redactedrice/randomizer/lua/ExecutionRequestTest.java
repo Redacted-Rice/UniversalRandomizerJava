@@ -18,8 +18,7 @@ class ExecutionRequestTest {
             }
         };
         return new Module(id, "Offset Module", null, null, null, null, executeFunc, null, null,
-                seedOffset, fromMetadata, seeded, "module", "Author", "0.1", Map.of(), null, null,
-                null);
+                seedOffset, fromMetadata, seeded, "module", "Author", "0.1", Map.of(), null, null, null, null, null);
     }
 
     @Test

@@ -13,6 +13,7 @@ import redactedrice.randomizer.lua.ModuleRegistry;
 import redactedrice.randomizer.lua.ModuleExecutor;
 import redactedrice.randomizer.lua.ExecutionRequest;
 import redactedrice.randomizer.lua.ExecutionResult;
+import redactedrice.randomizer.lua.dynamicVar.DynamicVarRegistry;
 
 import java.io.OutputStream;
 import java.util.*;
@@ -300,5 +301,9 @@ public class LuaRandomizerWrapper {
 
     public List<Module> getModulesByModifies(String modifies) {
         return moduleRegistry.getModulesByModifies(modifies);
+    }
+
+    public DynamicVarRegistry getDynamicVarRegistry() {
+        return moduleRegistry.getDynamicVarRegistry();
     }
 }
