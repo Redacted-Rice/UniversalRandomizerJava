@@ -96,6 +96,54 @@ class DynamicVarValidatorTest {
     }
 
     @Test
+    void moduleCannotSatisfyItsOwnNeedAtLoadTime() {
+        Module selfSufficient = module("self_provider", "Self Provider",
+                List.of(new DynamicVar("token", "integer")),
+                List.of(new DynamicVar("token", "integer")));
+        repository.registerModule(selfSufficient, m -> true);
+
+        List<Issue> issues = DynamicVarValidator.validate(repository, registry, null);
+
+        assertEquals(1, issues.size());
+        assertTrue(issues.get(0).isError());
+        assertEquals("token", issues.get(0).getSubject());
+        assertTrue(registry.getNeedsForConsumer("self_provider").get(0).getCompatibleProviders()
+                .isEmpty());
+    }
+
+    @Test
+    void typeMatchIsCaseInsensitiveAtLoadAndExecution() {
+        Module provider = module("provider", "Provider",
+                List.of(new DynamicVar("token", "Integer")), List.of());
+        Module consumer = module("consumer", "Consumer", List.of(),
+                List.of(new DynamicVar("token", "integer")));
+
+        repository.registerModule(provider, m -> true);
+        repository.registerModule(consumer, m -> true);
+
+        List<Issue> loadIssues = DynamicVarValidator.validate(repository, registry, null);
+        assertTrue(loadIssues.isEmpty(), () -> loadIssues.toString());
+
+        List<Issue> orderIssues = DynamicVarValidator.validateExecutionPlan(
+                ExecutionPlan.fromSteps(List.of(provider, consumer)), null);
+        assertTrue(orderIssues.isEmpty(), () -> orderIssues.toString());
+    }
+
+    @Test
+    void duplicateProvideSameNameDifferentCaseTypeIsNotConflict() {
+        Module first = module("first_provider", "First Provider",
+                List.of(new DynamicVar("token", "integer")), List.of());
+        Module second = module("second_provider", "Second Provider",
+                List.of(new DynamicVar("token", "Integer")), List.of());
+
+        repository.registerModule(first, m -> true);
+        repository.registerModule(second, m -> true);
+
+        List<Issue> issues = DynamicVarValidator.validate(repository, registry, null);
+        assertTrue(issues.isEmpty(), () -> issues.toString());
+    }
+
+    @Test
     void typeMismatchDoesNotCountAsCompatibleProvider() {
         Module provider = module("wrong_type_provider", "Wrong Type Provider",
                 List.of(new DynamicVar("evoLineId", "string")), List.of());

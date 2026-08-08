@@ -1,6 +1,5 @@
 package redactedrice.randomizer.lua.dynamicVar;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -24,7 +23,7 @@ class DynamicVarExecutionIntegrationTest {
     Path tempDir;
 
     @Test
-    void executeModulesReturnsNullWhenProviderRunsAfterConsumer() throws IOException {
+    void executeModulesReturnsEmptyWhenProviderRunsAfterConsumer() throws IOException {
         Path root = writeModules();
         String randomizerPath =
                 new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
@@ -42,7 +41,7 @@ class DynamicVarExecutionIntegrationTest {
                         ExecutionRequest.forModule(provider, null)),
                 context, 12345);
 
-        assertNull(results);
+        assertTrue(results.isEmpty());
         assertTrue(IssueTracker.hasErrors());
         assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("later")));
     }

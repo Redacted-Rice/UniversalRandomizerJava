@@ -79,6 +79,31 @@ class DynamicVarParserTest {
         assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("type")));
     }
 
+    @Test
+    void rejectsMapStyleProvides() throws IOException {
+        Module module = parse(writeModule("""
+                provides = {
+                    evoLineId = { name = "evoLineId", type = "integer" },
+                },
+                """));
+        assertNull(module);
+        assertTrue(IssueTracker.getErrors().stream().anyMatch(e -> e.contains("array")));
+    }
+
+    @Test
+    void preservesArrayDeclarationOrder() throws IOException {
+        Module module = parse(writeModule("""
+                provides = {
+                    { name = "first", type = "integer" },
+                    { name = "second", type = "string" },
+                    { name = "third", type = "boolean" },
+                },
+                """));
+        assertTrue(IssueTracker.getErrors().isEmpty(), () -> IssueTracker.getErrors().toString());
+        assertEquals(List.of("first", "second", "third"),
+                module.getProvides().stream().map(DynamicVar::getName).toList());
+    }
+
     private Path writeModule(String extraFields) throws IOException {
         Path file = Files.createTempFile(tempDir, "module", ".lua");
         Files.writeString(file, """

@@ -1,11 +1,16 @@
 package redactedrice.randomizer.lua.dynamicVar;
 
+import java.util.Locale;
 import java.util.Objects;
 
 /**
- * Named dynamic variable declared in module provides or needs metadata. URJ does not read or write
- * the runtime value. modules set and read values in Lua. this type only drives dependency
- * validation so names and types line up across providers and consumers.
+ * Named dynamic variable declared in module provides or needs metadata. URJ
+ * does not read or write
+ * the runtime value. modules set and read values in Lua. this type only drives
+ * dependency
+ * validation so names and types line up across providers and consumers. Type
+ * matching is
+ * case insensitive. The declared spelling is preserved for display.
  */
 public final class DynamicVar {
     private final String name;
@@ -30,8 +35,12 @@ public final class DynamicVar {
         return type;
     }
 
+    public boolean typesMatch(String otherType) {
+        return otherType != null && type.equalsIgnoreCase(otherType.trim());
+    }
+
     public boolean satisfiesNeed(DynamicVar need) {
-        return need != null && name.equals(need.name) && type.equals(need.type);
+        return need != null && name.equals(need.name) && typesMatch(need.type);
     }
 
     @Override
@@ -43,12 +52,12 @@ public final class DynamicVar {
             return false;
         }
         DynamicVar that = (DynamicVar) o;
-        return name.equals(that.name) && type.equals(that.type);
+        return name.equals(that.name) && typesMatch(that.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, type);
+        return Objects.hash(name, type.toLowerCase(Locale.ROOT));
     }
 
     @Override
