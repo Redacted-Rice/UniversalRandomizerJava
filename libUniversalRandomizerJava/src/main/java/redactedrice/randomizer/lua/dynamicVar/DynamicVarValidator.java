@@ -11,15 +11,21 @@ import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
 /**
- * Validates module provides/needs metadata at load time and checks execution order before a batch
- * runs. Does not inspect or enforce actual Lua context values. modules own reading and writing
- * those values. validation only checks that declared names and types can be satisfied in order.
+ * Validates module provides/needs metadata at load time and checks execution
+ * order before a batch
+ * runs. Does not inspect or enforce actual Lua context values. modules own
+ * reading and writing
+ * those values. validation only checks that declared names and types can be
+ * satisfied in order.
+ * Type names are compared case insensitively. A module cannot satisfy its own
+ * needs.
  */
 public final class DynamicVarValidator {
     public static final String CATEGORY = "module dynamic vars";
     public static final String EXECUTION_CATEGORY = "module dynamic vars (execution order)";
 
-    private DynamicVarValidator() {}
+    private DynamicVarValidator() {
+    }
 
     public static List<Issue> validate(ModuleRepository repository, DynamicVarRegistry registry,
             List<Issue> issues) {
@@ -123,7 +129,7 @@ public final class DynamicVarValidator {
                     continue;
                 }
 
-                if (!existing.getDefinition().getType().equals(provide.getType())) {
+                if (!existing.getDefinition().typesMatch(provide.getType())) {
                     issues.add(new Issue(module, provide.getName(), CATEGORY, false,
                             formatConflictingProvideMessage(existing, provider)));
                 }

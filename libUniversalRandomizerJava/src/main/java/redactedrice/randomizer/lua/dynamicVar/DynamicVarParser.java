@@ -11,7 +11,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Parses provides and needs metadata arrays from module tables. values are not read here. */
+/**
+ * Parses provides and needs metadata arrays from module tables. values are not read here. Entries
+ * are read in Lua array order (keys 1..n) so declaration order is stable.
+ */
 public final class DynamicVarParser {
     private DynamicVarParser() {}
 
@@ -30,18 +33,23 @@ public final class DynamicVarParser {
 
     private static List<DynamicVar> parseEntries(LuaTable entriesTable, String fieldName,
             String context) {
-        List<DynamicVar> entries = new ArrayList<>();
+        int length = entriesTable.length();
+        if (length == 0) {
+            LuaValue firstKey = entriesTable.next(LuaValue.NIL).arg1();
+            if (!firstKey.isnil()) {
+                IssueTracker.addError(
+                        context + " " + fieldName + " must be an array of tables (got a map)");
+                return List.of();
+            }
+            return List.of();
+        }
+
+        List<DynamicVar> entries = new ArrayList<>(length);
         Set<String> seenNames = new HashSet<>();
 
-        LuaValue key = LuaValue.NIL;
-        while (true) {
-            key = entriesTable.next(key).arg1();
-            if (key.isnil()) {
-                break;
-            }
-
-            LuaValue entryValue = entriesTable.get(key);
-            if (!entryValue.istable()) {
+        for (int i = 1; i <= length; i++) {
+            LuaValue entryValue = entriesTable.get(i);
+            if (entryValue.isnil() || !entryValue.istable()) {
                 IssueTracker.addError(context + " " + fieldName + " entry must be a table");
                 return List.of();
             }

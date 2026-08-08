@@ -260,7 +260,7 @@ public class ExampleApp {
         List<ExecutionResult> results = wrapper.executeModules(executionRequests, context, 12345);
 
         // Print the results (logs and errors)
-        for (int i = 0; results != null && i < results.size(); i++) {
+        for (int i = 0; i < results.size(); i++) {
             ExecutionResult result = results.get(i);
             System.out.println((i + 1) + ". Executing: " + result.getModuleId());
             if (!result.isSuccess()) {

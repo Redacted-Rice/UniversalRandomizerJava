@@ -168,8 +168,8 @@ public class LuaRandomizerWrapper {
 
     // Full randomize batch. This clears prior results/issues once, validates the execution plan,
     // runs all modules/scripts, then leaves issues in IssueTracker so the host can read them
-    // later if desired. Returns null when plan validation fails (see IssueTracker). Otherwise
-    // returns one result per module request.
+    // later if desired. Returns an empty list when plan validation fails (see IssueTracker).
+    // Otherwise returns one result per module request.
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
             JavaContext context, int baseSeed) {
         if (context == null) {
@@ -189,7 +189,7 @@ public class LuaRandomizerWrapper {
 
         ExecutionPlan plan = ExecutionPlan.forRandomizeBatch(moduleRegistry, requests);
         if (!plan.validate()) {
-            return null;
+            return List.of();
         }
 
         // Execute the pre randomize scripts

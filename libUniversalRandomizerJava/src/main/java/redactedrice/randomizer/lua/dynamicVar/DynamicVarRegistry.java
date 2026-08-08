@@ -11,7 +11,8 @@ import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleRepository;
 
 /**
- * Load time registry of declared providers and consumer needs. metadata only. built in two passes
+ * Load time registry of declared providers and consumer needs. metadata only.
+ * built in two passes
  * so provider collection finishes before any need is checked.
  */
 public final class DynamicVarRegistry {
@@ -47,8 +48,9 @@ public final class DynamicVarRegistry {
 
             List<DynamicVarNeed> bindings = new ArrayList<>();
             for (DynamicVar need : module.getNeeds()) {
-                bindings.add(new DynamicVarNeed(module, need,
-                        findCompatibleProviders(nextProviders, need)));
+                // A module cannot satisfy its own needs - another provider must exist.
+                bindings.add(new DynamicVarNeed(module, need, findCompatibleProviders(nextProviders,
+                        need, module.getId())));
             }
             nextNeedsByConsumerId.put(module.getId(), List.copyOf(bindings));
         }
@@ -81,21 +83,33 @@ public final class DynamicVarRegistry {
     }
 
     public List<DynamicVarProvide> findCompatibleProviders(DynamicVar need) {
-        return findCompatibleProviders(allProviders, need);
+        return findCompatibleProviders(allProviders, need, null);
+    }
+
+    public List<DynamicVarProvide> findCompatibleProviders(DynamicVar need,
+            String excludeModuleId) {
+        return findCompatibleProviders(allProviders, need, excludeModuleId);
     }
 
     public List<String> getCompatibleProviderModuleIds(DynamicVar need) {
+        return getCompatibleProviderModuleIds(need, null);
+    }
+
+    public List<String> getCompatibleProviderModuleIds(DynamicVar need, String excludeModuleId) {
         LinkedHashSet<String> moduleIds = new LinkedHashSet<>();
-        for (DynamicVarProvide provider : findCompatibleProviders(need)) {
+        for (DynamicVarProvide provider : findCompatibleProviders(need, excludeModuleId)) {
             moduleIds.add(provider.getModuleId());
         }
         return List.copyOf(moduleIds);
     }
 
     private static List<DynamicVarProvide> findCompatibleProviders(
-            List<DynamicVarProvide> providers, DynamicVar need) {
+            List<DynamicVarProvide> providers, DynamicVar need, String excludeModuleId) {
         List<DynamicVarProvide> matches = new ArrayList<>();
         for (DynamicVarProvide provider : providers) {
+            if (excludeModuleId != null && excludeModuleId.equals(provider.getModuleId())) {
+                continue;
+            }
             if (provider.getDefinition().satisfiesNeed(need)) {
                 matches.add(provider);
             }

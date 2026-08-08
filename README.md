@@ -76,7 +76,7 @@ requires = {
 },
 ```
 
-**provides / needs** — typed dynamic variables a module produces or consumes. URJ validates names and types only - your Lua code sets and reads the values. Load time checks that every need has a compatible provider somewhere. Before a batch runs, execution order is checked so each need is preceded by a compatible provide. `executeModules` returns `null` on order failure (details in `IssueTracker`).
+**provides / needs** — typed dynamic variables a module produces or consumes. URJ validates names and types only - your Lua code sets and reads the values. Type names are matched case insensitively. A module cannot satisfy its own needs - another loaded module/script must provide a compatible value. Load time checks that every need has such a provider somewhere. Before a batch runs, execution order is checked so each need is preceded by a compatible provide. `executeModules` returns an empty list on order failure (details in `IssueTracker`).
 
 ```lua
 provides = { { name = "evoLineId", type = "integer" } },
