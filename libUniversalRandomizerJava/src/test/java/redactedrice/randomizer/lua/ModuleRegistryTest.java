@@ -158,7 +158,7 @@ public class ModuleRegistryTest {
     @Test
     public void testMinimalGroupModuleLoads() {
         wrapper.loadModules();
-        Module module = wrapper.getModule("no_modifies_test");
+        Module module = wrapper.getModule("minimal_groups_test");
         assertNotNull(module);
         assertFalse(module.getGroups().isEmpty());
     }
