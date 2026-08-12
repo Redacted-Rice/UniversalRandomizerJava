@@ -95,6 +95,17 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testConvertAndValidateEnumExclusions() {
+        EnumRegistry enumContext = createTestEnumRegistry();
+        TypeDefinition typeDef = TypeDefinition.enumType("Difficulty",
+                ArgumentConstraint.enumExclusions(Arrays.asList("HARD")));
+
+        assertEquals("EASY", ArgumentConverter.convertAndValidate("EASY", typeDef, enumContext));
+        assertThrows(IllegalArgumentException.class,
+                () -> ArgumentConverter.convertAndValidate("HARD", typeDef, enumContext));
+    }
+
+    @Test
     public void testConvertAndValidateListFromMultipleSources() {
         TypeDefinition intList = TypeDefinition.listOf(TypeDefinition.integer());
         List<Integer> input = Arrays.asList(1, 2, 3);

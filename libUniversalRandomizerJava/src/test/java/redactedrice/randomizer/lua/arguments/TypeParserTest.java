@@ -61,6 +61,27 @@ public class TypeParserTest {
         TypeDefinition constrainedEnum = TypeParser.parse(withConstraint);
         assertEquals(ArgumentType.ENUM, constrainedEnum.getBaseType());
 
+        Map<String, Object> withExclude = new HashMap<>();
+        withExclude.put("type", "enum");
+        withExclude.put("constraint", "EnergyType");
+        withExclude.put("exclude", java.util.Arrays.asList("COLORLESS", "UNUSED_TYPE"));
+        TypeDefinition excludedEnum = TypeParser.parse(withExclude);
+        assertEquals("EnergyType", excludedEnum.getEnumName());
+        assertEquals(ConstraintType.ENUM, excludedEnum.getConstraint().getType());
+        assertEquals(2, excludedEnum.getConstraint().getExcludedValues().size());
+        assertTrue(excludedEnum.getConstraint().validate("FIRE", ArgumentType.ENUM));
+        assertFalse(excludedEnum.getConstraint().validate("COLORLESS", ArgumentType.ENUM));
+
+        Map<String, Object> nestedConstraint = new HashMap<>();
+        nestedConstraint.put("type", "enum");
+        Map<String, Object> constraintMap = new HashMap<>();
+        constraintMap.put("name", "EnergyType");
+        constraintMap.put("exclude", java.util.Arrays.asList("UNUSED_TYPE"));
+        nestedConstraint.put("constraint", constraintMap);
+        TypeDefinition nested = TypeParser.parse(nestedConstraint);
+        assertEquals("EnergyType", nested.getEnumName());
+        assertFalse(nested.getConstraint().validate("UNUSED_TYPE", ArgumentType.ENUM));
+
         Map<String, Object> missingName = new HashMap<>();
         missingName.put("type", "enum");
         assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(missingName));
