@@ -17,7 +17,7 @@ class ExecutionRequestTest {
                 return LuaValue.NIL;
             }
         };
-        return new Module(id, "Offset Module", null, null, null, null, executeFunc, null, null,
+        return new Module(id, "Offset Module", null, null, null, executeFunc, null, null,
                 seedOffset, fromMetadata, seeded, "module", "Author", "0.1", Map.of(), null, null, null, null, null);
     }
 

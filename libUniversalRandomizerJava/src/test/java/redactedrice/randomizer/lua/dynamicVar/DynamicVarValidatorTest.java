@@ -26,7 +26,7 @@ class DynamicVarValidatorTest {
 
     @BeforeEach
     void setUp() {
-        repository = new ModuleRepository(null, null);
+        repository = new ModuleRepository(null);
         registry = DynamicVarRegistry.empty();
         IssueTracker.clear();
     }
@@ -224,7 +224,7 @@ class DynamicVarValidatorTest {
                 return LuaValue.NIL;
             }
         };
-        return new Module(id, name, null, Set.of("test"), null, null, execute, null, null, 0, false,
+        return new Module(id, name, null, Set.of("test"), null, execute, null, null, 0, false,
                 true, null, "author", "1.0.0", Map.of("ExampleApp", "1.0.0"), provides, needs, null,
                 null, null);
     }

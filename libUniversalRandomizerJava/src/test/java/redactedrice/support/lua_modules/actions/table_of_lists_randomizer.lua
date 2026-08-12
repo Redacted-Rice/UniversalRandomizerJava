@@ -7,8 +7,7 @@ return {
 	id = "table_of_lists_randomizer",
 	name = "Table Of Lists Randomizer",
 	description = "Randomizes entity health from table-of-list pools passed from Java",
-	groups = { "advanced" },
-	modifies = { "health" },
+	groups = { "advanced", "health" },
 	author = "Test Author",
 	version = "0.1",
 

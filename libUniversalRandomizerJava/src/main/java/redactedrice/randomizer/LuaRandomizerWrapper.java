@@ -29,13 +29,12 @@ public class LuaRandomizerWrapper {
     JavaContext sharedEnumContext; // shared context for enum registration during onLoad
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
-            Set<String> definedGroups, Set<String> definedModifies) {
-        this(allowedDirectories, searchPaths, definedGroups, definedModifies, null);
+            Set<String> definedGroups) {
+        this(allowedDirectories, searchPaths, definedGroups, null);
     }
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
-            Set<String> definedGroups, Set<String> definedModifies,
-            CoreRequirements requirementContext) {
+            Set<String> definedGroups, CoreRequirements requirementContext) {
         if (allowedDirectories == null || allowedDirectories.isEmpty()) {
             throw new IllegalArgumentException("At least one allowed directory must be provided");
         }
@@ -43,7 +42,7 @@ public class LuaRandomizerWrapper {
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
         this.sandbox = new LuaSandbox(allowedDirectories);
         this.moduleRegistry =
-                new ModuleRegistry(sandbox, definedGroups, definedModifies, requirementContext);
+                new ModuleRegistry(sandbox, definedGroups, requirementContext);
         this.moduleExecutor = new ModuleExecutor(sandbox);
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
@@ -257,9 +256,6 @@ public class LuaRandomizerWrapper {
             if (!module.getGroups().isEmpty()) {
                 System.out.println("  Groups: " + module.getGroups());
             }
-            if (!module.getModifies().isEmpty()) {
-                System.out.println("  Modifies: " + module.getModifies());
-            }
             System.out.println("  Arguments: " + module.getArguments().size());
             module.getArguments().forEach(arg -> {
                 String defaultInfo =
@@ -294,14 +290,6 @@ public class LuaRandomizerWrapper {
 
     public List<Module> getModulesByGroup(String group) {
         return moduleRegistry.getModulesByGroup(group);
-    }
-
-    public Set<String> getDefinedModifiesValues() {
-        return moduleRegistry.getDefinedModifiesValues();
-    }
-
-    public List<Module> getModulesByModifies(String modifies) {
-        return moduleRegistry.getModulesByModifies(modifies);
     }
 
     public DynamicVarRegistry getDynamicVarRegistry() {

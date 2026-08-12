@@ -81,7 +81,7 @@ public class ExampleApp {
         UniversalRandomizerVersions.addTo(requirements);
 
         LuaRandomizerWrapper wrapper =
-                new LuaRandomizerWrapper(allowedDirectories, searchPaths, null, null, requirements);
+                new LuaRandomizerWrapper(allowedDirectories, searchPaths, null, requirements);
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)

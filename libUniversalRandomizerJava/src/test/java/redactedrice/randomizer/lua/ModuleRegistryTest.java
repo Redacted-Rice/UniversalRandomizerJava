@@ -38,7 +38,7 @@ public class ModuleRegistryTest {
         definedGroups.add("health");
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), definedGroups, null);
+                Arrays.asList(modulesPath), definedGroups);
 
         int loaded = wrapper.loadModules();
         assertTrue(loaded > 0);
@@ -59,55 +59,47 @@ public class ModuleRegistryTest {
     }
 
     @Test
-    public void testSetDefinedModifies() {
-        // Create wrapper with defined modifies filter
-        Set<String> definedModifies = new HashSet<>();
-        definedModifies.add("damage");
+    public void testDefinedGroupsFilterBySecondaryGroupTag() {
+        // Create wrapper with defined groups filter
+        Set<String> definedGroups = new HashSet<>();
+        definedGroups.add("damage");
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, definedModifies);
+                Arrays.asList(modulesPath), definedGroups);
 
         int loaded = wrapper.loadModules();
         assertTrue(loaded > 0);
-
-        // Only modules that modify damage should be loaded
-        List<Module> damageModules = wrapper.getModulesByModifies("damage");
-        assertTrue(damageModules.size() > 0);
 
         // Verify specific modules
         Set<String> moduleIds = wrapper.getModuleIds();
         assertTrue(moduleIds.contains("damage_randomizer"));
-        // Health Booster only modifies health so it should not be here
         assertFalse(moduleIds.contains("health_booster"));
     }
 
     @Test
-    public void testCombinedDefinedGroupAndModifies() {
-        // Create wrapper with both defined groups and modifies filters
+    public void testDefinedGroupsRequiresMatchingTag() {
+        // Create wrapper with defined groups filter
         Set<String> definedGroups = new HashSet<>();
-        definedGroups.add("health");
-
-        Set<String> definedModifies = new HashSet<>();
-        definedModifies.add("stats");
+        definedGroups.add("stats");
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), definedGroups, definedModifies);
+                Arrays.asList(modulesPath), definedGroups);
 
         int loaded = wrapper.loadModules();
         assertTrue(loaded > 0);
 
-        // Only modules in health group and with stats modifies should be loaded
+        // Verify specific modules
         Set<String> moduleIds = wrapper.getModuleIds();
-        assertTrue(moduleIds.contains("health_randomizer")); // health group + stats modifies
-        assertFalse(moduleIds.contains("health_booster")); // health group but no stats modifies
-        assertFalse(moduleIds.contains("damage_randomizer")); // stats modifies but damage group
+        assertTrue(moduleIds.contains("health_randomizer"));
+        assertFalse(moduleIds.contains("health_booster"));
+        assertTrue(moduleIds.contains("damage_randomizer"));
     }
 
     @Test
-    public void testNullDefinedGroupsAndModifiesAllowAll() {
-        // Create wrapper with null to dynamically define the groups/modifies
+    public void testNullDefinedGroupsAllowAll() {
+        // Create wrapper with null to dynamically define the groups
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, null);
+                Arrays.asList(modulesPath), null);
 
         int loaded = wrapper.loadModules();
         assertTrue(loaded > 0);
@@ -122,7 +114,7 @@ public class ModuleRegistryTest {
     @Test
     public void testGetDefinedGroupValues() {
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), Set.of("health", "damage"), null);
+                Arrays.asList(modulesPath), Set.of("health", "damage"));
         wrapper.loadModules();
 
         Set<String> presetGroups = wrapper.getDefinedGroupValues();
@@ -131,66 +123,43 @@ public class ModuleRegistryTest {
         assertTrue(presetGroups.contains("damage"));
 
         wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, null);
+                Arrays.asList(modulesPath), null);
         wrapper.loadModules();
         Set<String> loadedGroups = wrapper.getDefinedGroupValues();
         assertTrue(loadedGroups.contains("health"));
         assertTrue(loadedGroups.contains("damage"));
+        assertTrue(loadedGroups.contains("stats"));
     }
 
     @Test
-    public void testGetDefinedModifiesValues() {
-        wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, Set.of("health", "stats", "damage"));
-        wrapper.loadModules();
-
-        Set<String> presetModifies = wrapper.getDefinedModifiesValues();
-        assertEquals(3, presetModifies.size());
-        assertTrue(presetModifies.contains("health"));
-        assertTrue(presetModifies.contains("stats"));
-        assertTrue(presetModifies.contains("damage"));
-
-        wrapper = new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                Arrays.asList(modulesPath), null, null);
-        wrapper.loadModules();
-        Set<String> loadedModifies = wrapper.getDefinedModifiesValues();
-        assertTrue(loadedModifies.contains("health"));
-        assertTrue(loadedModifies.contains("damage"));
-        assertTrue(loadedModifies.contains("stats"));
-    }
-
-    @Test
-    public void testModifiesFilterOnlyAddsToDefinedCategories() {
-        // Health Randomizer modifies health and stats. Since stats is not defined
-        // it should only be loaded in the health module
-        Set<String> definedModifies = new HashSet<>(Arrays.asList("health"));
+    public void testGroupFilterOnlyAddsToDefinedCategories() {
+        Set<String> definedGroups = new HashSet<>(Arrays.asList("health"));
 
         LuaRandomizerWrapper wrapper =
                 new LuaRandomizerWrapper(Arrays.asList(randomizerPath, modulesPath),
-                        Arrays.asList(modulesPath), null, definedModifies);
+                        Arrays.asList(modulesPath), definedGroups);
 
         wrapper.loadModules();
 
-        // Health Randomizer should be loaded since it has health modifies
+        // Health Randomizer has health and stats. Since stats is not defined
+        // it should only be loaded in the health module
         Module module = wrapper.getModule("health_randomizer");
         assertNotNull(module);
 
         // It should appear in health category
-        List<Module> healthModules = wrapper.getModulesByModifies("health");
+        List<Module> healthModules = wrapper.getModulesByGroup("health");
         assertTrue(healthModules.stream().anyMatch(m -> m.getName().equals("Health Randomizer")));
 
         // It should not appear in stats category since it was not defined ahead of time
-        List<Module> statsModules = wrapper.getModulesByModifies("stats");
+        List<Module> statsModules = wrapper.getModulesByGroup("stats");
         assertFalse(statsModules.stream().anyMatch(m -> m.getName().equals("Health Randomizer")));
     }
 
     @Test
-    public void testModifiesFieldIsOptional() {
-        // Modules should allow empty/missing modifies
+    public void testMinimalGroupModuleLoads() {
         wrapper.loadModules();
         Module module = wrapper.getModule("no_modifies_test");
         assertNotNull(module);
-        assertTrue(module.getModifies().isEmpty());
         assertFalse(module.getGroups().isEmpty());
     }
 }

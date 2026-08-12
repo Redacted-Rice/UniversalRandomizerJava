@@ -7,8 +7,7 @@ return {
 	id = "simple_entity_randomizer",
 	name = "Simple Entity Randomizer",
 	description = "Randomizes entity name, health, and damage values",
-	groups = { "basic" },
-	modifies = { "name", "health", "damage", "active" },
+	groups = { "basic", "name", "health", "damage", "active" },
 	defaultSeedOffset = 42, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",

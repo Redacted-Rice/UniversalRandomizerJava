@@ -25,7 +25,7 @@ class RequirementValidatorTest {
 
     @BeforeEach
     void setUp() {
-        repository = new ModuleRepository(null, null);
+        repository = new ModuleRepository(null);
         IssueTracker.clear();
     }
 
@@ -83,10 +83,10 @@ class RequirementValidatorTest {
             }
         };
         Module setupScript = new Module("changedetector_setup", "Change Detector Setup", null, null,
-                null, null, execute, null, null, 0, false, false, "randomize", "author", "1.0.0",
+                null, execute, null, null, 0, false, false, "randomize", "author", "1.0.0",
                 Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
         Module consumer = new Module("downstream_action", "Downstream Action", null,
-                Set.of("players"), null, null, execute, null, null, 0, false, true, null, "author",
+                Set.of("players"), null, execute, null, null, 0, false, true, null, "author",
                 "1.0.0", Map.of("ExampleApp", "1.0.0", "changedetector_setup", "0.1.0"), null, null,
                 null, null, null);
 
@@ -151,10 +151,10 @@ class RequirementValidatorTest {
                 return LuaValue.NIL;
             }
         };
-        Module first = new Module("shared_script", "First Script", null, null, null, null, execute,
+        Module first = new Module("shared_script", "First Script", null, null, null, execute,
                 null, null, 0, false, false, "randomize", "author", "1.0.0",
                 Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
-        Module second = new Module("shared_script", "Second Script", null, null, null, null, execute,
+        Module second = new Module("shared_script", "Second Script", null, null, null, execute,
                 null, null, 0, false, false, "randomize", "author", "1.0.0",
                 Map.of("ExampleApp", "1.0.0"), null, null, null, null, null);
 
@@ -227,7 +227,7 @@ class RequirementValidatorTest {
                 return LuaValue.NIL;
             }
         };
-        return new Module(id, name, null, Set.of("test"), null, null, execute, null, null, 0, false,
+        return new Module(id, name, null, Set.of("test"), null, execute, null, null, 0, false,
                 true, null, "author", version, requires, null, null, null, null, null);
     }
 }

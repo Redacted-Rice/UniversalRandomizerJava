@@ -7,8 +7,7 @@ return {
 	id = "enum_usage",
 	name = "Enum Usage",
 	description = "Uses enums registered by another module in onLoad",
-	groups = { "utils" },
-	modifies = { "entity" },
+	groups = { "utils", "entity" },
 	author = "Test Author",
 	version = "0.1",
 
