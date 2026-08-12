@@ -57,10 +57,14 @@ public class TypeDefinition {
 
     // Factory method for enum type
     public static TypeDefinition enumType(String enumName) {
+        return enumType(enumName, null);
+    }
+
+    public static TypeDefinition enumType(String enumName, ArgumentConstraint constraint) {
         if (enumName == null || enumName.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
-        return new TypeDefinition(ArgumentType.ENUM, enumName.trim(), null, null, null, null);
+        return new TypeDefinition(ArgumentType.ENUM, enumName.trim(), null, null, null, constraint);
     }
 
     // Factory method for list type

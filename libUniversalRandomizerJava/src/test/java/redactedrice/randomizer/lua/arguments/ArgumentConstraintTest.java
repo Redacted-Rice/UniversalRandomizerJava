@@ -71,4 +71,18 @@ public class ArgumentConstraintTest {
         assertFalse(constraint.validate(2.5, ArgumentType.DOUBLE));
         assertFalse(constraint.validate(4, ArgumentType.INTEGER));
     }
+
+    @Test
+    public void testEnumExclusions() {
+        ArgumentConstraint constraint =
+                ArgumentConstraint.enumExclusions(Arrays.asList("COLORLESS", "UNUSED_TYPE"));
+        assertEquals(ConstraintType.ENUM, constraint.getType());
+        assertEquals(2, constraint.getExcludedValues().size());
+        assertTrue(constraint.validate("FIRE", ArgumentType.ENUM));
+        assertFalse(constraint.validate("COLORLESS", ArgumentType.ENUM));
+        assertFalse(constraint.validate("UNUSED_TYPE", ArgumentType.ENUM));
+
+        assertEquals(Arrays.asList("FIRE", "WATER"),
+                constraint.filterEnumValues(Arrays.asList("FIRE", "COLORLESS", "WATER", "UNUSED_TYPE")));
+    }
 }

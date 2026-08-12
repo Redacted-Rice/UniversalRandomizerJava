@@ -22,8 +22,8 @@ public class ArgumentConverter {
         // convert the value to the right type
         Object converted = convertToType(value, typeDef, enumRegistry);
 
-        // check constraints for primitive types
-        if (typeDef.isPrimitive()) {
+        // check constraints for primitives and for named enums (allow/exclude filters)
+        if (typeDef.isPrimitive() || typeDef.isEnum()) {
             ArgumentConstraint constraint = typeDef.getEnforcedConstraint();
             if (constraint != null && !constraint.validate(converted, typeDef.getBaseType())) {
                 throw new IllegalArgumentException(

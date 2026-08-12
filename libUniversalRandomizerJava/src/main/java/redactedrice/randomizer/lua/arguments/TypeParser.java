@@ -69,14 +69,7 @@ public class TypeParser {
                 return constraint != null ? TypeDefinition.bool(constraint) : TypeDefinition.bool();
 
             case "enum":
-                // for enum constraint is the enum name
-                String enumName = constraintObj instanceof String ? (String) constraintObj
-                        : (String) typeMap.get("enumName");
-                if (enumName == null) {
-                    throw new IllegalArgumentException(
-                            "Enum type must specify enum name via 'constraint' or 'enumName'");
-                }
-                return TypeDefinition.enumType(enumName);
+                return parseEnumType(typeMap, constraintObj);
 
             case "list":
                 // lists need an elementdefinition field specifying the element type
@@ -102,6 +95,51 @@ public class TypeParser {
         }
     }
 
+    private static TypeDefinition parseEnumType(Map<?, ?> typeMap, Object constraintObj) {
+        String enumName = null;
+        List<Object> allowed = asObjectList(typeMap.get("values"));
+        List<Object> excluded = asObjectList(typeMap.get("exclude"));
+
+        if (constraintObj instanceof String) {
+            enumName = (String) constraintObj;
+        } else if (constraintObj instanceof Map) {
+            Map<?, ?> constraintMap = (Map<?, ?>) constraintObj;
+            Object nameObj = constraintMap.get("name");
+            if (nameObj == null) {
+                nameObj = constraintMap.get("enumName");
+            }
+            if (nameObj instanceof String) {
+                enumName = (String) nameObj;
+            }
+            if (allowed == null) {
+                allowed = asObjectList(constraintMap.get("values"));
+            }
+            if (excluded == null) {
+                excluded = asObjectList(constraintMap.get("exclude"));
+            }
+        } else if (typeMap.get("enumName") instanceof String) {
+            enumName = (String) typeMap.get("enumName");
+        }
+
+        if (enumName == null) {
+            throw new IllegalArgumentException(
+                    "Enum type must specify enum name via 'constraint' or 'enumName'");
+        }
+
+        ArgumentConstraint enumConstraint = null;
+        if ((allowed != null && !allowed.isEmpty()) || (excluded != null && !excluded.isEmpty())) {
+            enumConstraint = ArgumentConstraint.enumFilter(allowed, excluded);
+        }
+        return TypeDefinition.enumType(enumName, enumConstraint);
+    }
+
+    private static List<Object> asObjectList(Object value) {
+        if (!(value instanceof List)) {
+            return null;
+        }
+        return new ArrayList<>((List<?>) value);
+    }
+
     private static ArgumentConstraint parseConstraint(Object constraintObj, String typeStr) {
         // constraints can be basic types strings or complex maps
         if (constraintObj instanceof String) {
@@ -119,6 +157,11 @@ public class TypeParser {
             String constraintType = (String) constraintMap.get("type");
 
             if (constraintType == null) {
+                // Enum name/exclude maps are handled in parseEnumType, not as a generic
+                // constraint
+                if ("enum".equalsIgnoreCase(typeStr)) {
+                    return ArgumentConstraint.any();
+                }
                 return ArgumentConstraint.any();
             }
 
@@ -142,13 +185,20 @@ public class TypeParser {
                     return ArgumentConstraint.discreteRange(dMin, dMax, step);
 
                 case "enum":
-                    // Enum constraint with explicit values
+                    // Enum constraint with explicit values and optional exclusions
                     Object valuesObj = constraintMap.get("values");
-                    if (valuesObj instanceof List) {
-                        List<?> valuesList = (List<?>) valuesObj;
-                        return ArgumentConstraint.enumValues(new ArrayList<>(valuesList));
+                    Object excludeObj = constraintMap.get("exclude");
+                    List<Object> allowed =
+                            valuesObj instanceof List ? new ArrayList<>((List<?>) valuesObj) : null;
+                    List<Object> excluded = excludeObj instanceof List
+                            ? new ArrayList<>((List<?>) excludeObj)
+                            : null;
+                    if ((allowed == null || allowed.isEmpty())
+                            && (excluded == null || excluded.isEmpty())) {
+                        throw new IllegalArgumentException(
+                                "Enum constraint must have 'values' and/or 'exclude' list");
                     }
-                    throw new IllegalArgumentException("Enum constraint must have 'values' list");
+                    return ArgumentConstraint.enumFilter(allowed, excluded);
 
                 default:
                     return ArgumentConstraint.any();

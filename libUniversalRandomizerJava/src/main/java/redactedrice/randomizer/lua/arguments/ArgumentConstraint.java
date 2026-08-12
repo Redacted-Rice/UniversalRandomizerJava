@@ -10,6 +10,7 @@ public class ArgumentConstraint {
     Double max;
     Double step;
     List<Object> allowedValues;
+    List<Object> excludedValues;
 
     private ArgumentConstraint(ConstraintType type) {
         this.type = type;
@@ -35,8 +36,22 @@ public class ArgumentConstraint {
     }
 
     public static ArgumentConstraint enumValues(List<Object> values) {
+        return enumFilter(values, null);
+    }
+
+    public static ArgumentConstraint enumExclusions(List<Object> excluded) {
+        return enumFilter(null, excluded);
+    }
+
+    // Allowlist and/or denylist for enum/string choices. Null lists are ignored.
+    public static ArgumentConstraint enumFilter(List<Object> allowed, List<Object> excluded) {
         ArgumentConstraint constraint = new ArgumentConstraint(ConstraintType.ENUM);
-        constraint.allowedValues = new ArrayList<>(values);
+        if (allowed != null) {
+            constraint.allowedValues = new ArrayList<>(allowed);
+        }
+        if (excluded != null) {
+            constraint.excludedValues = new ArrayList<>(excluded);
+        }
         return constraint;
     }
 
@@ -76,16 +91,45 @@ public class ArgumentConstraint {
                 return Math.abs(remainder) < 0.0001 || Math.abs(remainder - step) < 0.0001;
 
             case ENUM:
-                for (Object allowed : allowedValues) {
-                    if (matchesAllowedValue(allowed, value)) {
-                        return true;
+                if (allowedValues != null && !allowedValues.isEmpty()) {
+                    boolean allowed = false;
+                    for (Object candidate : allowedValues) {
+                        if (matchesAllowedValue(candidate, value)) {
+                            allowed = true;
+                            break;
+                        }
+                    }
+                    if (!allowed) {
+                        return false;
                     }
                 }
-                return false;
+                if (excludedValues != null) {
+                    for (Object excluded : excludedValues) {
+                        if (matchesAllowedValue(excluded, value)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
 
             default:
                 return false;
         }
+    }
+
+    // Filters a registered enum's value list by this constraint's allow/exclude lists.
+    // Non-ENUM constraints return the input unchanged.
+    public List<String> filterEnumValues(List<String> allValues) {
+        if (allValues == null || type != ConstraintType.ENUM) {
+            return allValues;
+        }
+        List<String> filtered = new ArrayList<>();
+        for (String value : allValues) {
+            if (validate(value, ArgumentType.ENUM)) {
+                filtered.add(value);
+            }
+        }
+        return filtered;
     }
 
     static boolean matchesAllowedValue(Object allowed, Object value) {
@@ -107,7 +151,20 @@ public class ArgumentConstraint {
             case DISCRETE_RANGE:
                 return String.format("discrete range [%.2f, %.2f] with step %.2f", min, max, step);
             case ENUM:
-                return "one of: " + allowedValues;
+                StringBuilder description = new StringBuilder();
+                if (allowedValues != null && !allowedValues.isEmpty()) {
+                    description.append("one of: ").append(allowedValues);
+                }
+                if (excludedValues != null && !excludedValues.isEmpty()) {
+                    if (description.length() > 0) {
+                        description.append("; ");
+                    }
+                    description.append("excluding: ").append(excludedValues);
+                }
+                if (description.length() == 0) {
+                    return "enum values";
+                }
+                return description.toString();
             default:
                 return "unknown constraint";
         }
@@ -132,5 +189,9 @@ public class ArgumentConstraint {
 
     public List<Object> getAllowedValues() {
         return allowedValues != null ? new ArrayList<>(allowedValues) : null;
+    }
+
+    public List<Object> getExcludedValues() {
+        return excludedValues != null ? new ArrayList<>(excludedValues) : null;
     }
 }
