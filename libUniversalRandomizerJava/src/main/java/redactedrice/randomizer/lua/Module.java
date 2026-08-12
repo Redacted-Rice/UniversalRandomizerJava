@@ -128,13 +128,14 @@ public class Module {
         if (values == null || values.isEmpty()) {
             return Collections.emptySet();
         }
-        Set<String> normalized = new LinkedHashSet<>();
+        Map<String, String> byLowerKey = new LinkedHashMap<>();
         for (String value : values) {
             if (value != null && !value.trim().isEmpty()) {
-                normalized.add(value.toLowerCase());
+                String trimmed = value.trim();
+                byLowerKey.putIfAbsent(trimmed.toLowerCase(Locale.ROOT), trimmed);
             }
         }
-        return Collections.unmodifiableSet(normalized);
+        return Collections.unmodifiableSet(new LinkedHashSet<>(byLowerKey.values()));
     }
 
     // Getters

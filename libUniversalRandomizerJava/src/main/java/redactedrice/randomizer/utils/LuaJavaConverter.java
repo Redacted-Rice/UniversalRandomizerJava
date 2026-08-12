@@ -291,7 +291,7 @@ public class LuaJavaConverter {
             if (tableValue.isstring()) {
                 String str = tableValue.tojstring();
                 if (str != null && !str.trim().isEmpty()) {
-                    result.add(str.toLowerCase());
+                    result.add(str.trim());
                 }
             } else {
                 IssueTracker.addError(context + " field '" + fieldName

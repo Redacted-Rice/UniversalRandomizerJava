@@ -210,7 +210,19 @@ public class ModuleTest {
                 executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null, null,
                 null, null, null);
 
-        assertTrue(metadata.getGroups().contains("gameplay"));
+        assertEquals(1, metadata.getGroups().size());
+        assertTrue(metadata.getGroups().contains("GAMEPLAY"));
+    }
+
+    @Test
+    public void testConstructorGroupsDeduplicatesByCase() {
+        LuaFunction executeFunc = createMockFunction();
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("Monsters", "monsters"), null,
+                null, executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null,
+                null, null, null, null);
+
+        assertEquals(1, metadata.getGroups().size());
+        assertTrue(metadata.getGroups().contains("Monsters"));
     }
 
     @Test
@@ -222,7 +234,7 @@ public class ModuleTest {
 
         assertEquals(2, metadata.getGroups().size());
         assertTrue(metadata.getGroups().contains("gameplay"));
-        assertTrue(metadata.getGroups().contains("action"));
+        assertTrue(metadata.getGroups().contains("ACTION"));
     }
 
     @Test

@@ -119,13 +119,18 @@ public class ModuleRepository {
         }
         for (String category : categories) {
             if (category != null && !category.trim().isEmpty()) {
+                String key = categoryKey(category);
                 // Only add if not filtering or if in defined list
                 if (definedCategories == null || definedCategories.isEmpty()
-                        || definedCategories.contains(category)) {
-                    indexMap.computeIfAbsent(category, k -> new ArrayList<>()).add(module);
+                        || definedCategories.contains(key)) {
+                    indexMap.computeIfAbsent(key, k -> new ArrayList<>()).add(module);
                 }
             }
         }
+    }
+
+    private static String categoryKey(String category) {
+        return category.trim().toLowerCase(Locale.ROOT);
     }
 
     private Set<String> normalizeStringSet(Set<String> values) {
@@ -178,7 +183,7 @@ public class ModuleRepository {
             return new ArrayList<>();
         }
 
-        List<Module> groupModules = modulesByGroup.get(group);
+        List<Module> groupModules = modulesByGroup.get(categoryKey(group));
         return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
     }
 
@@ -195,7 +200,7 @@ public class ModuleRepository {
             return new ArrayList<>();
         }
 
-        List<Module> modifiesModules = modulesByModifies.get(modifies);
+        List<Module> modifiesModules = modulesByModifies.get(categoryKey(modifies));
         return modifiesModules != null ? new ArrayList<>(modifiesModules) : new ArrayList<>();
     }
 
