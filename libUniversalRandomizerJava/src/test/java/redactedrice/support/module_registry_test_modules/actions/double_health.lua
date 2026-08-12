@@ -8,7 +8,6 @@ return {
 	name = "Health Booster",
 	description = "Increases entity health",
 	groups = { "health" },
-	modifies = { "health" },
 	defaultSeedOffset = 30,
 	author = "Test Author",
 	version = "0.1",

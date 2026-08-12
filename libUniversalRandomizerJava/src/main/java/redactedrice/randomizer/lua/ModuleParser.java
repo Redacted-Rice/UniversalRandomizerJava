@@ -48,8 +48,6 @@ public class ModuleParser {
                 LuaJavaConverter.tryGetStringFromTable(moduleTable, "description", "", fileName);
         Set<String> groups =
                 LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "groups", fileName);
-        Set<String> modifies =
-                LuaJavaConverter.tryGetStringSetFromTable(moduleTable, "modifies", fileName);
         String when = LuaJavaConverter.tryGetStringFromTable(moduleTable, "when", null, fileName);
         boolean isScript = when != null && !when.trim().isEmpty();
 
@@ -114,7 +112,7 @@ public class ModuleParser {
 
         // Create the module. This will validate and throw if there are issues
         try {
-            return new Module(id, name, description, groups, modifies, arguments, executeFunction,
+            return new Module(id, name, description, groups, arguments, executeFunction,
                     onLoadFunction, sourceFile.toAbsolutePath().toString(), seedOffset,
                     seedOffsetFromMetadata, seeded, when, author, version, requires, provides,
                     needs, source, license, about);

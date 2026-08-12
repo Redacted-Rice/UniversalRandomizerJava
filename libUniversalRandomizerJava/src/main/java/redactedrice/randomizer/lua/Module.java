@@ -13,7 +13,6 @@ public class Module {
     String name;
     String description;
     Set<String> groups;
-    Set<String> modifies;
     List<ArgumentDefinition> arguments;
     LuaFunction executeFunction;
     LuaFunction onLoadFunction; // Optional onLoad function
@@ -41,7 +40,7 @@ public class Module {
     String about;
 
     public Module(String id, String name, String description, Set<String> groups,
-            Set<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunction,
+            List<ArgumentDefinition> arguments, LuaFunction executeFunction,
             LuaFunction onLoadFunction, String filePath, int seedOffset,
             boolean seedOffsetFromMetadata, boolean seeded, String when, String author,
             String version, Map<String, String> requires, List<DynamicVar> provides,
@@ -50,17 +49,15 @@ public class Module {
         validateRequiredFields(id, name, executeFunction, author, version);
 
         // For regular modules (when == null) groups are required
-        // Scripts (when != null) should not have groups or modifies
+        // Scripts (when != null) should not have groups
         boolean isScript = when != null && !when.trim().isEmpty();
         validateGroupsForModuleType(groups, isScript);
-        validateModifiesForModuleType(modifies, isScript);
 
         // initialize all fields with defaults where appropriate
         this.id = id;
         this.name = name;
         this.description = description != null ? description : "";
         this.groups = normalizeStringSet(groups);
-        this.modifies = normalizeStringSet(modifies);
         this.arguments = arguments != null ? new ArrayList<>(arguments) : new ArrayList<>();
         this.executeFunction = executeFunction;
         this.onLoadFunction = onLoadFunction; // can be null
@@ -113,17 +110,6 @@ public class Module {
         }
     }
 
-    private void validateModifiesForModuleType(Set<String> modifies, boolean isScript) {
-        if (isScript) {
-            // Scripts should not have modifies
-            if (modifies != null && !modifies.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Scripts (when != null) should not have modifies");
-            }
-        }
-        // Modifies is optional for modules
-    }
-
     private Set<String> normalizeStringSet(Set<String> values) {
         if (values == null || values.isEmpty()) {
             return Collections.emptySet();
@@ -153,10 +139,6 @@ public class Module {
 
     public Set<String> getGroups() {
         return Collections.unmodifiableSet(groups);
-    }
-
-    public Set<String> getModifies() {
-        return Collections.unmodifiableSet(modifies);
     }
 
     public List<ArgumentDefinition> getArguments() {
@@ -234,9 +216,9 @@ public class Module {
     @Override
     public String toString() {
         return String.format(
-                "Module{id='%s', name='%s', groups=%s, modifies=%s, description='%s', arguments=%d, "
+                "Module{id='%s', name='%s', groups=%s, description='%s', arguments=%d, "
                         + "seedOffset=%d, seedOffsetFromMetadata=%s, seeded=%s, when='%s', filePath='%s', author='%s', version='%s'}",
-                id, name, groups, modifies, description, arguments.size(), seedOffset,
+                id, name, groups, description, arguments.size(), seedOffset,
                 seedOffsetFromMetadata, seeded, when, filePath, author, version);
     }
 }

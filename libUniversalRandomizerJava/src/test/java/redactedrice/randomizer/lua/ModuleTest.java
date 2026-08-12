@@ -30,19 +30,18 @@ public class ModuleTest {
     }
 
     private Module buildModule(String id, String name, String description, Set<String> groups,
-            Set<String> modifies, List<ArgumentDefinition> arguments, LuaFunction executeFunc,
+            List<ArgumentDefinition> arguments, LuaFunction executeFunc,
             LuaFunction onLoadFunc, String filePath, int seedOffset, boolean seedOffsetFromMetadata,
             boolean seeded, String when, String author, String version,
             Map<String, String> requires, List<DynamicVar> provides, List<DynamicVar> needs,
             String source, String license, String about) {
-        return new Module(id, name, description, groups, modifies, arguments, executeFunc,
+        return new Module(id, name, description, groups, arguments, executeFunc,
                 onLoadFunc, filePath, seedOffset, seedOffsetFromMetadata, seeded, when, author,
                 version, requires, provides, needs, source, license, about);
     }
 
     private Module buildDefaultModule() {
-        return buildModule(TEST_ID, TEST_NAME, "Test description", setOf("gameplay"),
-                setOf("stats", "appearance"),
+        return buildModule(TEST_ID, TEST_NAME, "Test description", setOf("gameplay", "stats", "appearance"),
                 Arrays.asList(new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
                 createMockFunction(), null, "/path/to/module.lua", 0, true, true, null,
                 "TestAuthor", "0.1", Map.of("other_module", "0.1"), null, null, null, null, null);
@@ -55,11 +54,10 @@ public class ModuleTest {
         assertEquals(TEST_ID, metadata.getId());
         assertEquals(TEST_NAME, metadata.getName());
         assertEquals("Test description", metadata.getDescription());
-        assertEquals(1, metadata.getGroups().size());
+        assertEquals(3, metadata.getGroups().size());
         assertTrue(metadata.getGroups().contains("gameplay"));
-        assertEquals(2, metadata.getModifies().size());
-        assertTrue(metadata.getModifies().contains("stats"));
-        assertTrue(metadata.getModifies().contains("appearance"));
+        assertTrue(metadata.getGroups().contains("stats"));
+        assertTrue(metadata.getGroups().contains("appearance"));
         assertEquals(1, metadata.getArguments().size());
         assertFalse(metadata.hasOnLoad());
         assertEquals("/path/to/module.lua", metadata.getFilePath());
@@ -75,34 +73,34 @@ public class ModuleTest {
     public void testConstructorRejectsInvalidArguments() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(null, TEST_NAME, null, null, null, null, executeFunc, null, null,
+                () -> buildModule(null, TEST_NAME, null, null, null, executeFunc, null, null,
                         0, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                         null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule("", TEST_NAME, null, null, null, null, executeFunc, null, null, 0,
+                () -> buildModule("", TEST_NAME, null, null, null, executeFunc, null, null, 0,
                         true, true, null, "TestAuthor", "0.1", null, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule("   ", TEST_NAME, null, null, null, null, executeFunc, null, null,
+                () -> buildModule("   ", TEST_NAME, null, null, null, executeFunc, null, null,
                         0, true, true, null, "TestAuthor", "0.1", null, null, null, null, null,
                         null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, null, null, null, null, null, executeFunc, null, null, 0,
+                () -> buildModule(TEST_ID, null, null, null, null, executeFunc, null, null, 0,
                         true, true, null, "TestAuthor", "0.1", null, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, "", null, null, null, null, executeFunc, null, null, 0,
+                () -> buildModule(TEST_ID, "", null, null, null, executeFunc, null, null, 0,
                         true, true, null, "TestAuthor", "0.1", null, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, null, null, null, 0,
+                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, null, null, 0,
                         true, true, null, "TestAuthor", "0.1", null, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                         null, 0, true, true, null, null, "0.1", null, null, null, null, null,
                         null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                         null, 0, true, true, null, "", "0.1", null, null, null, null, null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                         null, 0, true, true, null, "TestAuthor", null, null, null, null, null, null,
                         null));
     }
@@ -113,7 +111,7 @@ public class ModuleTest {
         Map<String, String> requires = new HashMap<>();
         requires.put("prescript_a", "0.1");
         requires.put("prescript_b", "0.2");
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 0, true, true, "module", "TestAuthor", "0.1", requires, null, null, null,
                 null, null);
 
@@ -124,10 +122,10 @@ public class ModuleTest {
     @Test
     public void testConstructorAllowsEmptyRequires() {
         LuaFunction executeFunc = createMockFunction();
-        Module nullRequires = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc,
+        Module nullRequires = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc,
                 null, null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null, null,
                 null, null);
-        Module emptyRequires = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc,
+        Module emptyRequires = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc,
                 null, null, 0, true, true, "module", "TestAuthor", "0.1", new HashMap<>(), null,
                 null, null, null, null);
 
@@ -139,19 +137,18 @@ public class ModuleTest {
     public void testGettersReturnUnmodifiableCollections() {
         LuaFunction executeFunc = createMockFunction();
         Map<String, String> requires = Map.of("other_module", "0.1");
-        Set<String> groups = setOf("test");
-        Set<String> modifies = setOf("stats", "appearance");
+        Set<String> groups = setOf("test", "stats", "appearance");
         ArgumentDefinition arg1 = new ArgumentDefinition("arg1", TypeDefinition.string(), null);
         List<ArgumentDefinition> arguments = Arrays.asList(arg1);
 
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, groups, modifies, arguments,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, groups, arguments,
                 executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", requires,
                 List.of(new DynamicVar("token", "integer")),
                 List.of(new DynamicVar("count", "integer")), null, null, null);
 
         assertThrows(UnsupportedOperationException.class,
                 () -> metadata.getRequires().put("NewProgram", "1.0.0"));
-        assertThrows(UnsupportedOperationException.class, () -> metadata.getModifies().add("new"));
+        assertThrows(UnsupportedOperationException.class, () -> metadata.getGroups().add("new"));
         assertThrows(UnsupportedOperationException.class, () -> metadata.getArguments()
                 .add(new ArgumentDefinition("arg2", TypeDefinition.integer(), null)));
         assertThrows(UnsupportedOperationException.class, () -> metadata.getProvides().add(
@@ -163,7 +160,7 @@ public class ModuleTest {
     @Test
     public void testConstructorNullDescription() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                 null);
 
@@ -173,7 +170,7 @@ public class ModuleTest {
     @Test
     public void testConstructorNullGroupsForScriptsAllowed() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                 null);
 
@@ -184,7 +181,7 @@ public class ModuleTest {
     public void testConstructorWithGroupsForScriptsThrows() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class, () -> {
-            buildModule(TEST_ID, TEST_NAME, null, setOf("test"), null, null, executeFunc, null,
+            buildModule(TEST_ID, TEST_NAME, null, setOf("test"), null, executeFunc, null,
                     null, 0, true, false, "module", "TestAuthor", "0.1", null, null, null, null,
                     null, null);
         });
@@ -194,11 +191,11 @@ public class ModuleTest {
     public void testConstructorRejectsMissingGroupsForRegularModules() {
         LuaFunction executeFunc = createMockFunction();
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+                () -> buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                         null, 0, true, true, null, "TestAuthor", "0.1", null, null, null, null,
                         null, null));
         assertThrows(IllegalArgumentException.class,
-                () -> buildModule(TEST_ID, TEST_NAME, null, setOf(), null, null, executeFunc, null,
+                () -> buildModule(TEST_ID, TEST_NAME, null, setOf(), null, executeFunc, null,
                         null, 0, true, true, null, "TestAuthor", "0.1", null, null, null, null,
                         null, null));
     }
@@ -206,7 +203,7 @@ public class ModuleTest {
     @Test
     public void testConstructorGroupsCaseInsensitive() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("GAMEPLAY"), null, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("GAMEPLAY"), null,
                 executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null, null,
                 null, null, null);
 
@@ -218,7 +215,7 @@ public class ModuleTest {
     public void testConstructorGroupsDeduplicatesByCase() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("Monsters", "monsters"), null,
-                null, executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null,
+                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null,
                 null, null, null, null);
 
         assertEquals(1, metadata.getGroups().size());
@@ -229,7 +226,7 @@ public class ModuleTest {
     public void testConstructorMultipleGroups() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("gameplay", "ACTION"), null,
-                null, executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null,
+                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null,
                 null, null, null, null);
 
         assertEquals(2, metadata.getGroups().size());
@@ -238,19 +235,9 @@ public class ModuleTest {
     }
 
     @Test
-    public void testConstructorNullModifies() {
-        LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, setOf("test"), null, null,
-                executeFunc, null, null, 0, true, true, null, "TestAuthor", "0.1", null, null, null,
-                null, null, null);
-
-        assertTrue(metadata.getModifies().isEmpty());
-    }
-
-    @Test
     public void testConstructorNullArguments() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                 null);
 
@@ -261,7 +248,7 @@ public class ModuleTest {
     public void testWithOnLoadFunction() {
         LuaFunction executeFunc = createMockFunction();
         LuaFunction onLoadFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc,
                 onLoadFunc, null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null,
                 null, null, null);
 
@@ -272,14 +259,14 @@ public class ModuleTest {
     @Test
     public void testOptionalMetadataFields() {
         LuaFunction executeFunc = createMockFunction();
-        Module populated = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc,
+        Module populated = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc,
                 null, null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null,
                 "https://github.com/example/module", "MIT", "This is a test module");
         assertEquals("https://github.com/example/module", populated.getSource());
         assertEquals("MIT", populated.getLicense());
         assertEquals("This is a test module", populated.getAbout());
 
-        Module empty = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module empty = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 0, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                 null);
         assertNull(empty.getSource());
@@ -291,7 +278,7 @@ public class ModuleTest {
     public void testToString() {
         LuaFunction executeFunc = createMockFunction();
         Module metadata =
-                buildModule(TEST_ID, TEST_NAME, "Description", setOf("gameplay"), setOf("stats"),
+                buildModule(TEST_ID, TEST_NAME, "Description", setOf("gameplay", "stats"),
                         Arrays.asList(
                                 new ArgumentDefinition("arg1", TypeDefinition.string(), null)),
                         executeFunc, null, "/path/to/module.lua", 5, true, true, null, "TestAuthor",
@@ -301,7 +288,7 @@ public class ModuleTest {
         assertTrue(str.contains("Module"));
         assertTrue(str.contains("id='test_module'"));
         assertTrue(str.contains("name='Test Module'"));
-        assertTrue(str.contains("groups=[gameplay]"));
+        assertTrue(str.contains("groups=[gameplay, stats]"));
         assertTrue(str.contains("description='Description'"));
         assertTrue(str.contains("arguments=1"));
         assertTrue(str.contains("seedOffset=5"));
@@ -312,7 +299,7 @@ public class ModuleTest {
     @Test
     public void testforModuleOffset() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 null, 42, true, true, "module", "TestAuthor", "0.1", null, null, null, null, null,
                 null);
 
@@ -324,7 +311,7 @@ public class ModuleTest {
     @Test
     public void testSeededFalseMetadata() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule("test_script", "Test Script", null, null, null, null,
+        Module metadata = buildModule("test_script", "Test Script", null, null, null,
                 executeFunc, null, null, 0, true, false, "randomize", "TestAuthor", "0.1", null,
                 null, null, null, null, null);
 
@@ -335,7 +322,7 @@ public class ModuleTest {
     @Test
     public void testWithFilePath() {
         LuaFunction executeFunc = createMockFunction();
-        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, null, executeFunc, null,
+        Module metadata = buildModule(TEST_ID, TEST_NAME, null, null, null, executeFunc, null,
                 "/custom/path.lua", 0, true, true, "module", "TestAuthor", "0.1", null, null, null,
                 null, null, null);
 

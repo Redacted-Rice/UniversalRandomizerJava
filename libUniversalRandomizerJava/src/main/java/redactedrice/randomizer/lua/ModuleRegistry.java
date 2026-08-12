@@ -30,23 +30,17 @@ public class ModuleRegistry {
     public static final String SCRIPT_WHEN_MODULE = ModuleRepository.SCRIPT_WHEN_MODULE;
 
     public ModuleRegistry(LuaSandbox sandbox) {
-        this(sandbox, null, null, null);
+        this(sandbox, null, null);
     }
 
     public ModuleRegistry(LuaSandbox sandbox, Set<String> definedGroups,
-            Set<String> definedModifies) {
-        this(sandbox, definedGroups, definedModifies, null);
-    }
-
-    public ModuleRegistry(LuaSandbox sandbox, Set<String> definedGroups,
-            Set<String> definedModifies, CoreRequirements requirementContext) {
+            CoreRequirements requirementContext) {
         if (sandbox == null) {
             throw new IllegalArgumentException("Sandbox cannot be null");
         }
         this.loader = new ModuleLoader(sandbox);
-        this.repository = new ModuleRepository(definedGroups, definedModifies);
-        this.moduleFilter = new CompositeFilter(new GroupFilter(definedGroups),
-                new ModifiesFilter(definedModifies));
+        this.repository = new ModuleRepository(definedGroups);
+        this.moduleFilter = new GroupFilter(definedGroups);
         this.requirementContext = requirementContext;
     }
 
@@ -163,14 +157,6 @@ public class ModuleRegistry {
 
     public List<Module> getModulesByGroup(String group) {
         return repository.getModulesByGroup(group);
-    }
-
-    public Set<String> getDefinedModifiesValues() {
-        return repository.getDefinedModifiesValues();
-    }
-
-    public List<Module> getModulesByModifies(String modifies) {
-        return repository.getModulesByModifies(modifies);
     }
 
     public List<Module> getAllModules() {

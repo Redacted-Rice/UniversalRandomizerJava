@@ -7,8 +7,7 @@ return {
 	id = "flag_enum",
 	name = "Flag Enum",
 	description = "Tests flag enum usage with non-sequential values",
-	groups = { "utils" },
-	modifies = { "entity" },
+	groups = { "utils", "entity" },
 	author = "Test Author",
 	version = "0.1",
 

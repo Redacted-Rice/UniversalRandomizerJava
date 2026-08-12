@@ -7,8 +7,7 @@ return {
 	id = "06_assign_starting_item_rarity",
 	name = "Assign Starting Item Rarity",
 	description = "Assigns a weighted random starting-item rarity to each entity",
-	groups = { "players" },
-	modifies = { "startingItemRarity" },
+	groups = { "players", "startingItemRarity" },
 	author = "Redacted Rice",
 	version = "1.0.0",
 

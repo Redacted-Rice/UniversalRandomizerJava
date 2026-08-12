@@ -7,8 +7,7 @@ return {
 	id = "advanced_entity_randomizer",
 	name = "Advanced Entity Randomizer",
 	description = "Advanced randomization with grouped pools and multiple constraint types",
-	groups = { "advanced" },
-	modifies = { "name", "health", "damage", "active" },
+	groups = { "advanced", "name", "health", "damage", "active" },
 	defaultSeedOffset = 12345, -- Default seed offset
 	author = "Test Author",
 	version = "0.1",

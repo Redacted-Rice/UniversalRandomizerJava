@@ -7,8 +7,7 @@ return {
 	id = "enum_expansion_test",
 	name = "Enum Expansion Test",
 	description = "Tests expanding a Java enum with additional values from Lua",
-	groups = { "test" },
-	modifies = { "entity" },
+	groups = { "test", "entity" },
 	author = "Test Author",
 	version = "1.0.0",
 

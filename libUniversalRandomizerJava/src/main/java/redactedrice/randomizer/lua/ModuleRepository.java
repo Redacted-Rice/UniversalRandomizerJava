@@ -5,15 +5,13 @@ import java.util.*;
 import redactedrice.randomizer.utils.IssueTracker;
 
 // Stores and indexes modules for efficient querying
-// Provides lookup by id, group, modifies, and script type
+// Provides lookup by id, group, and script type
 public class ModuleRepository {
     // Modules are the core randomization that are manually specified and run
     // Map from module id to its metadata
     private final Map<String, Module> modules;
     // Modules organized by their group metadata field
     private final Map<String, List<Module>> modulesByGroup;
-    // Modules organized by what they modify. Modules can be in more than one key/list here
-    private final Map<String, List<Module>> modulesByModifies;
     // Scripts are automatically run before and after triggers
     private final Map<String, Map<String, List<Module>>> scriptsByType;
     // Scripts indexed by id for dependency resolution and validation
@@ -21,9 +19,6 @@ public class ModuleRepository {
     // If set, this will restrict the groups that are loaded to only specified values. Null to
     // autodetermine from loading
     private final Set<String> definedGroups;
-    // If set, this will restrict the modifies that are loaded to only specified values. Null to
-    // autodetermine from loading
-    private final Set<String> definedModifies;
 
     public static final String SCRIPT_TIMING_PRE = "pre";
     public static final String SCRIPT_TIMING_POST = "post";
@@ -31,14 +26,12 @@ public class ModuleRepository {
     public static final String SCRIPT_WHEN_RANDOMIZE = "randomize";
     public static final String SCRIPT_WHEN_MODULE = "module";
 
-    public ModuleRepository(Set<String> definedGroups, Set<String> definedModifies) {
+    public ModuleRepository(Set<String> definedGroups) {
         this.modules = new HashMap<>();
         this.modulesByGroup = new HashMap<>();
-        this.modulesByModifies = new HashMap<>();
         this.scriptsByType = new HashMap<>();
         this.scriptsById = new HashMap<>();
         this.definedGroups = normalizeStringSet(definedGroups);
-        this.definedModifies = normalizeStringSet(definedModifies);
 
         // Initialize the scripts maps
         Map<String, List<Module>> preScripts = new HashMap<>();
@@ -70,10 +63,6 @@ public class ModuleRepository {
 
         // Add to group indices
         addModuleToCategoryIndices(module, module.getGroups(), modulesByGroup, definedGroups);
-
-        // Add to modifies indices
-        addModuleToCategoryIndices(module, module.getModifies(), modulesByModifies,
-                definedModifies);
         return true;
     }
 
@@ -187,23 +176,6 @@ public class ModuleRepository {
         return groupModules != null ? new ArrayList<>(groupModules) : new ArrayList<>();
     }
 
-    public Set<String> getDefinedModifiesValues() {
-        // Return defined modifies values if set. Otherwise return dynamically loaded values
-        if (definedModifies != null && !definedModifies.isEmpty()) {
-            return new HashSet<>(definedModifies);
-        }
-        return new HashSet<>(modulesByModifies.keySet());
-    }
-
-    public List<Module> getModulesByModifies(String modifies) {
-        if (modifies == null || modifies.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Module> modifiesModules = modulesByModifies.get(categoryKey(modifies));
-        return modifiesModules != null ? new ArrayList<>(modifiesModules) : new ArrayList<>();
-    }
-
     public List<Module> getScripts(String timing, String when) {
         Map<String, List<Module>> timingMap = scriptsByType.get(timing);
         if (timingMap == null) {
@@ -244,7 +216,6 @@ public class ModuleRepository {
     public void clear() {
         modules.clear();
         modulesByGroup.clear();
-        modulesByModifies.clear();
         scriptsById.clear();
         for (Map<String, List<Module>> timingMap : scriptsByType.values()) {
             for (List<Module> scripts : timingMap.values()) {

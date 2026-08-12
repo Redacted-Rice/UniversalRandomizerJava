@@ -482,6 +482,9 @@ public class LuaRandomizerWrapperTest {
         assertTrue(groupKeys.contains("advanced"));
         assertTrue(groupKeys.contains("gameplay"));
         assertTrue(groupKeys.contains("utils"));
+        assertTrue(groupKeys.contains("name"));
+        assertTrue(groupKeys.contains("health"));
+        assertTrue(groupKeys.contains("damage"));
 
         // Get modules in the basic group
         List<Module> basicModules = wrapper.getModulesByGroup("basic");
@@ -500,6 +503,10 @@ public class LuaRandomizerWrapperTest {
         assertTrue(advancedNames.contains("Advanced Entity Randomizer"));
         assertTrue(advancedNames.contains("Enhanced Entity Randomizer"));
         assertTrue(advancedNames.contains("Table Of Lists Randomizer"));
+
+        List<Module> healthModules = wrapper.getModulesByGroup("health");
+        assertNotNull(healthModules);
+        assertEquals(3, healthModules.size());
 
         // Test an undefined group
         List<Module> nonExistentModules = wrapper.getModulesByGroup("nonexistent");
@@ -551,91 +558,6 @@ public class LuaRandomizerWrapperTest {
                 ExecutionRequest.forModuleWithSeedOffset(advancedRandomizer.getId(), args2, 0);
         ExecutionResult result2 = wrapper.executeModule(request2, context, TEST_BASE_SEED);
         assertTrue(result2.isSuccess());
-    }
-
-    @Test
-    public void testGetModulesByModifies() {
-        wrapper.loadModules();
-
-        // Get all modifies categories
-        Set<String> modifies = wrapper.getDefinedModifiesValues();
-        assertNotNull(modifies);
-        assertTrue(modifies.contains("name"));
-        assertTrue(modifies.contains("health"));
-        assertTrue(modifies.contains("damage"));
-
-        // Get modules that modify health
-        List<Module> healthModules = wrapper.getModulesByModifies("health");
-        assertNotNull(healthModules);
-        assertEquals(3, healthModules.size());
-
-        // Verify module names that modify health
-        Set<String> healthModuleNames = new HashSet<>();
-        for (Module module : healthModules) {
-            healthModuleNames.add(module.getName());
-        }
-        assertTrue(healthModuleNames.contains("Simple Entity Randomizer"));
-        assertTrue(healthModuleNames.contains("Advanced Entity Randomizer"));
-        assertTrue(healthModuleNames.contains("Table Of Lists Randomizer"));
-
-        // Test undefined modifies
-        List<Module> nonExistentModules = wrapper.getModulesByModifies("nonexistent");
-        assertNotNull(nonExistentModules);
-        assertTrue(nonExistentModules.isEmpty());
-    }
-
-    @Test
-    public void testExecuteModulesByModifies() {
-        wrapper.loadModules();
-
-        // Create test entity
-        TestEntity entity = new TestEntity("Original Name", 100, 50.0, true);
-
-        // Create context with entity
-        JavaContext context = new JavaContext();
-        context.register("entity", entity);
-
-        // Get and execute modules that modify health
-        List<Module> healthModules = wrapper.getModulesByModifies("health");
-        assertEquals(3, healthModules.size());
-
-        // Execute simple_entity_randomizer
-        Module simpleRandomizer = healthModules.stream()
-                .filter(m -> m.getId().equals("simple_entity_randomizer")).findFirst().orElse(null);
-        assertNotNull(simpleRandomizer);
-
-        Map<String, Object> args1 = new HashMap<>();
-        args1.put("healthMin", 150);
-        args1.put("healthMax", 150);
-        args1.put("damageMultiplier", 1.5);
-
-        ExecutionRequest request1 =
-                ExecutionRequest.forModuleWithSeedOffset(simpleRandomizer.getId(), args1, 0);
-        ExecutionResult result1 = wrapper.executeModule(request1, context, TEST_BASE_SEED);
-        assertTrue(result1.isSuccess());
-        assertEquals(150, entity.getHealth());
-        assertEquals(75.0, entity.getDamage());
-
-        // Get and execute modules that modify name
-        List<Module> nameModules = wrapper.getModulesByModifies("name");
-        assertTrue(nameModules.size() >= 1);
-
-        // Verify at least one module modifies the name
-        Module advancedRandomizer =
-                nameModules.stream().filter(m -> m.getId().equals("advanced_entity_randomizer"))
-                        .findFirst().orElse(null);
-        assertNotNull(advancedRandomizer);
-
-        Map<String, Object> args2 = new HashMap<>();
-        args2.put("entityType", "warrior");
-        args2.put("level", 11);
-        args2.put("applyBonus", true);
-
-        ExecutionRequest request2 =
-                ExecutionRequest.forModuleWithSeedOffset(advancedRandomizer.getId(), args2, 0);
-        ExecutionResult result2 = wrapper.executeModule(request2, context, TEST_BASE_SEED);
-        assertTrue(result2.isSuccess());
-        assertNotEquals("Original Name", entity.getName());
     }
 }
 
