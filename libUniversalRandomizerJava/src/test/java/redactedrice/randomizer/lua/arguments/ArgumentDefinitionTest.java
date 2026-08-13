@@ -156,6 +156,20 @@ public class ArgumentDefinitionTest {
     }
 
     @Test
+    public void testDisplayName() {
+        ArgumentDefinition labeled = new ArgumentDefinition("numMoves", "Number of moves",
+                TypeDefinition.integer(), 2);
+        assertEquals("numMoves", labeled.getName());
+        assertEquals("Number of moves", labeled.getDisplayName());
+        assertEquals("Number of moves", labeled.getRegisteredDisplayName());
+
+        ArgumentDefinition unlabeled = new ArgumentDefinition("numMoves", TypeDefinition.integer(),
+                2);
+        assertEquals("numMoves", unlabeled.getDisplayName());
+        assertNull(unlabeled.getRegisteredDisplayName());
+    }
+
+    @Test
     public void testToString() {
         ArgumentDefinition withDefault = new ArgumentDefinition("level",
                 TypeDefinition.integer(), 50);

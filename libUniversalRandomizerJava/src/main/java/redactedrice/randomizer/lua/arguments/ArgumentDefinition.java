@@ -5,10 +5,16 @@ import redactedrice.randomizer.context.EnumRegistry;
 // defines a single argument for a lua module including its type and default value
 public class ArgumentDefinition {
     String name;
+    String displayName;
     TypeDefinition typeDefinition;
     Object defaultValue;
 
     public ArgumentDefinition(String name, TypeDefinition typeDefinition, Object defaultValue) {
+        this(name, null, typeDefinition, defaultValue);
+    }
+
+    public ArgumentDefinition(String name, String displayName, TypeDefinition typeDefinition,
+            Object defaultValue) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Argument name cannot be null or empty");
         }
@@ -17,6 +23,8 @@ public class ArgumentDefinition {
         }
 
         this.name = name;
+        this.displayName = displayName != null && !displayName.isBlank() ? displayName.trim()
+                : null;
         this.typeDefinition = typeDefinition;
         this.defaultValue = defaultValue;
     }
@@ -57,6 +65,14 @@ public class ArgumentDefinition {
         return name;
     }
 
+    public String getDisplayName() {
+        return displayName != null ? displayName : name;
+    }
+
+    public String getRegisteredDisplayName() {
+        return displayName;
+    }
+
     public TypeDefinition getTypeDefinition() {
         return typeDefinition;
     }
@@ -72,8 +88,9 @@ public class ArgumentDefinition {
 
     @Override
     public String toString() {
-        return String.format("ArgumentDefinition{name='%s', type=%s, constraint=%s, default=%s}",
-                name, typeDefinition, typeDefinition.getEnforcedConstraint().getDescription(),
-                defaultValue);
+        return String.format(
+                "ArgumentDefinition{name='%s', displayName='%s', type=%s, constraint=%s, default=%s}",
+                name, displayName, typeDefinition,
+                typeDefinition.getEnforcedConstraint().getDescription(), defaultValue);
     }
 }

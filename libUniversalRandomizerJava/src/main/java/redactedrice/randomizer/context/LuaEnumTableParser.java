@@ -13,6 +13,8 @@ public class LuaEnumTableParser {
             throw new RuntimeException("registerEnum: values must be a table");
         }
 
+        Map<String, String> valueDisplayNames = readStringMap(valuesTable, "displayNames");
+
         // Check if it's a simple array or has a values subtable
         LuaValue valuesSubtable = valuesTable.get("values");
         Map<String, Integer> valueMap = new LinkedHashMap<>();
@@ -35,7 +37,35 @@ public class LuaEnumTableParser {
                     + "Provide either an array of strings, or a map of string keys to integer values.");
         }
 
-        return new ParsedEnumData(valueNames, valueMap);
+        return new ParsedEnumData(valueNames, valueMap, valueDisplayNames);
+    }
+
+    private static Map<String, String> readStringMap(LuaTable table, String fieldName) {
+        LuaValue value = table.get(fieldName);
+        if (value.isnil() || !value.istable()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> result = new LinkedHashMap<>();
+        LuaTable mapTable = value.checktable();
+        LuaValue key = LuaValue.NIL;
+        while (true) {
+            key = mapTable.next(key).arg1();
+            if (key.isnil()) {
+                break;
+            }
+            if (key.isstring()) {
+                LuaValue mapValue = mapTable.get(key);
+                if (mapValue.isstring()) {
+                    result.put(key.tojstring(), mapValue.tojstring());
+                }
+            }
+        }
+        return result;
+    }
+
+    private static boolean isMetadataKey(String key) {
+        return "values".equals(key) || "displayNames".equals(key);
     }
 
     private static void extractArrayPart(LuaTable valuesTable, List<String> valueNames) {
@@ -48,8 +78,7 @@ public class LuaEnumTableParser {
             }
             if (value.isstring()) {
                 String enumValueName = value.tojstring();
-                // Skip "values" if it appears in the array part (shouldn't happen, but be safe)
-                if (!"values".equals(enumValueName)) {
+                if (!isMetadataKey(enumValueName)) {
                     valueNames.add(enumValueName);
                 }
             } else {
@@ -100,8 +129,7 @@ public class LuaEnumTableParser {
                 break;
             }
 
-            // Skip the "values" key if present
-            if (key.isstring() && "values".equals(key.tojstring())) {
+            if (key.isstring() && isMetadataKey(key.tojstring())) {
                 continue;
             }
 

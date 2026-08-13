@@ -158,13 +158,14 @@ public class ArgumentConverter {
 
         // check if the value is valid for this enum
         String strValue = value.toString();
-        if (!enumDef.hasValue(strValue)) {
+        String canonicalValue = enumDef.resolveCanonicalValue(strValue);
+        if (canonicalValue == null) {
             throw new IllegalArgumentException(
                     String.format("Value '%s' is not valid for enum '%s'. Valid values: %s",
                             strValue, enumName, enumDef.getValues()));
         }
 
-        return strValue;
+        return canonicalValue;
     }
 
     @SuppressWarnings("unchecked")
@@ -210,7 +211,7 @@ public class ArgumentConverter {
     @SuppressWarnings("unchecked")
     private static Map<Object, Object> convertToTable(Object value, TypeDefinition keyType,
             TypeDefinition valueType, EnumRegistry enumRegistry) {
-        Map<Object, Object> result = new LinkedHashMap<>();
+        List<Map.Entry<Object, Object>> entries = new ArrayList<>();
 
         if (value instanceof Map) {
             // convert java maps
@@ -218,10 +219,12 @@ public class ArgumentConverter {
             for (Map.Entry<?, ?> entry : sourceMap.entrySet()) {
                 Object convertedKey = convertToType(entry.getKey(), keyType, enumRegistry);
                 Object convertedValue = convertToType(entry.getValue(), valueType, enumRegistry);
-                result.put(convertedKey, convertedValue);
+                entries.add(Map.entry(convertedKey, convertedValue));
             }
         } else if (value instanceof LuaTable) {
             // convert lua tables to maps
+            // LuaJ hash key iteration order is not insertion order, so enum keyed tables get
+            // sorted below by the registered enum declaration order
             LuaTable table = (LuaTable) value;
             LuaValue[] keys = table.keys();
             for (LuaValue key : keys) {
@@ -230,13 +233,45 @@ public class ArgumentConverter {
                         convertToType(LuaJavaConverter.luaToJava(key, true), keyType, enumRegistry);
                 Object convertedValue = convertToType(LuaJavaConverter.luaToJava(val, true),
                         valueType, enumRegistry);
-                result.put(convertedKey, convertedValue);
+                entries.add(Map.entry(convertedKey, convertedValue));
             }
         } else {
             throw new IllegalArgumentException(
                     "Cannot convert " + value.getClass().getSimpleName() + " to table");
         }
 
+        sortTableEntriesByKey(entries, keyType, enumRegistry);
+
+        Map<Object, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<Object, Object> entry : entries) {
+            result.put(entry.getKey(), entry.getValue());
+        }
         return result;
+    }
+
+    // Enum keys follow the registered enum's declaration order. Other keys keep encounter order.
+    private static void sortTableEntriesByKey(List<Map.Entry<Object, Object>> entries,
+            TypeDefinition keyType, EnumRegistry enumRegistry) {
+        if (!keyType.isEnum() || enumRegistry == null || entries.size() < 2) {
+            return;
+        }
+        EnumDefinition enumDef = enumRegistry.getEnum(keyType.getEnumName());
+        if (enumDef == null) {
+            return;
+        }
+
+        Map<String, Integer> orderIndex = new HashMap<>();
+        List<String> values = enumDef.getValues();
+        for (int i = 0; i < values.size(); i++) {
+            orderIndex.put(values.get(i), i);
+        }
+
+        entries.sort(Comparator.comparingInt(entry -> {
+            String canonical = enumDef.resolveCanonicalValue(String.valueOf(entry.getKey()));
+            if (canonical == null) {
+                return Integer.MAX_VALUE;
+            }
+            return orderIndex.getOrDefault(canonical, Integer.MAX_VALUE);
+        }));
     }
 }
