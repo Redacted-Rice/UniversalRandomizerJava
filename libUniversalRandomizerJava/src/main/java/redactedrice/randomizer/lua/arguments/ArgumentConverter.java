@@ -249,7 +249,8 @@ public class ArgumentConverter {
         return result;
     }
 
-    // Enum keys follow the registered enum's declaration order. Other keys keep encounter order.
+    // Enum keys follow the registered enum's declaration order. Other keys keep encounter order
+    // which is hash based and not necessarily aligned with the map sort order
     private static void sortTableEntriesByKey(List<Map.Entry<Object, Object>> entries,
             TypeDefinition keyType, EnumRegistry enumRegistry) {
         if (!keyType.isEnum() || enumRegistry == null || entries.size() < 2) {
