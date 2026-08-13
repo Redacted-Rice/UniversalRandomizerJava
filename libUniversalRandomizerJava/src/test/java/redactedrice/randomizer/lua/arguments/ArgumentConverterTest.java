@@ -117,6 +117,51 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testConvertAndValidateEnumExclusionsByDisplayNameAndCase() {
+        EnumRegistry enumContext = new EnumRegistry();
+        enumContext.registerEnum("EnergyType", Arrays.asList("FIRE", "WATER", "COLORLESS"), null,
+                Map.of("FIRE", "Fire", "WATER", "Water", "COLORLESS", "Colorless"));
+        TypeDefinition typeDef = TypeDefinition.enumType("EnergyType",
+                ArgumentConstraint.enumExclusions(Arrays.asList("Colorless", "fire")));
+
+        assertEquals("WATER",
+                ArgumentConverter.convertAndValidate("Water", typeDef, enumContext));
+        assertThrows(IllegalArgumentException.class,
+                () -> ArgumentConverter.convertAndValidate("Fire", typeDef, enumContext));
+        assertThrows(IllegalArgumentException.class,
+                () -> ArgumentConverter.convertAndValidate("COLORLESS", typeDef, enumContext));
+        assertThrows(IllegalArgumentException.class,
+                () -> ArgumentConverter.convertAndValidate("FIRE", typeDef, enumContext));
+    }
+
+    @Test
+    public void testNestedEnumExclusionsAreEnforced() {
+        EnumRegistry enumContext = createTestEnumRegistry();
+        TypeDefinition excludedDifficulty = TypeDefinition.enumType("Difficulty",
+                ArgumentConstraint.enumExclusions(Arrays.asList("HARD")));
+        TypeDefinition enumListType = TypeDefinition.listOf(excludedDifficulty);
+        TypeDefinition enumKeyedTable =
+                TypeDefinition.tableOf(excludedDifficulty, TypeDefinition.integer());
+
+        assertEquals(Arrays.asList("EASY", "NORMAL"), ArgumentConverter
+                .convertAndValidate(Arrays.asList("EASY", "NORMAL"), enumListType, enumContext));
+        assertThrows(IllegalArgumentException.class, () -> ArgumentConverter
+                .convertAndValidate(Arrays.asList("EASY", "HARD"), enumListType, enumContext));
+
+        Map<String, Integer> allowedKeys = new LinkedHashMap<>();
+        allowedKeys.put("NORMAL", 2);
+        allowedKeys.put("EASY", 1);
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> tableResult = (Map<Object, Object>) ArgumentConverter
+                .convertAndValidate(allowedKeys, enumKeyedTable, enumContext);
+        assertEquals(Arrays.asList("EASY", "NORMAL"), new ArrayList<>(tableResult.keySet()));
+
+        Map<String, Integer> excludedKey = Map.of("HARD", 3);
+        assertThrows(IllegalArgumentException.class, () -> ArgumentConverter
+                .convertAndValidate(excludedKey, enumKeyedTable, enumContext));
+    }
+
+    @Test
     public void testConvertAndValidateListFromMultipleSources() {
         TypeDefinition intList = TypeDefinition.listOf(TypeDefinition.integer());
         List<Integer> input = Arrays.asList(1, 2, 3);

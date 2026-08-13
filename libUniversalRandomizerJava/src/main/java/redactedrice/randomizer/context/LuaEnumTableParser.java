@@ -65,7 +65,7 @@ public class LuaEnumTableParser {
     }
 
     private static boolean isMetadataKey(String key) {
-        return "values".equals(key) || "displayNames".equals(key);
+        return "values".equals(key) || "_name".equals(key) || "displayNames".equals(key);
     }
 
     private static void extractArrayPart(LuaTable valuesTable, List<String> valueNames) {

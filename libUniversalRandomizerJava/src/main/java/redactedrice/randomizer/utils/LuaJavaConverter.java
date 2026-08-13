@@ -87,9 +87,10 @@ public class LuaJavaConverter {
             enumTable.set(i + 1, LuaValue.valueOf(value));
         }
 
-        // Named aliases so scripts can use EnumName.ENUM_VAL style access
+        // Named aliases so scripts can use EnumName.ENUM_VAL style access.
+        // Skip metadata keys so a value with that name does not get overwritten below.
         for (String value : values) {
-            if ("values".equals(value) || "_name".equals(value)) {
+            if (isEnumTableMetadataKey(value)) {
                 continue;
             }
             enumTable.set(value, toNamedEnumLuaValue(enumClass, value));
@@ -120,6 +121,10 @@ public class LuaJavaConverter {
         enumTable.setmetatable(createReadOnlyEnumMetatable());
 
         return enumTable;
+    }
+
+    private static boolean isEnumTableMetadataKey(String key) {
+        return "values".equals(key) || "_name".equals(key) || "displayNames".equals(key);
     }
 
     private static LuaValue toNamedEnumLuaValue(Class<? extends Enum<?>> enumClass, String value) {
