@@ -8,14 +8,23 @@ public class EnumDefinition {
     List<String> values;
     Map<String, Integer> valueMap; // Maps enum name to integer value
     Class<? extends Enum<?>> enumClass;
+    Map<String, String> valueDisplayNames; // canonical value -> display label
 
     public EnumDefinition(String name, List<String> values, Map<String, Integer> valueMap,
             Class<? extends Enum<?>> enumClass) {
+        this(name, values, valueMap, enumClass, null);
+    }
+
+    public EnumDefinition(String name, List<String> values, Map<String, Integer> valueMap,
+            Class<? extends Enum<?>> enumClass, Map<String, String> valueDisplayNames) {
         this.name = name;
         this.values = Collections.unmodifiableList(values);
         this.valueMap =
                 valueMap != null ? Collections.unmodifiableMap(valueMap) : Collections.emptyMap();
         this.enumClass = enumClass;
+        this.valueDisplayNames = valueDisplayNames != null
+                ? Collections.unmodifiableMap(new LinkedHashMap<>(valueDisplayNames))
+                : Collections.emptyMap();
     }
 
     public String getName() {
@@ -34,18 +43,39 @@ public class EnumDefinition {
         return valueMap.get(enumName);
     }
 
-    public boolean hasValue(String value) {
-        if (value == null) {
-            return false;
+    public Map<String, String> getValueDisplayNames() {
+        return valueDisplayNames;
+    }
+
+    public String getValueDisplayName(String canonicalValue) {
+        if (canonicalValue == null) {
+            return null;
         }
-        // case-insensitive comparison for enum values
-        // this allows lua scripts to use different casing
-        for (String v : values) {
-            if (v.equalsIgnoreCase(value)) {
-                return true;
+        String display = valueDisplayNames.get(canonicalValue);
+        return display != null && !display.isBlank() ? display : canonicalValue;
+    }
+
+    public boolean hasValue(String value) {
+        return resolveCanonicalValue(value) != null;
+    }
+
+    // accepts canonical names or registered display labels (case insensitive)
+    public String resolveCanonicalValue(String input) {
+        if (input == null) {
+            return null;
+        }
+        for (String canonical : values) {
+            if (canonical.equalsIgnoreCase(input)) {
+                return canonical;
             }
         }
-        return false;
+        for (String canonical : values) {
+            String display = valueDisplayNames.get(canonical);
+            if (display != null && display.equalsIgnoreCase(input)) {
+                return canonical;
+            }
+        }
+        return null;
     }
 
     public Class<? extends Enum<?>> getEnumClass() {
@@ -53,12 +83,18 @@ public class EnumDefinition {
     }
 
     public EnumDefinition expandWith(List<String> newValues, Map<String, Integer> newValueMap) {
+        return expandWith(newValues, newValueMap, null);
+    }
+
+    public EnumDefinition expandWith(List<String> newValues, Map<String, Integer> newValueMap,
+            Map<String, String> newValueDisplayNames) {
         if (newValues == null || newValues.isEmpty()) {
             return this;
         }
 
         List<String> mergedValues = new ArrayList<>(this.values);
         Map<String, Integer> mergedValueMap = new LinkedHashMap<>(this.valueMap);
+        Map<String, String> mergedValueDisplayNames = new LinkedHashMap<>(this.valueDisplayNames);
 
         // Add new values skipping any duplicates
         for (String newValue : newValues) {
@@ -74,11 +110,16 @@ public class EnumDefinition {
                             : Collections.max(mergedValueMap.values()) + 1;
                     mergedValueMap.put(newValue, nextValue);
                 }
+
+                if (newValueDisplayNames != null
+                        && newValueDisplayNames.containsKey(newValue)) {
+                    mergedValueDisplayNames.put(newValue, newValueDisplayNames.get(newValue));
+                }
             }
         }
 
-        // Return new EnumDefinition with merged values
-        return new EnumDefinition(this.name, mergedValues, mergedValueMap, this.enumClass);
+        return new EnumDefinition(this.name, mergedValues, mergedValueMap, this.enumClass,
+                mergedValueDisplayNames);
     }
 
     @Override

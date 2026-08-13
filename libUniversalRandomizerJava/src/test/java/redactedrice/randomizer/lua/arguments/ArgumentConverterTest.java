@@ -95,6 +95,17 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testConvertAndValidateEnumDisplayNames() {
+        EnumRegistry enumContext = new EnumRegistry();
+        enumContext.registerEnum("EnergyType", Arrays.asList("FIRE", "WATER"), null,
+                Map.of("FIRE", "Fire", "WATER", "Water"));
+        TypeDefinition typeDef = TypeDefinition.enumType("EnergyType");
+
+        assertEquals("FIRE", ArgumentConverter.convertAndValidate("Fire", typeDef, enumContext));
+        assertEquals("WATER", ArgumentConverter.convertAndValidate("water", typeDef, enumContext));
+    }
+
+    @Test
     public void testConvertAndValidateEnumExclusions() {
         EnumRegistry enumContext = createTestEnumRegistry();
         TypeDefinition typeDef = TypeDefinition.enumType("Difficulty",
@@ -233,6 +244,24 @@ public class ArgumentConverterTest {
         assertEquals(Arrays.asList(10, 20, 30), result.get("fire").get("common"));
         assertEquals(Arrays.asList(100), result.get("fire").get("rare"));
         assertEquals(Arrays.asList(5, 15), result.get("water").get("common"));
+    }
+
+    @Test
+    public void testTableWithEnumKeysPreservesEnumDeclarationOrder() {
+        EnumRegistry enumContext = createTestEnumRegistry();
+        TypeDefinition tableType = TypeDefinition.tableOf(TypeDefinition.enumType("Difficulty"),
+                TypeDefinition.integer());
+
+        // Deliberately out of enum declaration order (EASY, NORMAL, HARD)
+        Map<String, Integer> scrambled = new LinkedHashMap<>();
+        scrambled.put("HARD", 3);
+        scrambled.put("EASY", 1);
+        scrambled.put("NORMAL", 2);
+
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> result = (Map<Object, Object>) ArgumentConverter
+                .convertAndValidate(scrambled, tableType, enumContext);
+        assertEquals(Arrays.asList("EASY", "NORMAL", "HARD"), new ArrayList<>(result.keySet()));
     }
 
     @Test

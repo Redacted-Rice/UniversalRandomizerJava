@@ -63,14 +63,27 @@ public class JavaContext {
         enumRegistry.registerEnum(enumClass);
     }
 
+    public <E extends Enum<E>> void registerEnum(Class<E> enumClass,
+            Map<String, String> valueDisplayNames) {
+        if (enumClass == null) {
+            throw new IllegalArgumentException("Enum class cannot be null");
+        }
+        enumRegistry.registerEnum(enumClass.getSimpleName(), enumClass, valueDisplayNames);
+    }
+
     public <E extends Enum<E>> void registerEnum(String name, Class<E> enumClass) {
+        registerEnum(name, enumClass, null);
+    }
+
+    public <E extends Enum<E>> void registerEnum(String name, Class<E> enumClass,
+            Map<String, String> valueDisplayNames) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
         if (enumClass == null) {
             throw new IllegalArgumentException("Enum class cannot be null");
         }
-        enumRegistry.registerEnum(name, enumClass);
+        enumRegistry.registerEnum(name, enumClass, valueDisplayNames);
     }
 
     public void registerEnum(String name, String... values) {
@@ -175,7 +188,8 @@ public class JavaContext {
                 Map<String, Integer> orderedValueMap =
                         new LinkedHashMap<>(parsedEnum.getValueMap());
                 
-                enumRegistry.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap);
+                enumRegistry.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap,
+                        parsedEnum.getValueDisplayNames());
 
                 // Return the enum table (convert back to Lua format)
                 Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
@@ -206,7 +220,8 @@ public class JavaContext {
 
                 // Extend the enum with the parsed values
                 EnumDefinition extended = enumRegistry.extendEnum(enumName,
-                        parsedEnum.getValueNames(), orderedValueMap);
+                        parsedEnum.getValueNames(), orderedValueMap,
+                        parsedEnum.getValueDisplayNames());
 
                 // Convert null if extend failed because target enum didn't exist
                 if (extended == null) {

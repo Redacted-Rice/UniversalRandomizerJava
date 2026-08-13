@@ -20,6 +20,11 @@ public class EnumRegistry {
     }
 
     public <E extends Enum<E>> void registerEnum(String name, Class<E> enumClass) {
+        registerEnum(name, enumClass, null);
+    }
+
+    public <E extends Enum<E>> void registerEnum(String name, Class<E> enumClass,
+            Map<String, String> valueDisplayNames) {
         if (enumClass == null) {
             throw new IllegalArgumentException("Enum class cannot be null");
         }
@@ -77,23 +82,34 @@ public class EnumRegistry {
             valueMap.put(enumName, intValue);
         }
 
-        enums.put(name, new EnumDefinition(name, values, valueMap, enumClass));
+        enums.put(name, new EnumDefinition(name, values, valueMap, enumClass, valueDisplayNames));
     }
 
     public void registerEnum(String name, List<String> values) {
-        registerEnum(name, values, null);
+        registerEnum(name, values, null, null);
     }
 
     public void registerEnum(String name, List<String> values, Map<String, Integer> valueMap) {
+        registerEnum(name, values, valueMap, null);
+    }
+
+    public void registerEnum(String name, List<String> values, Map<String, Integer> valueMap,
+            Map<String, String> valueDisplayNames) {
         validateEnumRegistration(name);
         if (values == null || values.isEmpty()) {
             throw new IllegalArgumentException("Enum values cannot be null or empty");
         }
 
-        enums.put(name, new EnumDefinition(name, new ArrayList<>(values), valueMap, null));
+        enums.put(name, new EnumDefinition(name, new ArrayList<>(values), valueMap, null,
+                valueDisplayNames));
     }
 
     public void registerEnum(String name, Map<String, Integer> valueMap) {
+        registerEnum(name, valueMap, null);
+    }
+
+    public void registerEnum(String name, Map<String, Integer> valueMap,
+            Map<String, String> valueDisplayNames) {
         validateEnumRegistration(name);
         if (valueMap == null || valueMap.isEmpty()) {
             throw new IllegalArgumentException("Enum value map cannot be null or empty");
@@ -113,7 +129,7 @@ public class EnumRegistry {
                 (valueMap instanceof LinkedHashMap) ? new LinkedHashMap<>(valueMap)
                         : new HashMap<>(valueMap);
 
-        enums.put(name, new EnumDefinition(name, values, orderedValueMap, null));
+        enums.put(name, new EnumDefinition(name, values, orderedValueMap, null, valueDisplayNames));
     }
 
     private void validateEnumRegistration(String name) {
@@ -138,6 +154,11 @@ public class EnumRegistry {
 
     public EnumDefinition extendEnum(String name, List<String> newValues,
             Map<String, Integer> newValueMap) {
+        return extendEnum(name, newValues, newValueMap, null);
+    }
+
+    public EnumDefinition extendEnum(String name, List<String> newValues,
+            Map<String, Integer> newValueMap, Map<String, String> newValueDisplayNames) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
@@ -154,7 +175,8 @@ public class EnumRegistry {
         }
 
         // Enum exists - delegate to EnumDefinition to expand itself
-        EnumDefinition expanded = existingDef.expandWith(newValues, newValueMap);
+        EnumDefinition expanded =
+                existingDef.expandWith(newValues, newValueMap, newValueDisplayNames);
         enums.put(name, expanded);
         return expanded;
     }
@@ -165,11 +187,16 @@ public class EnumRegistry {
             return null;
         }
 
+        String canonicalValue = enumDef.resolveCanonicalValue(valueName);
+        if (canonicalValue == null) {
+            return null;
+        }
+
         Class<? extends Enum<?>> enumClass = enumDef.getEnumClass();
         try {
             // Use raw type for Enum.valueOf which requires Class<T extends Enum<T>>
             @SuppressWarnings({"unchecked", "rawtypes"})
-            Enum enumValue = Enum.valueOf((Class) enumClass, valueName);
+            Enum enumValue = Enum.valueOf((Class) enumClass, canonicalValue);
             return enumValue;
         } catch (IllegalArgumentException e) {
             return null;

@@ -63,6 +63,9 @@ public class ArgumentParser {
             return null;
         }
 
+        String displayName =
+                LuaJavaConverter.tryGetStringFromTable(argTable, "displayName", null, context);
+
         // get the type definition which can be string or table
         LuaValue definitionValue = argTable.get("definition");
         if (definitionValue.isnil()) {
@@ -95,6 +98,6 @@ public class ArgumentParser {
             javaDefaultValue = LuaJavaConverter.luaToJava(defaultValue);
         }
 
-        return new ArgumentDefinition(name, typeDef, javaDefaultValue);
+        return new ArgumentDefinition(name, displayName, typeDef, javaDefaultValue);
     }
 }

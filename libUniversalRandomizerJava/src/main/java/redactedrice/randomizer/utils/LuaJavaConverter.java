@@ -107,6 +107,15 @@ public class LuaJavaConverter {
         // Add metadata
         enumTable.set("_name", LuaValue.valueOf(enumName));
 
+        Map<String, String> valueDisplayNames = enumDef.getValueDisplayNames();
+        if (valueDisplayNames != null && !valueDisplayNames.isEmpty()) {
+            LuaTable displayNamesTable = new LuaTable();
+            for (Map.Entry<String, String> entry : valueDisplayNames.entrySet()) {
+                displayNamesTable.set(entry.getKey(), LuaValue.valueOf(entry.getValue()));
+            }
+            enumTable.set("displayNames", displayNamesTable);
+        }
+
         // Make the table read-only (best effort in LuaJ)
         enumTable.setmetatable(createReadOnlyEnumMetatable());
 
