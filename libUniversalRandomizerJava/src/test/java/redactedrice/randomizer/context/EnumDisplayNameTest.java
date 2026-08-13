@@ -39,4 +39,16 @@ public class EnumDisplayNameTest {
         assertEquals("Charlie", expanded.getValueDisplayName("C"));
         assertEquals("C", expanded.resolveCanonicalValue("Charlie"));
     }
+
+    @Test
+    public void testExactDisplayNameWinsOverCaseInsensitiveCanonical() {
+        // FIRE labeled "Water" should still resolve from the exact label, not get swallowed by WATER
+        EnumDefinition def = new EnumDefinition("EnergyType",
+                java.util.Arrays.asList("FIRE", "WATER"),
+                Map.of("FIRE", 0, "WATER", 1), null, Map.of("FIRE", "Water"));
+
+        assertEquals("FIRE", def.resolveCanonicalValue("Water"));
+        assertEquals("WATER", def.resolveCanonicalValue("WATER"));
+        assertEquals("WATER", def.resolveCanonicalValue("water"));
+    }
 }

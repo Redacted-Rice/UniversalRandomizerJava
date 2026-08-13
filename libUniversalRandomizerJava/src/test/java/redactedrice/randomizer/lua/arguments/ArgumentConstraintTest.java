@@ -3,6 +3,9 @@ package redactedrice.randomizer.lua.arguments;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Map;
+
+import redactedrice.randomizer.context.EnumDefinition;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -84,5 +87,25 @@ public class ArgumentConstraintTest {
 
         assertEquals(Arrays.asList("FIRE", "WATER"),
                 constraint.filterEnumValues(Arrays.asList("FIRE", "COLORLESS", "WATER", "UNUSED_TYPE")));
+    }
+
+    @Test
+    public void testEnumExclusionsMatchDisplayNamesAndCase() {
+        EnumDefinition enumDef = new EnumDefinition("EnergyType",
+                Arrays.asList("FIRE", "WATER", "COLORLESS"),
+                Map.of("FIRE", 0, "WATER", 1, "COLORLESS", 2), null,
+                Map.of("FIRE", "Fire", "WATER", "Water", "COLORLESS", "Colorless"));
+
+        ArgumentConstraint byDisplay =
+                ArgumentConstraint.enumExclusions(Arrays.asList("Colorless", "fire"));
+        assertFalse(byDisplay.validate("COLORLESS", ArgumentType.ENUM, enumDef));
+        assertFalse(byDisplay.validate("FIRE", ArgumentType.ENUM, enumDef));
+        assertTrue(byDisplay.validate("WATER", ArgumentType.ENUM, enumDef));
+        assertEquals(Arrays.asList("WATER"),
+                byDisplay.filterEnumValues(Arrays.asList("FIRE", "WATER", "COLORLESS"), enumDef));
+
+        ArgumentConstraint byCase = ArgumentConstraint.enumExclusions(Arrays.asList("colorless"));
+        assertFalse(byCase.validate("COLORLESS", ArgumentType.ENUM));
+        assertFalse(byCase.validate("COLORLESS", ArgumentType.ENUM, enumDef));
     }
 }

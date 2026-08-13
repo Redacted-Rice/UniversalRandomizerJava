@@ -59,10 +59,22 @@ public class EnumDefinition {
         return resolveCanonicalValue(value) != null;
     }
 
-    // accepts canonical names or registered display labels (case insensitive)
+    // Exact matches win over case insensitive ones so a display label like "Water" is not
+    // swallowed by another canonical named WATER.
     public String resolveCanonicalValue(String input) {
         if (input == null) {
             return null;
+        }
+        for (String canonical : values) {
+            if (canonical.equals(input)) {
+                return canonical;
+            }
+        }
+        for (String canonical : values) {
+            String display = valueDisplayNames.get(canonical);
+            if (display != null && display.equals(input)) {
+                return canonical;
+            }
         }
         for (String canonical : values) {
             if (canonical.equalsIgnoreCase(input)) {

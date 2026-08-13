@@ -1,5 +1,7 @@
 package redactedrice.randomizer.lua.arguments;
 
+import redactedrice.randomizer.context.EnumDefinition;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,6 +58,11 @@ public class ArgumentConstraint {
     }
 
     public boolean validate(Object value, ArgumentType baseType) {
+        return validate(value, baseType, null);
+    }
+
+    // enumDef lets allow/exclude entries match via display labels or case insensitive names
+    public boolean validate(Object value, ArgumentType baseType, EnumDefinition enumDef) {
         // null values always fail validation
         if (value == null) {
             return false;
@@ -94,7 +101,7 @@ public class ArgumentConstraint {
                 if (allowedValues != null && !allowedValues.isEmpty()) {
                     boolean allowed = false;
                     for (Object candidate : allowedValues) {
-                        if (matchesAllowedValue(candidate, value)) {
+                        if (matchesEnumConstraintValue(candidate, value, enumDef)) {
                             allowed = true;
                             break;
                         }
@@ -105,7 +112,7 @@ public class ArgumentConstraint {
                 }
                 if (excludedValues != null) {
                     for (Object excluded : excludedValues) {
-                        if (matchesAllowedValue(excluded, value)) {
+                        if (matchesEnumConstraintValue(excluded, value, enumDef)) {
                             return false;
                         }
                     }
@@ -120,16 +127,39 @@ public class ArgumentConstraint {
     // Filters a registered enum's value list by this constraint's allow/exclude lists.
     // Non-ENUM constraints return the input unchanged.
     public List<String> filterEnumValues(List<String> allValues) {
+        return filterEnumValues(allValues, null);
+    }
+
+    public List<String> filterEnumValues(List<String> allValues, EnumDefinition enumDef) {
         if (allValues == null || type != ConstraintType.ENUM) {
             return allValues;
         }
         List<String> filtered = new ArrayList<>();
         for (String value : allValues) {
-            if (validate(value, ArgumentType.ENUM)) {
+            if (validate(value, ArgumentType.ENUM, enumDef)) {
                 filtered.add(value);
             }
         }
         return filtered;
+    }
+
+    // Prefer enum registry resolution so display labels and odd casing still match canonicals.
+    static boolean matchesEnumConstraintValue(Object constraintEntry, Object value,
+            EnumDefinition enumDef) {
+        if (constraintEntry == null || value == null) {
+            return false;
+        }
+        if (enumDef != null) {
+            String entryCanonical = enumDef.resolveCanonicalValue(String.valueOf(constraintEntry));
+            String valueCanonical = enumDef.resolveCanonicalValue(String.valueOf(value));
+            if (entryCanonical != null && entryCanonical.equals(valueCanonical)) {
+                return true;
+            }
+        }
+        if (constraintEntry.toString().equalsIgnoreCase(value.toString())) {
+            return true;
+        }
+        return matchesAllowedValue(constraintEntry, value);
     }
 
     static boolean matchesAllowedValue(Object allowed, Object value) {
