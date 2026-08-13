@@ -6,15 +6,21 @@ import redactedrice.randomizer.context.EnumRegistry;
 public class ArgumentDefinition {
     String name;
     String displayName;
+    String description;
     TypeDefinition typeDefinition;
     Object defaultValue;
 
     public ArgumentDefinition(String name, TypeDefinition typeDefinition, Object defaultValue) {
-        this(name, null, typeDefinition, defaultValue);
+        this(name, null, null, typeDefinition, defaultValue);
     }
 
     public ArgumentDefinition(String name, String displayName, TypeDefinition typeDefinition,
             Object defaultValue) {
+        this(name, displayName, null, typeDefinition, defaultValue);
+    }
+
+    public ArgumentDefinition(String name, String displayName, String description,
+            TypeDefinition typeDefinition, Object defaultValue) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Argument name cannot be null or empty");
         }
@@ -24,6 +30,8 @@ public class ArgumentDefinition {
 
         this.name = name;
         this.displayName = displayName != null && !displayName.isBlank() ? displayName.trim()
+                : null;
+        this.description = description != null && !description.isBlank() ? description.trim()
                 : null;
         this.typeDefinition = typeDefinition;
         this.defaultValue = defaultValue;
@@ -71,6 +79,10 @@ public class ArgumentDefinition {
 
     public String getRegisteredDisplayName() {
         return displayName;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public TypeDefinition getTypeDefinition() {

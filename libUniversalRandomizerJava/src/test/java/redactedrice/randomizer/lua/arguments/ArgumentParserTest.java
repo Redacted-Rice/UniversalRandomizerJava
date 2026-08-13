@@ -17,6 +17,7 @@ public class ArgumentParserTest {
         LuaTable argTable = new LuaTable();
         argTable.set("name", LuaValue.valueOf("grouping"));
         argTable.set("displayName", LuaValue.valueOf("Stage grouping"));
+        argTable.set("description", LuaValue.valueOf("How pools are split by stage"));
         argTable.set("definition", LuaValue.valueOf("string"));
         argTable.set("default", LuaValue.valueOf("BY_STAGE"));
         argsTable.set(1, argTable);
@@ -28,5 +29,6 @@ public class ArgumentParserTest {
         assertEquals(1, arguments.size());
         assertEquals("grouping", arguments.get(0).getName());
         assertEquals("Stage grouping", arguments.get(0).getDisplayName());
+        assertEquals("How pools are split by stage", arguments.get(0).getDescription());
     }
 }
