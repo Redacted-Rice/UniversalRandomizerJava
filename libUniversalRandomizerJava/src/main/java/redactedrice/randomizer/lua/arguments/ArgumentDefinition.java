@@ -38,34 +38,27 @@ public class ArgumentDefinition {
     }
 
     public boolean validate(Object value, EnumRegistry enumRegistry) {
-        // if value is null but we have a default we will use the default
-        if (value == null && defaultValue != null) {
-            return true;
-        }
-        // if value is null and no default then its not valid
-        if (value == null) {
+        if (value == null && defaultValue == null) {
             return false;
         }
 
-        // try to convert and validate the value
         try {
+            Object resolved = value != null ? value : defaultValue;
             Object converted =
-                    ArgumentConverter.convertAndValidate(value, typeDefinition, enumRegistry);
+                    ArgumentConverter.convertAndValidate(resolved, typeDefinition, enumRegistry);
             return converted != null;
         } catch (Exception e) {
-            // any exception during validation means the value is invalid
             return false;
         }
     }
 
     public Object convertAndValidate(Object value, EnumRegistry enumRegistry) {
-        // if no value provided use the default
-        if (value == null && defaultValue != null) {
-            return defaultValue;
+        Object resolved = value != null ? value : defaultValue;
+        if (resolved == null) {
+            throw new IllegalArgumentException("Value cannot be null");
         }
 
-        // convert and validate using typevalidator
-        return ArgumentConverter.convertAndValidate(value, typeDefinition, enumRegistry);
+        return ArgumentConverter.convertAndValidate(resolved, typeDefinition, enumRegistry);
     }
 
     // Getters

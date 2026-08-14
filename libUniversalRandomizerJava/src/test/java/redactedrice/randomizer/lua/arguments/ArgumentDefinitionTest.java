@@ -4,6 +4,7 @@ import redactedrice.randomizer.context.EnumRegistry;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -92,6 +93,26 @@ public class ArgumentDefinitionTest {
         ArgumentDefinition stringDefault = new ArgumentDefinition("name",
                 TypeDefinition.string(), "default");
         assertEquals("default", stringDefault.convertAndValidate(null, null));
+    }
+
+    @Test
+    public void testDefaultValueIsConvertedAndValidated() {
+        EnumRegistry enumContext = new EnumRegistry();
+        enumContext.registerEnum("EnergyType", Arrays.asList("FIRE", "WATER", "COLORLESS"), null,
+                Map.of("FIRE", "Fire", "WATER", "Water", "COLORLESS", "Colorless"));
+
+        TypeDefinition enumType = TypeDefinition.enumType("EnergyType",
+                ArgumentConstraint.enumExclusions(Arrays.asList("COLORLESS")));
+
+        ArgumentDefinition displayDefault = new ArgumentDefinition("energyType", enumType, "Fire");
+        assertEquals("FIRE", displayDefault.convertAndValidate(null, enumContext));
+        assertTrue(displayDefault.validate(null, enumContext));
+
+        ArgumentDefinition excludedDefault =
+                new ArgumentDefinition("energyType", enumType, "COLORLESS");
+        assertThrows(IllegalArgumentException.class,
+                () -> excludedDefault.convertAndValidate(null, enumContext));
+        assertFalse(excludedDefault.validate(null, enumContext));
     }
 
     @Test

@@ -258,11 +258,18 @@ public class LuaRandomizerWrapper {
             }
             System.out.println("  Arguments: " + module.getArguments().size());
             module.getArguments().forEach(arg -> {
+                String argLabel = arg.getRegisteredDisplayName() != null
+                        ? arg.getDisplayName() + " (" + arg.getName() + ")"
+                        : arg.getName();
+                String descriptionInfo = arg.getDescription() != null && !arg.getDescription().isBlank()
+                        ? " - " + arg.getDescription()
+                        : "";
                 String defaultInfo =
                         arg.getDefaultValue() != null ? " (default: " + arg.getDefaultValue() + ")"
                                 : "";
-                System.out.println("    - " + arg.getName() + " (" + arg.getTypeDefinition() + "): "
-                        + arg.getConstraint().getDescription() + defaultInfo);
+                System.out.println("    - " + argLabel + descriptionInfo + " ("
+                        + arg.getTypeDefinition() + "): " + arg.getConstraint().getDescription()
+                        + defaultInfo);
             });
             System.out.println("  File: " + module.getFilePath());
             System.out.println();

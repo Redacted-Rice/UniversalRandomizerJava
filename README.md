@@ -83,6 +83,25 @@ provides = { { name = "evoLineId", type = "integer" } },
 needs = { { name = "numMoves", type = "integer" } },
 ```
 
+### Enum display names and exclusions
+
+Register human-readable labels on enum values:
+
+```lua
+context.registerEnum("EnergyType", {
+  "FIRE", "WATER", "COLORLESS",
+  displayNames = { FIRE = "Fire", WATER = "Water", COLORLESS = "Colorless" },
+})
+```
+
+Filter enum arguments with `exclude` (and optional `values` allowlist):
+
+```lua
+definition = { type = "enum", constraint = "EnergyType", exclude = { "COLORLESS" } },
+```
+
+Arguments also support optional `displayName` and `description` for UI tooling.
+
 ## Security
 
 This wrapper restricts Lua to provide a safe area to run untrusted scripts. This should not be relied upon though and users
