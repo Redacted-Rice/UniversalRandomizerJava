@@ -22,9 +22,8 @@ public class EnumDefinition {
         this.valueMap =
                 valueMap != null ? Collections.unmodifiableMap(valueMap) : Collections.emptyMap();
         this.enumClass = enumClass;
-        this.valueDisplayNames = valueDisplayNames != null
-                ? Collections.unmodifiableMap(new LinkedHashMap<>(valueDisplayNames))
-                : Collections.emptyMap();
+        this.valueDisplayNames =
+                EnumDisplayNamesValidator.validate(values, valueDisplayNames, name);
     }
 
     public String getName() {

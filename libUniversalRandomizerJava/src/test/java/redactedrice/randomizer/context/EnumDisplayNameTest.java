@@ -41,6 +41,17 @@ public class EnumDisplayNameTest {
     }
 
     @Test
+    public void testExpandWithRejectsDuplicateDisplayLabels() {
+        EnumDefinition original = new EnumDefinition("Test",
+                java.util.Arrays.asList("A", "B"),
+                Map.of("A", 0, "B", 1), null, Map.of("A", "Alpha"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> original.expandWith(java.util.Arrays.asList("C"), Map.of("C", 2),
+                        Map.of("C", "alpha")));
+    }
+
+    @Test
     public void testExactDisplayNameWinsOverCaseInsensitiveCanonical() {
         // FIRE labeled "Water" should still resolve from the exact label, not get swallowed by WATER
         EnumDefinition def = new EnumDefinition("EnergyType",
@@ -50,5 +61,21 @@ public class EnumDisplayNameTest {
         assertEquals("FIRE", def.resolveCanonicalValue("Water"));
         assertEquals("WATER", def.resolveCanonicalValue("WATER"));
         assertEquals("WATER", def.resolveCanonicalValue("water"));
+    }
+
+    @Test
+    public void testRejectsUnknownDisplayNameKey() {
+        Map<String, String> displayNames = Map.of("FIRE", "Fire", "GRASS", "Grass");
+        assertThrows(IllegalArgumentException.class,
+                () -> new EnumDefinition("EnergyType", java.util.Arrays.asList("FIRE", "WATER"),
+                        Map.of("FIRE", 0, "WATER", 1), null, displayNames));
+    }
+
+    @Test
+    public void testRejectsDuplicateDisplayLabels() {
+        Map<String, String> displayNames = Map.of("FIRE", "Fire", "WATER", "fire");
+        assertThrows(IllegalArgumentException.class,
+                () -> new EnumDefinition("EnergyType", java.util.Arrays.asList("FIRE", "WATER"),
+                        Map.of("FIRE", 0, "WATER", 1), null, displayNames));
     }
 }
