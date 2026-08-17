@@ -8,6 +8,17 @@ import java.util.Map;
 public final class ScriptTestValues {
     private ScriptTestValues() {}
 
+    public static String optionalString(Map<String, Object> table, String field) {
+        Object value = table.get(field);
+        if (value == null) {
+            return null;
+        }
+        if (!(value instanceof String text)) {
+            throw new IllegalArgumentException("Field '" + field + "' must be a string");
+        }
+        return text.isBlank() ? null : text;
+    }
+
     public static String requiredString(Map<String, Object> table, String field) {
         Object value = table.get(field);
         if (!(value instanceof String text) || text.isBlank()) {
