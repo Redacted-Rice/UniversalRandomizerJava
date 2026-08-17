@@ -58,16 +58,28 @@ public final class ScriptTestCli {
         int passed = 0;
         int failed = 0;
         for (Path caseFile : cases) {
-            String name = caseFile.getFileName().toString();
-            System.out.println("Running " + name);
+            List<ScriptTestCase> fileCases;
             try {
-                session.run(caseFile);
-                System.out.println(name + " PASS");
-                passed++;
+                fileCases = ScriptTestCase.loadAll(caseFile);
             } catch (Exception e) {
-                System.out.println(name + " FAIL");
+                System.out.println(caseFile.getFileName() + " FAIL");
                 System.out.println("  " + e.getMessage());
                 failed++;
+                continue;
+            }
+
+            for (ScriptTestCase testCase : fileCases) {
+                String name = testCase.displayName();
+                System.out.println("Running " + name);
+                try {
+                    session.run(testCase);
+                    System.out.println(name + " PASS");
+                    passed++;
+                } catch (Exception e) {
+                    System.out.println(name + " FAIL");
+                    System.out.println("  " + e.getMessage());
+                    failed++;
+                }
             }
         }
 

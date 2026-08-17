@@ -1,8 +1,5 @@
 package redactedrice.randomizer.scripttests;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.lua.ExecutionRequest;
@@ -10,7 +7,7 @@ import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.utils.IssueTracker;
 
-// Loads a case, runs its module, then lets the host check expect.
+// Runs one case. The CLI loads every case in a file then calls this per case.
 public final class ScriptTestSession {
     private final LuaRandomizerWrapper wrapper;
     private final ScriptTestFixtures fixtures;
@@ -26,12 +23,11 @@ public final class ScriptTestSession {
         this.fixtures = fixtures;
     }
 
-    public void run(Path caseFile) throws IOException {
-        ScriptTestCase testCase = ScriptTestCase.load(caseFile);
+    public void run(ScriptTestCase testCase) {
         Module module = wrapper.getModule(testCase.moduleId());
         if (module == null) {
             throw new IllegalStateException(
-                    "Unknown module '" + testCase.moduleId() + "' in " + caseFile);
+                    "Unknown module '" + testCase.moduleId() + "' in " + testCase.displayName());
         }
 
         JavaContext context = new JavaContext();
@@ -43,11 +39,12 @@ public final class ScriptTestSession {
         ExecutionResult result = wrapper.executeModule(request, context, testCase.seed());
         if (!result.isSuccess()) {
             throw new IllegalStateException("Module '" + testCase.moduleId() + "' failed in "
-                    + caseFile + ": " + result.getErrorMessage());
+                    + testCase.displayName() + ": " + result.getErrorMessage());
         }
         if (IssueTracker.hasErrors()) {
             throw new IllegalStateException("Module '" + testCase.moduleId()
-                    + "' reported errors in " + caseFile + ": " + IssueTracker.getErrors());
+                    + "' reported errors in " + testCase.displayName() + ": "
+                    + IssueTracker.getErrors());
         }
 
         fixtures.assertExpect(testCase, context);
