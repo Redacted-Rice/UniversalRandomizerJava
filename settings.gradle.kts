@@ -19,6 +19,7 @@ val shouldIncludeAppExample = providers.gradleProperty("includeAppExample").orEl
             it.startsWith(":appExample:") ||
             it.startsWith("appExample:") ||
             it == "runExample" ||
+            it == "runExampleScriptTests" ||
             it == "coverageCombined" ||
             it == "coverageExample"
         }

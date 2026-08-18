@@ -11,6 +11,9 @@ repositories {
 
 dependencies {
     implementation(project(":libUniversalRandomizerJava"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
 }
 
 java {
@@ -21,6 +24,31 @@ java {
 
 application {
     mainClass.set("redactedrice.randomizer.ExampleApp")
+}
+
+tasks.named<JavaExec>("run") {
+    // lua_modules and script_tests live next to the example project
+    workingDir = projectDir
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+    workingDir = projectDir
+}
+
+tasks.register<JavaExec>("runExampleScriptTests") {
+    group = "verification"
+    description = "Runs the example Lua script tests"
+    dependsOn("classes")
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
+    mainClass.set(application.mainClass.get())
+    classpath = sourceSets["main"].runtimeClasspath
+    args = listOf("--script-tests")
+    workingDir = projectDir
+    standardOutput = System.out
+    errorOutput = System.err
 }
 
 val generateAppVersion = tasks.register("generateAppVersion") {
