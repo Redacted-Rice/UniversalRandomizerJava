@@ -20,6 +20,10 @@ import java.util.*;
 // example app showing how to use the lua randomizer wrapper
 public class ExampleApp {
     public static void main(String[] args) {
+        if (ExampleScriptTestRunner.handles(args)) {
+            System.exit(ExampleScriptTestRunner.run(args));
+        }
+
         FileOutputStream logFileStream = null;
         FileOutputStream warnErrFileStream = null;
         try {

@@ -3,6 +3,8 @@ plugins {
     jacoco
 }
 
+import org.gradle.jvm.tasks.Jar
+
 version = "1.0.0"
 
 repositories {
@@ -11,6 +13,9 @@ repositories {
 
 dependencies {
     implementation(project(":libUniversalRandomizerJava"))
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.2")
 }
 
 java {
@@ -21,6 +26,64 @@ java {
 
 application {
     mainClass.set("redactedrice.randomizer.ExampleApp")
+}
+
+val runnableJarName = "ExampleApp-${project.version}.jar"
+
+tasks.register<Jar>("fatJar") {
+    group = "application"
+    description = "Builds the runnable application JAR with all dependencies"
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn("classes", "processResources")
+    finalizedBy("copyRunScriptTestsBat")
+
+    archiveFileName.set(runnableJarName)
+    destinationDirectory.set(layout.projectDirectory.dir("app"))
+
+    manifest {
+        attributes["Main-Class"] = application.mainClass.get()
+    }
+
+    from(sourceSets.main.map { it.output })
+    from(configurations.runtimeClasspath.map { classpath ->
+        classpath.filter { it.name.endsWith(".jar") }.map { zipTree(it) }
+    }) {
+        exclude(
+            "META-INF/*.SF",
+            "META-INF/*.DSA",
+            "META-INF/*.RSA",
+        )
+    }
+}
+
+tasks.register<Copy>("copyRunScriptTestsBat") {
+    from(layout.projectDirectory.file("runScriptTests.bat"))
+    into(layout.projectDirectory.dir("app"))
+}
+
+tasks.named<JavaExec>("run") {
+    // lua_modules and script_tests live next to the example project
+    workingDir = projectDir
+}
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+    workingDir = projectDir
+}
+
+tasks.register<JavaExec>("runExampleScriptTests") {
+    group = "verification"
+    description = "Runs the example Lua script tests"
+    dependsOn("classes")
+    javaLauncher.set(javaToolchains.launcherFor {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    })
+    mainClass.set(application.mainClass.get())
+    classpath = sourceSets["main"].runtimeClasspath
+    args = listOf("--script-tests")
+    workingDir = projectDir
+    standardOutput = System.out
+    errorOutput = System.err
 }
 
 val generateAppVersion = tasks.register("generateAppVersion") {

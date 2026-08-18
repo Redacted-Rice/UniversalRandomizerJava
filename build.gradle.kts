@@ -32,6 +32,20 @@ tasks.register("runExample") {
     }
 }
 
+tasks.register("runExampleScriptTests") {
+    group = "verification"
+    description = "Runs the example app Lua script tests"
+
+    val appProject = project.findProject(":appExample")
+    if (appProject != null) {
+        dependsOn(":appExample:runExampleScriptTests")
+    } else {
+        doFirst {
+            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+        }
+    }
+}
+
 tasks.register<JacocoReport>("coverageCombined") {
     group = "verification"
     description = "Runs tests and app example and generates a combined coverage report"
