@@ -84,6 +84,28 @@ public class EnumRegistryTest {
     }
 
     @Test
+    public void testStringToEnumByClassFindsCustomRegisteredNames() {
+        EnumRegistry registry = new EnumRegistry();
+        registry.registerEnum("CustomName", RegistryTestEnum.class);
+
+        assertEquals(RegistryTestEnum.VALUE1, registry.stringToEnum(RegistryTestEnum.class, "VALUE1"));
+        assertNull(registry.stringToEnum(RegistryTestEnum.class, "INVALID"));
+        assertNull(registry.stringToEnum("RegistryTestEnum", "VALUE1"));
+        assertNull(registry.stringToEnum((Class<?>) null, "VALUE1"));
+    }
+
+    @Test
+    public void testStringToEnumByClassIgnoresOverlappingValuesFromOtherEnums() {
+        EnumRegistry registry = new EnumRegistry();
+        registry.registerEnum("Colors", Color.class);
+        registry.registerEnum("EE_Elements", Element.class);
+
+        assertEquals(Color.FIRE, registry.stringToEnum(Color.class, "FIRE"));
+        assertEquals(Element.FIRE, registry.stringToEnum(Element.class, "FIRE"));
+        assertNull(registry.stringToEnum(Color.class, "GRASS"));
+    }
+
+    @Test
     public void testIsValidEnumValue() {
         EnumRegistry context = new EnumRegistry();
         context.registerEnum("Difficulty", Arrays.asList("EASY", "NORMAL", "HARD"));
@@ -204,6 +226,14 @@ public class EnumRegistryTest {
         assertTrue(original.hasValue("A"));
         assertTrue(original.hasValue("B"));
         assertFalse(original.hasValue("C"));
+    }
+
+    enum Color {
+        FIRE, WATER
+    }
+
+    enum Element {
+        FIRE, GRASS
     }
 }
 

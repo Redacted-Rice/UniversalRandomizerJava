@@ -121,6 +121,7 @@ class ScriptTestFieldsTest {
         assertEquals(2, unit.moves[0].getCost(Kind.WATER));
         assertEquals(1, unit.moves[0].getCost(Kind.COLORLESS));
         assertEquals(0, unit.moves[0].getCost(Kind.FIRE));
+        assertTrue(context.wrap(unit).get("kindTag").isstring());
         assertEquals("FIRE", context.wrap(unit).get("kindTag").tojstring());
     }
 
@@ -143,6 +144,24 @@ class ScriptTestFieldsTest {
                 () -> ScriptTestFields.apply(context, target,
                         Map.of("moves", List.of(Map.of("name", "Splash")))));
         assertTrue(error.getMessage().contains("No getMove"), error.getMessage());
+    }
+
+    @Test
+    void applyLeavesStringFieldsAloneEvenWhenTheyMatchAnEnumName() {
+        NoListAccess target = new NoListAccess();
+        ScriptTestFields.apply(context, target, Map.of("name", "FIRE"));
+        assertEquals("FIRE", target.name);
+    }
+
+    @Test
+    void applyCoercesPublicEnumFieldRegisteredUnderACustomName() {
+        JavaContext custom = new JavaContext();
+        custom.registerEnum("EE_Kinds", Kind.class);
+        Unit unit = new Unit();
+
+        ScriptTestFields.apply(custom, unit, Map.of("type", "FIRE"));
+
+        assertEquals(Kind.FIRE, unit.type);
     }
 
     @Test
