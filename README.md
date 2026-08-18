@@ -57,6 +57,12 @@ This includes an example app showing how this can be used. To run the example:
 
 You should see the results output to the console.
 
+The example also ships a few Lua script tests under `appExample/script_tests`. These are a small sample of how a host app can pin module behavior with in-memory fixtures. Run them with:
+
+```bash
+./gradlew runExampleScriptTests
+```
+
 ## Usage
 
 Please see the example app for usage. More documentation will be comming later (hopefully)
@@ -140,7 +146,7 @@ Tests can be run with the following
 ./gradlew test
 ```
 
-Currently has a mix of unit testing and functional testing. Additionally uses the example app to validate behavior
+Currently has a mix of unit testing and functional testing. Additionally uses the example app to validate behavior. Example Lua script tests live in `appExample/script_tests` and run via `./gradlew runExampleScriptTests`.
 
 ## Test Coverage
 
