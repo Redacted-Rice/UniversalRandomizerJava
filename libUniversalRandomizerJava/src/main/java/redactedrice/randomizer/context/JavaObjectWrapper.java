@@ -131,8 +131,7 @@ public class JavaObjectWrapper {
             if (field == null || !field.getType().isEnum()) {
                 return value;
             }
-            Object enumValue = enumRegistry.stringToEnum(field.getType().getSimpleName(),
-                    value.tojstring());
+            Object enumValue = enumRegistry.stringToEnum(field.getType(), value.tojstring());
             if (enumValue == null) {
                 return value;
             }

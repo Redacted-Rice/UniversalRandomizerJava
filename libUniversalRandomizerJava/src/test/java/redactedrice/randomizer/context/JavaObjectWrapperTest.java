@@ -202,4 +202,37 @@ public class JavaObjectWrapperTest {
         assertThrows(Exception.class,
                 () -> holderWrapper.get("accept").call(holderWrapper, fakeWrapper));
     }
+
+    enum Kind {
+        FIRE, WATER
+    }
+
+    static class TypedItem {
+        public Kind type = Kind.WATER;
+        public String name = "plain";
+    }
+
+    @Test
+    public void publicEnumFieldAcceptsStringWhenRegisteredUnderCustomName() {
+        JavaContext context = new JavaContext();
+        context.registerEnum("EE_Kinds", Kind.class);
+        TypedItem item = new TypedItem();
+        context.register("item", item);
+
+        LuaValue wrapper = context.toLuaTable().get("item");
+        wrapper.set("type", LuaValue.valueOf("FIRE"));
+        assertEquals(Kind.FIRE, item.type);
+    }
+
+    @Test
+    public void publicStringFieldKeepsValueThatMatchesEnumName() {
+        JavaContext context = new JavaContext();
+        context.registerEnum("EE_Kinds", Kind.class);
+        TypedItem item = new TypedItem();
+        context.register("item", item);
+
+        LuaValue wrapper = context.toLuaTable().get("item");
+        wrapper.set("name", LuaValue.valueOf("FIRE"));
+        assertEquals("FIRE", item.name);
+    }
 }

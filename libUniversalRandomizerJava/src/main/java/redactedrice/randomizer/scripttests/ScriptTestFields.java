@@ -231,27 +231,26 @@ public final class ScriptTestFields {
             return luaValue;
         }
         Object java = javaObject(target);
-        if (java != null) {
-            Field field = findPublicField(java.getClass(), key);
-            if (field != null && field.getType().isEnum()) {
-                Object enumValue = context.getEnumRegistry().stringToEnum(
-                        field.getType().getSimpleName(), luaValue.tojstring());
-                if (enumValue != null) {
-                    return CoerceJavaToLua.coerce(enumValue);
-                }
-            }
+        if (java == null) {
+            return luaValue;
         }
-        Object registered = null;
-        for (String enumName : context.getEnumRegistry().getEnumNames()) {
-            registered = context.getEnumRegistry().stringToEnum(enumName, luaValue.tojstring());
-            if (registered != null) {
-                break;
-            }
+        Class<?> enumClass = enumFieldOrSetterType(java, key);
+        if (enumClass == null) {
+            return luaValue;
         }
-        if (registered != null) {
-            return CoerceJavaToLua.coerce(registered);
+        Object enumValue = context.getEnumRegistry().stringToEnum(enumClass, luaValue.tojstring());
+        if (enumValue != null) {
+            return CoerceJavaToLua.coerce(enumValue);
         }
         return luaValue;
+    }
+
+    private static Class<?> enumFieldOrSetterType(Object java, String key) {
+        Field field = findPublicField(java.getClass(), key);
+        if (field != null && field.getType().isEnum()) {
+            return field.getType();
+        }
+        return enumParamType(java, setterName(key));
     }
 
     private static Class<?> enumParamType(Object java, String methodName) {

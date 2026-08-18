@@ -203,6 +203,26 @@ public class EnumRegistry {
         }
     }
 
+    // custom names like EE_EntityTypes wont match the Java simple name
+    public Object stringToEnum(Class<?> enumClass, String valueName) {
+        if (enumClass == null || !enumClass.isEnum() || valueName == null) {
+            return null;
+        }
+
+        Object enumValue = stringToEnum(enumClass.getSimpleName(), valueName);
+        if (enumClass.isInstance(enumValue)) {
+            return enumValue;
+        }
+
+        for (String enumName : getEnumNames()) {
+            enumValue = stringToEnum(enumName, valueName);
+            if (enumClass.isInstance(enumValue)) {
+                return enumValue;
+            }
+        }
+        return null;
+    }
+
     public boolean hasEnum(String name) {
         return enums.containsKey(name);
     }

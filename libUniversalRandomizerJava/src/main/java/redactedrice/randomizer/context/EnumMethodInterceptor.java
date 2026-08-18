@@ -88,17 +88,7 @@ public class EnumMethodInterceptor extends VarArgFunction {
     private LuaValue convertEnumArgument(LuaValue arg, Class<?> enumClass) {
         // This parameter is an enum - try to convert string to enum
         if (arg.isstring()) {
-            String stringValue = arg.tojstring();
-            Object enumValue = enumRegistry.stringToEnum(enumClass.getSimpleName(), stringValue);
-            if (enumValue == null) {
-                // Try with custom enum names registered in EnumRegistry
-                for (String enumName : enumRegistry.getEnumNames()) {
-                    enumValue = enumRegistry.stringToEnum(enumName, stringValue);
-                    if (enumValue != null && enumValue.getClass() == enumClass) {
-                        break;
-                    }
-                }
-            }
+            Object enumValue = enumRegistry.stringToEnum(enumClass, arg.tojstring());
             if (enumValue != null) {
                 return CoerceJavaToLua.coerce(enumValue);
             }
