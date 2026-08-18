@@ -3,15 +3,8 @@ package redactedrice.randomizer.lua.dynamicVar;
 import java.util.Locale;
 import java.util.Objects;
 
-/**
- * Named dynamic variable declared in module provides or needs metadata. URJ
- * does not read or write
- * the runtime value. modules set and read values in Lua. this type only drives
- * dependency
- * validation so names and types line up across providers and consumers. Type
- * matching is
- * case insensitive. The declared spelling is preserved for display.
- */
+// Named provide/need. Registry is metadata only. Wrapper uses the type when a string
+// is assigned to a provided field that matches a registered Java enum.
 public final class DynamicVar {
     private final String name;
     private final String type;

@@ -39,6 +39,7 @@ public final class ScriptTestCase {
     public static List<ScriptTestCase> loadAll(Path caseFile) throws IOException {
         String lua = Files.readString(caseFile, StandardCharsets.UTF_8);
         Globals globals = JsePlatform.standardGlobals();
+        allowRequiresFrom(globals, caseFile.getParent());
         LuaValue chunk = globals.load(lua, caseFile.getFileName().toString());
         Object loaded = LuaJavaConverter.luaToJava(chunk.call());
 
@@ -66,6 +67,20 @@ public final class ScriptTestCase {
             cases.add(new ScriptTestCase(caseFile, i + 1, tables.get(i)));
         }
         return cases;
+    }
+
+    // So case files can require helpers next to them, like shared/card_sets.lua
+    private static void allowRequiresFrom(Globals globals, Path testsDir) {
+        if (testsDir == null) {
+            return;
+        }
+        String dir = testsDir.toAbsolutePath().toString().replace('\\', '/');
+        LuaValue pkg = globals.get("package");
+        if (pkg.isnil()) {
+            return;
+        }
+        String existing = pkg.get("path").optjstring("");
+        pkg.set("path", dir + "/?.lua;" + dir + "/?/init.lua;" + existing);
     }
 
     public Path source() {

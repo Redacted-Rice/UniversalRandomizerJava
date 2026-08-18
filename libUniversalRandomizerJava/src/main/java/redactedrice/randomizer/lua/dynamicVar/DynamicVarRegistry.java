@@ -70,6 +70,16 @@ public final class DynamicVarRegistry {
         return allProviders;
     }
 
+    // First provider wins if two modules declare the same name.
+    public Map<String, String> providedTypesByName() {
+        Map<String, String> types = new LinkedHashMap<>();
+        for (DynamicVarProvide provider : allProviders) {
+            DynamicVar definition = provider.getDefinition();
+            types.putIfAbsent(definition.getName(), definition.getType());
+        }
+        return Collections.unmodifiableMap(types);
+    }
+
     public List<DynamicVarProvide> getProvidersByName(String name) {
         return providersByName.getOrDefault(name, List.of());
     }

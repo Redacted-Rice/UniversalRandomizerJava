@@ -1,6 +1,5 @@
 package redactedrice.randomizer.scripttests;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,13 +7,12 @@ import java.util.Map;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 
 // Apply and assert Lua spec tables onto wrapped Java objects.
-// Uses setters, public fields, nested objects, and dynamic Lua fields (evoLineId and friends).
+// Assignment goes through the same wrapper/setters live Lua uses.
 public final class ScriptTestFields {
     private ScriptTestFields() {}
 
@@ -25,6 +23,13 @@ public final class ScriptTestFields {
     public static void collectMismatches(JavaContext context, Object javaObject,
             Map<String, Object> spec, List<String> mismatches, String path) {
         collectFromTarget(context, wrap(context, javaObject), spec, mismatches, path);
+    }
+
+    public static void failIfMismatches(String label, List<String> mismatches) {
+        if (mismatches == null || mismatches.isEmpty()) {
+            return;
+        }
+        throw new IllegalStateException(label + " " + String.join(". ", mismatches));
     }
 
     private static LuaValue wrap(JavaContext context, Object javaObject) {
@@ -77,7 +82,9 @@ public final class ScriptTestFields {
             Object value) {
         LuaValue luaValue = toLua(value);
         LuaValue current = asTarget(context, target.get(key));
-        if (!isNil(current) && isString(value) && isFunction(current.get("setText"))) {
+        // Lua strings throw if you index them. Only wrapped text objects have setText.
+        if (!isNil(current) && isString(value) && !current.isstring()
+                && isFunction(current.get("setText"))) {
             invoke(current.get("setText"), current, LuaValue.valueOf(String.valueOf(value)));
             return;
         }
@@ -86,7 +93,7 @@ public final class ScriptTestFields {
             invoke(setter, target, luaValue);
             return;
         }
-        target.set(key, coerceEnumValue(context, target, key, luaValue));
+        target.set(key, luaValue);
     }
 
     private static void applyMap(JavaContext context, LuaValue target, String key,
@@ -225,34 +232,6 @@ public final class ScriptTestFields {
         return target.get(key);
     }
 
-    private static LuaValue coerceEnumValue(JavaContext context, LuaValue target, String key,
-            LuaValue luaValue) {
-        if (!luaValue.isstring()) {
-            return luaValue;
-        }
-        Object java = javaObject(target);
-        if (java == null) {
-            return luaValue;
-        }
-        Class<?> enumClass = enumFieldOrSetterType(java, key);
-        if (enumClass == null) {
-            return luaValue;
-        }
-        Object enumValue = context.getEnumRegistry().stringToEnum(enumClass, luaValue.tojstring());
-        if (enumValue != null) {
-            return CoerceJavaToLua.coerce(enumValue);
-        }
-        return luaValue;
-    }
-
-    private static Class<?> enumFieldOrSetterType(Object java, String key) {
-        Field field = findPublicField(java.getClass(), key);
-        if (field != null && field.getType().isEnum()) {
-            return field.getType();
-        }
-        return enumParamType(java, setterName(key));
-    }
-
     private static Class<?> enumParamType(Object java, String methodName) {
         if (java == null) {
             return null;
@@ -264,18 +243,6 @@ public final class ScriptTestFields {
             Class<?> param = method.getParameterTypes()[0];
             if (param.isEnum()) {
                 return param;
-            }
-        }
-        return null;
-    }
-
-    private static Field findPublicField(Class<?> type, String name) {
-        Class<?> current = type;
-        while (current != null) {
-            try {
-                return current.getField(name);
-            } catch (NoSuchFieldException ignored) {
-                current = current.getSuperclass();
             }
         }
         return null;

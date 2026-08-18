@@ -17,6 +17,7 @@ import redactedrice.randomizer.lua.ModuleExecutor;
 import redactedrice.randomizer.lua.ModuleRegistry;
 import redactedrice.randomizer.lua.dynamicVar.DynamicVarRegistry;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.util.*;
 
@@ -49,6 +50,32 @@ public class LuaRandomizerWrapper {
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths) {
         this(allowedDirectories, searchPaths, null, null);
+    }
+
+    // Same allowed/search layout live hosts use. Caller registers shared enums then loadModules.
+    public static LuaRandomizerWrapper forApp(File randomizerDir, File modulesDir,
+            CoreRequirements requirements) {
+        if (randomizerDir == null || modulesDir == null) {
+            throw new IllegalArgumentException("Randomizer dir and modules dir cannot be null");
+        }
+        List<String> allowedDirectories = new ArrayList<>();
+        allowedDirectories.add(randomizerDir.getAbsolutePath());
+        allowedDirectories.add(modulesDir.getAbsolutePath());
+        List<String> searchPaths = new ArrayList<>();
+        if (modulesDir.isDirectory()) {
+            searchPaths.add(modulesDir.getAbsolutePath());
+        }
+        return new LuaRandomizerWrapper(allowedDirectories, searchPaths, null, requirements);
+    }
+
+    public void requireModulesLoaded() {
+        if (getAvailableModules().isEmpty()) {
+            throw new IllegalStateException(
+                    "No action modules loaded from " + getSearchPaths());
+        }
+        if (IssueTracker.hasErrors()) {
+            throw new IllegalStateException("Module load failed: " + IssueTracker.getErrors());
+        }
     }
 
     public void addSearchPath(String path) {
@@ -131,6 +158,15 @@ public class LuaRandomizerWrapper {
         return sharedEnumContext;
     }
 
+    // Copy onLoad enums and provided field types onto this execution context.
+    public void prepareContext(JavaContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        context.mergeDynamicFieldTypes(moduleRegistry.getDynamicVarRegistry().providedTypesByName());
+    }
+
     // Start of a randomize batch manually executed piece by piece. This clears prior execution
     // results and issues so the host can accumulate across executeModule calls, then read
     // IssueTracker later if desired.
@@ -138,8 +174,7 @@ public class LuaRandomizerWrapper {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
-        // Ensure enums are up to date
-        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        prepareContext(context);
 
         // Clear previous results
         moduleExecutor.clearResults();
@@ -155,8 +190,7 @@ public class LuaRandomizerWrapper {
         if (context == null) {
             throw new IllegalArgumentException("Context cannot be null");
         }
-        // Ensure enums are up to date
-        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        prepareContext(context);
 
         // get the post randomize scripts and run them
         List<Module> postRandomizeScripts = moduleRegistry.getScripts(
@@ -177,8 +211,7 @@ public class LuaRandomizerWrapper {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException("Requests list cannot be null or empty");
         }
-        // add the shared enum registry from onLoad to the execution context
-        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        prepareContext(context);
         // Clear any old wrappers
         context.clearWrapperCache();
 
@@ -220,8 +253,7 @@ public class LuaRandomizerWrapper {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null");
         }
-        // add the shared enum registry from onLoad to the execution context
-        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        prepareContext(context);
 
         // Execute the module with only pre/post module scripts
         // Do not validate here but assume outside orchestrator is validating the overall plan
