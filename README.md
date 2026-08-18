@@ -63,6 +63,8 @@ The example also ships a few Lua script tests under `appExample/script_tests`. T
 ./gradlew runExampleScriptTests
 ```
 
+After building the example fat JAR (`./gradlew :appExample:fatJar`), you can also run the same tests from `appExample` with `runScriptTests.bat` (copied into `appExample/app` on build). The batch file runs `java -jar ExampleApp-*.jar --script-tests` with `lua_modules` and `script_tests` on disk next to the script, same layout as dev.
+
 ## Usage
 
 Please see the example app for usage. More documentation will be comming later (hopefully)
