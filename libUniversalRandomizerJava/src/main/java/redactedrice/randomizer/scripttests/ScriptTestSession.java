@@ -1,5 +1,7 @@
 package redactedrice.randomizer.scripttests;
 
+import java.util.Map;
+
 import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.lua.ExecutionRequest;
@@ -24,29 +26,38 @@ public final class ScriptTestSession {
     }
 
     public void run(ScriptTestCase testCase) {
-        Module module = wrapper.getModule(testCase.moduleId());
-        if (module == null) {
-            throw new IllegalStateException(
-                    "Unknown module '" + testCase.moduleId() + "' in " + testCase.displayName());
-        }
-
         JavaContext context = new JavaContext();
         context.mergeEnumRegistry(wrapper.getSharedContext().getEnumRegistry());
         fixtures.populateContext(context, testCase);
 
-        IssueTracker.clear();
-        ExecutionRequest request = ExecutionRequest.forModule(module, testCase.args());
+        wrapper.executePreRandomizeScripts(context);
+        if (IssueTracker.hasErrors()) {
+            throw new IllegalStateException("Pre randomize scripts failed in "
+                    + testCase.displayName() + ": " + IssueTracker.getErrors());
+        }
+
+        runModule(testCase, context, testCase.moduleId(), testCase.args());
+
+        fixtures.assertExpect(testCase, context);
+    }
+
+    private void runModule(ScriptTestCase testCase, JavaContext context, String moduleId,
+            Map<String, Object> args) {
+        Module module = wrapper.getModule(moduleId);
+        if (module == null) {
+            throw new IllegalStateException(
+                    "Unknown module '" + moduleId + "' in " + testCase.displayName());
+        }
+
+        ExecutionRequest request = ExecutionRequest.forModule(module, args);
         ExecutionResult result = wrapper.executeModule(request, context, testCase.seed());
         if (!result.isSuccess()) {
-            throw new IllegalStateException("Module '" + testCase.moduleId() + "' failed in "
+            throw new IllegalStateException("Module '" + moduleId + "' failed in "
                     + testCase.displayName() + ": " + result.getErrorMessage());
         }
         if (IssueTracker.hasErrors()) {
-            throw new IllegalStateException("Module '" + testCase.moduleId()
-                    + "' reported errors in " + testCase.displayName() + ": "
-                    + IssueTracker.getErrors());
+            throw new IllegalStateException("Module '" + moduleId + "' reported errors in "
+                    + testCase.displayName() + ": " + IssueTracker.getErrors());
         }
-
-        fixtures.assertExpect(testCase, context);
     }
 }
