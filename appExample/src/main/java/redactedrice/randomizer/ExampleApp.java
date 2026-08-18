@@ -64,28 +64,10 @@ public class ExampleApp {
             File logFile, File warnErrFile) {
         System.out.println("=== Lua Randomizer Wrapper Example App ===\n");
 
-        File randomizerDir = RandomizerBundledResources.install(new File("."), true);
-        String randomizerExtractionPath = randomizerDir.getAbsolutePath();
-        String modulesPath = new File("lua_modules").getAbsolutePath();
-
-        System.out.println("Using bundled randomizer files from: " + randomizerExtractionPath);
-
-        // Define allowed directories
-        List<String> allowedDirectories = new ArrayList<>();
-        allowedDirectories.add(randomizerExtractionPath); // randomizer core files
-        allowedDirectories.add(modulesPath); // app example modules
-
-        // Search paths for module. Generally allowed directories except the core randomizer files
-        List<String> searchPaths = new ArrayList<>();
-        searchPaths.add(modulesPath);
-
-        CoreRequirements requirements = new CoreRequirements();
-        requirements.addCoreRequirement(ExampleAppVersion.PLATFORM_KEY, ExampleAppVersion.VERSION,
-                true);
-        UniversalRandomizerVersions.addTo(requirements);
-
-        LuaRandomizerWrapper wrapper =
-                new LuaRandomizerWrapper(allowedDirectories, searchPaths, null, requirements);
+        File appDir = new File(".");
+        LuaRandomizerWrapper wrapper = createWrapper(appDir);
+        System.out.println("Using bundled randomizer files from: "
+                + RandomizerBundledResources.getInstalledDir(appDir).getAbsolutePath());
 
         // Configure log output with fine-grained control:
         // All levels to system out (default setting)
@@ -157,18 +139,13 @@ public class ExampleApp {
             itemsModified.add(i.copy());
         }
 
-        // Set up context with entities items and enums
+        // Set up context with entities and items
         JavaContext context = new JavaContext();
         context.register("entitiesOriginal", entitiesOriginal);
         context.register("entitiesModified", entitiesModified);
         context.register("itemsOriginal", itemsOriginal);
         context.register("itemsModified", itemsModified);
-        // Register enums with custom names to be used in Lua context
-        context.registerEnum("EE_EntityTypes", ExampleEntityType.class);
-        context.registerEnum("ItemRarity", ItemRarity.class);
-
-        // Enable change detection. The scripts will handle logging it to the logger
-        context.setConfig("changeDetectionActive", true);
+        context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
 
         // Print original state
         System.out.println("\n=== ORIGINAL STATE ===");
@@ -290,5 +267,23 @@ public class ExampleApp {
         for (ExampleItem i : itemsModified) {
             System.out.println("  " + i);
         }
+    }
+
+    static LuaRandomizerWrapper createWrapper(File appDir) {
+        File randomizerDir = RandomizerBundledResources.install(appDir, true);
+        File modulesDir = new File(appDir, "lua_modules");
+        CoreRequirements requirements = new CoreRequirements();
+        requirements.addCoreRequirement(ExampleAppVersion.PLATFORM_KEY, ExampleAppVersion.VERSION,
+                true);
+        UniversalRandomizerVersions.addTo(requirements);
+        LuaRandomizerWrapper wrapper =
+                LuaRandomizerWrapper.forApp(randomizerDir, modulesDir, requirements);
+        registerSharedEnums(wrapper.getSharedContext());
+        return wrapper;
+    }
+
+    static void registerSharedEnums(JavaContext context) {
+        context.registerEnum("EE_EntityTypes", ExampleEntityType.class);
+        context.registerEnum("ItemRarity", ItemRarity.class);
     }
 }

@@ -55,6 +55,16 @@ public class JavaContextTest {
     }
 
     @Test
+    public void testRegisterDynamicFieldRejectsInvalidNames() {
+        assertThrows(IllegalArgumentException.class,
+                () -> context.registerDynamicField(null, "EvolutionStage"));
+        assertThrows(IllegalArgumentException.class,
+                () -> context.registerDynamicField("", "EvolutionStage"));
+        assertThrows(IllegalArgumentException.class,
+                () -> context.registerDynamicField("maxStage", ""));
+    }
+
+    @Test
     public void testToLuaTable() {
         context.register("test", "value");
         context.registerEnum("Difficulty", "EASY", "NORMAL");

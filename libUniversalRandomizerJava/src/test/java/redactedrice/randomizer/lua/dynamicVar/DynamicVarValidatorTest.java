@@ -48,6 +48,8 @@ class DynamicVarValidatorTest {
         assertTrue(issues.isEmpty(), () -> issues.toString());
         assertEquals(List.of("set_evo_line_metadata"), registry.getNeedsForConsumer("fix_evo_line_hp")
                 .get(0).getCompatibleProviderModuleIds());
+        assertEquals("EvolutionStage", registry.providedTypesByName().get("evoLineMaxStage"));
+        assertEquals("integer", registry.providedTypesByName().get("evoLineId"));
     }
 
     @Test

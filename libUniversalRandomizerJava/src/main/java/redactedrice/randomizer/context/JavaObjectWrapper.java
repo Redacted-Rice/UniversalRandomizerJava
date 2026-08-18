@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 // Wraps Java objects in Lua tables with metatable-based method access
@@ -18,9 +19,18 @@ public class JavaObjectWrapper {
     private final EnumRegistry enumRegistry;
     // We need to cache objects so we can store and keep lua assigned values to them
     private final Map<Object, LuaTable> wrapperCache = new IdentityHashMap<>();
+    // Name to type from module provides. Used when Lua assigns a string to a dynamic field.
+    private final Map<String, String> dynamicFieldTypes = new LinkedHashMap<>();
 
     public JavaObjectWrapper(EnumRegistry enumRegistry) {
         this.enumRegistry = enumRegistry;
+    }
+
+    public void mergeDynamicFieldTypes(Map<String, String> types) {
+        if (types == null || types.isEmpty()) {
+            return;
+        }
+        dynamicFieldTypes.putAll(types);
     }
 
     /** Clears cached wrappers so a new randomization does not reuse stale dynamic Lua fields */
@@ -46,7 +56,7 @@ public class JavaObjectWrapper {
         LuaTable metatable = new LuaTable();
         metatable.set(LuaValue.INDEX, new WrapperIndex(javaObject, userdata, wrapper, methodCache,
                 enumRegistry, this));
-        metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper, enumRegistry));
+        metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper, this));
 
         wrapper.rawset("__userdata", userdata);
         wrapper.setmetatable(metatable);
@@ -99,44 +109,64 @@ public class JavaObjectWrapper {
     private static final class WrapperNewIndex extends ThreeArgFunction {
         private final LuaValue userdata;
         private final LuaTable wrapper;
-        private final EnumRegistry enumRegistry;
+        private final JavaObjectWrapper objectWrapper;
 
-        WrapperNewIndex(LuaValue userdata, LuaTable wrapper, EnumRegistry enumRegistry) {
+        WrapperNewIndex(LuaValue userdata, LuaTable wrapper, JavaObjectWrapper objectWrapper) {
             this.userdata = userdata;
             this.wrapper = wrapper;
-            this.enumRegistry = enumRegistry;
+            this.objectWrapper = objectWrapper;
         }
 
         @Override
         public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
-            LuaValue toSet = coerceEnumField(key, value);
+            LuaValue toSet = coerceAssignedValue(key, value);
             try {
                 userdata.set(key, toSet);
             } catch (Throwable e) {
                 // Must catch Throwable because LuaJ throws LuaError
-                wrapper.rawset(key, value);
+                wrapper.rawset(key, toSet);
             }
             return LuaValue.NIL;
         }
 
-        private LuaValue coerceEnumField(LuaValue key, LuaValue value) {
-            if (!value.isstring() || !userdata.isuserdata()) {
+        private LuaValue coerceAssignedValue(LuaValue key, LuaValue value) {
+            if (!value.isstring() || !key.isstring()) {
                 return value;
             }
-            Object java = userdata.touserdata();
-            if (java == null) {
-                return value;
+            String keyName = key.tojstring();
+            String valueName = value.tojstring();
+            Object enumValue = coerceJavaEnumField(keyName, valueName);
+            if (enumValue == null) {
+                enumValue = objectWrapper.coerceProvidedEnum(keyName, valueName);
             }
-            Field field = findPublicField(java.getClass(), key.tojstring());
-            if (field == null || !field.getType().isEnum()) {
-                return value;
-            }
-            Object enumValue = enumRegistry.stringToEnum(field.getType(), value.tojstring());
             if (enumValue == null) {
                 return value;
             }
             return CoerceJavaToLua.coerce(enumValue);
         }
+
+        private Object coerceJavaEnumField(String keyName, String valueName) {
+            if (!userdata.isuserdata()) {
+                return null;
+            }
+            Object java = userdata.touserdata();
+            if (java == null) {
+                return null;
+            }
+            Field field = findPublicField(java.getClass(), keyName);
+            if (field == null || !field.getType().isEnum()) {
+                return null;
+            }
+            return objectWrapper.enumRegistry.stringToEnum(field.getType(), valueName);
+        }
+    }
+
+    private Object coerceProvidedEnum(String fieldName, String valueName) {
+        String typeName = dynamicFieldTypes.get(fieldName);
+        if (typeName == null) {
+            return null;
+        }
+        return enumRegistry.stringToEnum(typeName, valueName);
     }
 
     private static Field findPublicField(Class<?> type, String name) {

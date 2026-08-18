@@ -8,14 +8,12 @@ import java.util.Map;
 import redactedrice.randomizer.context.JavaContext;
 import redactedrice.randomizer.example.ExampleEntityType;
 import redactedrice.randomizer.example.ItemRarity;
-import redactedrice.randomizer.lua.requirements.CoreRequirements;
 import redactedrice.randomizer.scripttests.ScriptTestCase;
 import redactedrice.randomizer.scripttests.ScriptTestCli;
 import redactedrice.randomizer.scripttests.ScriptTestFields;
 import redactedrice.randomizer.scripttests.ScriptTestFixtures;
 import redactedrice.randomizer.scripttests.ScriptTestValues;
 import redactedrice.randomizer.utils.IssueTracker;
-import redactedrice.randomizer.utils.RandomizerBundledResources;
 
 // Example host for URJ script tests. Cases use entities or items. Scripts still get
 // original/modified copies because that is how this app's modules read data.
@@ -35,44 +33,16 @@ public final class ExampleScriptTestRunner {
     }
 
     private static LuaRandomizerWrapper loadWrapper(File appDir) {
-        File randomizerDir = RandomizerBundledResources.install(appDir, true);
-        File modulesDir = new File(appDir, "lua_modules");
-        if (!modulesDir.isDirectory()) {
-            throw new IllegalStateException(
-                    "Action modules dir is missing: " + modulesDir.getAbsolutePath());
-        }
-
-        List<String> allowedDirectories = new ArrayList<>();
-        allowedDirectories.add(randomizerDir.getAbsolutePath());
-        allowedDirectories.add(modulesDir.getAbsolutePath());
-
-        CoreRequirements requirements = new CoreRequirements();
-        requirements.addCoreRequirement(ExampleAppVersion.PLATFORM_KEY, ExampleAppVersion.VERSION,
-                true);
-        UniversalRandomizerVersions.addTo(requirements);
-
-        LuaRandomizerWrapper wrapper = new LuaRandomizerWrapper(allowedDirectories,
-                List.of(modulesDir.getAbsolutePath()), null, requirements);
-
+        LuaRandomizerWrapper wrapper = ExampleApp.createWrapper(appDir);
         IssueTracker.clear();
-        int loaded = wrapper.loadModules();
-        if (loaded <= 0) {
-            throw new IllegalStateException(
-                    "No action modules loaded from " + modulesDir.getAbsolutePath());
-        }
-        if (IssueTracker.hasErrors()) {
-            throw new IllegalStateException("Module load failed: " + IssueTracker.getErrors());
-        }
+        wrapper.loadModules();
+        wrapper.requireModulesLoaded();
         return wrapper;
     }
 
     private static final class Fixtures implements ScriptTestFixtures {
         @Override
         public void populateContext(JavaContext context, ScriptTestCase testCase) {
-            context.registerEnum("EE_EntityTypes", ExampleEntityType.class);
-            context.registerEnum("ItemRarity", ItemRarity.class);
-            context.setConfig("changeDetectionActive", true);
-
             Map<String, Object> data = testCase.data();
             List<Map<String, Object>> entitySpecs = specs(data, "entities");
             List<Map<String, Object>> itemSpecs = specs(data, "items");
@@ -111,17 +81,11 @@ public final class ExampleScriptTestRunner {
                 ScriptTestFields.collectMismatches(context, match, expected, mismatches,
                         kind + " '" + name + "'");
             }
-            if (!mismatches.isEmpty()) {
-                throw new IllegalStateException(label + " " + String.join(". ", mismatches));
-            }
+            ScriptTestFields.failIfMismatches(label, mismatches);
         }
 
         private static List<Map<String, Object>> specs(Map<String, Object> data, String field) {
-            Object value = data.get(field);
-            if (value == null) {
-                return List.of();
-            }
-            return ScriptTestValues.listOfMaps(value, field);
+            return ScriptTestValues.optionalListOfMaps(data.get(field), field);
         }
 
         private static List<ExampleEntity> buildEntities(JavaContext context,

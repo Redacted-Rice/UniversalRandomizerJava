@@ -235,4 +235,16 @@ public class JavaObjectWrapperTest {
         wrapper.set("name", LuaValue.valueOf("FIRE"));
         assertEquals("FIRE", item.name);
     }
+
+    @Test
+    public void providedDynamicEnumFieldAcceptsStringName() {
+        JavaContext context = new JavaContext();
+        context.registerEnum(Kind.class);
+        context.registerDynamicField("maxStage", "Kind");
+        TypedItem item = new TypedItem();
+
+        LuaValue wrapper = context.wrap(item);
+        wrapper.set("maxStage", LuaValue.valueOf("FIRE"));
+        assertEquals(Kind.FIRE, wrapper.get("maxStage").touserdata());
+    }
 }

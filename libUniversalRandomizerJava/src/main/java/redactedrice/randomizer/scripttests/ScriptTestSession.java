@@ -9,7 +9,7 @@ import redactedrice.randomizer.lua.ExecutionResult;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.utils.IssueTracker;
 
-// Runs one case. The CLI loads every case in a file then calls this per case.
+// Runs one case. Same pre/module/post randomize scripts as a live batch, for one module.
 public final class ScriptTestSession {
     private final LuaRandomizerWrapper wrapper;
     private final ScriptTestFixtures fixtures;
@@ -27,18 +27,26 @@ public final class ScriptTestSession {
 
     public void run(ScriptTestCase testCase) {
         JavaContext context = new JavaContext();
-        context.mergeEnumRegistry(wrapper.getSharedContext().getEnumRegistry());
+        wrapper.prepareContext(context);
+        context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
         fixtures.populateContext(context, testCase);
 
         wrapper.executePreRandomizeScripts(context);
-        if (IssueTracker.hasErrors()) {
-            throw new IllegalStateException("Pre randomize scripts failed in "
-                    + testCase.displayName() + ": " + IssueTracker.getErrors());
-        }
+        failIfIssues("Pre randomize scripts failed", testCase);
 
         runModule(testCase, context, testCase.moduleId(), testCase.args());
 
+        wrapper.executePostRandomizeScripts(context);
+        failIfIssues("Post randomize scripts failed", testCase);
+
         fixtures.assertExpect(testCase, context);
+    }
+
+    private void failIfIssues(String what, ScriptTestCase testCase) {
+        if (IssueTracker.hasErrors()) {
+            throw new IllegalStateException(
+                    what + " in " + testCase.displayName() + ": " + IssueTracker.getErrors());
+        }
     }
 
     private void runModule(ScriptTestCase testCase, JavaContext context, String moduleId,

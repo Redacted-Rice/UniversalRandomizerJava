@@ -58,4 +58,21 @@ class ScriptTestValuesTest {
         assertEquals(3, ScriptTestValues.toInt(3, 0));
         assertThrows(IllegalArgumentException.class, () -> ScriptTestValues.toInt("3", 0));
     }
+
+    @Test
+    void optionalTablesIsNullWhenTheKeyIsMissing() {
+        Map<String, Object> data = Map.of("cards", List.of(Map.of("id", "A")));
+        assertEquals(1, ScriptTestValues.optionalTables(data, "cards").size());
+        assertNull(ScriptTestValues.optionalTables(data, "original"));
+        assertNull(ScriptTestValues.optionalTables(null, "cards"));
+    }
+
+    @Test
+    void withoutKeyReturnsACopyWithoutThatEntry() {
+        Map<String, Object> spec = Map.of("id", "A", "hp", 10);
+        Map<String, Object> stripped = ScriptTestValues.withoutKey(spec, "id");
+        assertEquals(Map.of("hp", 10), stripped);
+        assertEquals("A", spec.get("id"));
+        assertEquals(spec, ScriptTestValues.withoutKey(spec, "missing"));
+    }
 }

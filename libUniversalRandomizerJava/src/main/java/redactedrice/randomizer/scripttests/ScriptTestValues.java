@@ -1,6 +1,7 @@
 package redactedrice.randomizer.scripttests;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +64,23 @@ public final class ScriptTestValues {
             entries.add((Map<String, Object>) map);
         }
         return entries;
+    }
+
+    // Null if the key is missing. Use this when absent vs present matters.
+    public static List<Map<String, Object>> optionalTables(Map<String, Object> table, String field) {
+        if (table == null || !table.containsKey(field) || table.get(field) == null) {
+            return null;
+        }
+        return listOfMaps(table.get(field), field);
+    }
+
+    public static Map<String, Object> withoutKey(Map<String, Object> table, String key) {
+        if (table == null || key == null || !table.containsKey(key)) {
+            return table;
+        }
+        Map<String, Object> copy = new LinkedHashMap<>(table);
+        copy.remove(key);
+        return copy;
     }
 
     public static int toInt(Object value, int defaultValue) {

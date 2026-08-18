@@ -99,6 +99,18 @@ class ScriptTestFieldsTest {
         public String name = "plain";
     }
 
+    static class SetTypeOnly {
+        private Kind type = Kind.COLORLESS;
+
+        public Kind getType() {
+            return type;
+        }
+
+        public void setType(Kind type) {
+            this.type = type;
+        }
+    }
+
     private JavaContext context;
 
     @BeforeEach
@@ -123,6 +135,32 @@ class ScriptTestFieldsTest {
         assertEquals(0, unit.moves[0].getCost(Kind.FIRE));
         assertTrue(context.wrap(unit).get("kindTag").isstring());
         assertEquals("FIRE", context.wrap(unit).get("kindTag").tojstring());
+    }
+
+    @Test
+    void applyCoercesProvidedDynamicEnumFields() {
+        context.registerDynamicField("maxStage", "Kind");
+        Unit unit = new Unit();
+        ScriptTestFields.apply(context, unit, Map.of("maxStage", "WATER"));
+
+        assertEquals(Kind.WATER, context.wrap(unit).get("maxStage").touserdata());
+    }
+
+    @Test
+    void applyLeavesUnknownProvidedEnumNamesAsStrings() {
+        context.registerDynamicField("maxStage", "Kind");
+        Unit unit = new Unit();
+        ScriptTestFields.apply(context, unit, Map.of("maxStage", "GRASS"));
+
+        assertTrue(context.wrap(unit).get("maxStage").isstring());
+        assertEquals("GRASS", context.wrap(unit).get("maxStage").tojstring());
+    }
+
+    @Test
+    void applyCoercesEnumSetterArguments() {
+        SetTypeOnly unit = new SetTypeOnly();
+        ScriptTestFields.apply(context, unit, Map.of("type", "FIRE"));
+        assertEquals(Kind.FIRE, unit.getType());
     }
 
     @Test
@@ -248,6 +286,14 @@ class ScriptTestFieldsTest {
         List<String> mismatches = new ArrayList<>();
         ScriptTestFields.collectMismatches(context, unit, null, mismatches, "unit");
         assertTrue(mismatches.isEmpty());
+    }
+
+    @Test
+    void failIfMismatchesThrowsTheJoinedMessage() {
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> ScriptTestFields.failIfMismatches("case", List.of("a", "b")));
+        assertEquals("case a. b", error.getMessage());
+        ScriptTestFields.failIfMismatches("case", List.of());
     }
 
     private Unit appliedUnit() {

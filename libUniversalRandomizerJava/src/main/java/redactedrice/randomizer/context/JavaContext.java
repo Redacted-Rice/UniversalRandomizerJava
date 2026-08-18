@@ -13,6 +13,8 @@ import java.util.Map;
 // wrapper for java objects to pass to lua execution context
 // lets lua scripts access and modify registered java objects
 public class JavaContext {
+    public static final String CHANGE_DETECTION_ACTIVE = "changeDetectionActive";
+
     Map<String, Object> objects;
     Map<String, Object> config;
     EnumRegistry enumRegistry;
@@ -106,6 +108,21 @@ public class JavaContext {
         }
     }
 
+    // Types from module provides. Same map live Lua assignment uses for dynamic fields.
+    public void mergeDynamicFieldTypes(Map<String, String> types) {
+        objectWrapper.mergeDynamicFieldTypes(types);
+    }
+
+    public void registerDynamicField(String name, String type) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Dynamic field name cannot be null or empty");
+        }
+        if (type == null || type.trim().isEmpty()) {
+            throw new IllegalArgumentException("Dynamic field type cannot be null or empty");
+        }
+        objectWrapper.mergeDynamicFieldTypes(Map.of(name, type));
+    }
+
     public Object get(String name) {
         return objects.get(name);
     }
@@ -128,7 +145,7 @@ public class JavaContext {
         objectWrapper.clearCache();
     }
 
-    // Same wrapper cache Lua uses, so dynamic fields like evoLineId stick around
+    // Same wrapper cache Lua uses, so dynamic Lua fields stick around
     public LuaValue wrap(Object javaObject) {
         return objectWrapper.wrap(javaObject);
     }
