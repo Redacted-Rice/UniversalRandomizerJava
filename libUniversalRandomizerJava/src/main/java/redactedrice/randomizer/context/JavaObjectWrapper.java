@@ -6,6 +6,7 @@ import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -45,7 +46,7 @@ public class JavaObjectWrapper {
         LuaTable metatable = new LuaTable();
         metatable.set(LuaValue.INDEX, new WrapperIndex(javaObject, userdata, wrapper, methodCache,
                 enumRegistry, this));
-        metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper));
+        metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper, enumRegistry));
 
         wrapper.rawset("__userdata", userdata);
         wrapper.setmetatable(metatable);
@@ -98,21 +99,56 @@ public class JavaObjectWrapper {
     private static final class WrapperNewIndex extends ThreeArgFunction {
         private final LuaValue userdata;
         private final LuaTable wrapper;
+        private final EnumRegistry enumRegistry;
 
-        WrapperNewIndex(LuaValue userdata, LuaTable wrapper) {
+        WrapperNewIndex(LuaValue userdata, LuaTable wrapper, EnumRegistry enumRegistry) {
             this.userdata = userdata;
             this.wrapper = wrapper;
+            this.enumRegistry = enumRegistry;
         }
 
         @Override
         public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
+            LuaValue toSet = coerceEnumField(key, value);
             try {
-                userdata.set(key, value);
+                userdata.set(key, toSet);
             } catch (Throwable e) {
                 // Must catch Throwable because LuaJ throws LuaError
                 wrapper.rawset(key, value);
             }
             return LuaValue.NIL;
         }
+
+        private LuaValue coerceEnumField(LuaValue key, LuaValue value) {
+            if (!value.isstring() || !userdata.isuserdata()) {
+                return value;
+            }
+            Object java = userdata.touserdata();
+            if (java == null) {
+                return value;
+            }
+            Field field = findPublicField(java.getClass(), key.tojstring());
+            if (field == null || !field.getType().isEnum()) {
+                return value;
+            }
+            Object enumValue = enumRegistry.stringToEnum(field.getType().getSimpleName(),
+                    value.tojstring());
+            if (enumValue == null) {
+                return value;
+            }
+            return CoerceJavaToLua.coerce(enumValue);
+        }
+    }
+
+    private static Field findPublicField(Class<?> type, String name) {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getField(name);
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        return null;
     }
 }

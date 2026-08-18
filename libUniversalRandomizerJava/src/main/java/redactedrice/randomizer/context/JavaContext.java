@@ -128,6 +128,11 @@ public class JavaContext {
         objectWrapper.clearCache();
     }
 
+    // Same wrapper cache Lua uses, so dynamic fields like evoLineId stick around
+    public LuaValue wrap(Object javaObject) {
+        return objectWrapper.wrap(javaObject);
+    }
+
     public String[] getRegisteredNames() {
         return objects.keySet().toArray(new String[0]);
     }

@@ -38,11 +38,22 @@ public final class ScriptTestValues {
         return (Map<String, Object>) map;
     }
 
-    @SuppressWarnings("unchecked")
     public static List<Map<String, Object>> listOfMaps(Object value, String field) {
-        if (!(value instanceof List<?> list) || list.isEmpty()) {
+        List<Map<String, Object>> entries = optionalListOfMaps(value, field);
+        if (entries.isEmpty()) {
             throw new IllegalArgumentException(
                     field + " must be an array of tables with at least one entry");
+        }
+        return entries;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<Map<String, Object>> optionalListOfMaps(Object value, String field) {
+        if (value == null) {
+            return List.of();
+        }
+        if (!(value instanceof List<?> list)) {
+            throw new IllegalArgumentException(field + " must be an array of tables");
         }
         List<Map<String, Object>> entries = new ArrayList<>();
         for (Object entry : list) {
