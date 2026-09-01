@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -180,7 +181,7 @@ class ScriptTestFieldsTest {
         NoListAccess target = new NoListAccess();
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> ScriptTestFields.apply(context, target,
-                        Map.of("moves", List.of(Map.of("name", "Splash")))));
+                        Map.of("moves", moveList(Map.of("name", "Splash")))));
         assertTrue(error.getMessage().contains("No getMove"), error.getMessage());
     }
 
@@ -239,7 +240,7 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesReportsMoveCount() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("moves", List.of(
+        List<String> mismatches = mismatches(unit, Map.of("moves", moveList(
                 Map.of("name", "Splash"),
                 Map.of("name", "Flare"))));
 
@@ -249,7 +250,7 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesReportsWrongNestedMoveFields() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("moves", List.of(Map.of(
+        List<String> mismatches = mismatches(unit, Map.of("moves", moveList(Map.of(
                 "name", "Flare",
                 "damage", 99))));
 
@@ -260,8 +261,8 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesTreatsOmittedCostsAsZero() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("moves", List.of(Map.of(
-                "costs", Map.of("WATER", 2)))));
+        List<String> mismatches = mismatches(unit, Map.of("moves", moveList(Map.of(
+                "costs", costs(2, null)))));
 
         assertHas(mismatches, "unit moves[1] costs COLORLESS expected 0 but was 1");
         assertTrue(mismatches.stream().noneMatch(m -> m.contains("FIRE")), mismatches.toString());
@@ -272,8 +273,8 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesReportsWrongCostValues() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("moves", List.of(Map.of(
-                "costs", Map.of("WATER", 9, "COLORLESS", 1)))));
+        List<String> mismatches = mismatches(unit, Map.of("moves", moveList(Map.of(
+                "costs", costs(9, 1)))));
 
         assertHas(mismatches, "unit moves[1] costs WATER expected 9 but was 2");
         assertTrue(mismatches.stream().noneMatch(m -> m.contains("COLORLESS expected")),
@@ -304,10 +305,10 @@ class ScriptTestFieldsTest {
                 "type", "FIRE",
                 "evoLineId", 3,
                 "kindTag", "FIRE",
-                "moves", List.of(Map.of(
+                "moves", moveList(Map.of(
                         "name", "Splash",
                         "damage", 20,
-                        "costs", Map.of("WATER", 2, "COLORLESS", 1)))));
+                        "costs", costs(2, 1)))));
         return unit;
     }
 
@@ -317,10 +318,30 @@ class ScriptTestFieldsTest {
                 "hp", 40,
                 "type", "FIRE",
                 "evoLineId", 3,
-                "moves", List.of(Map.of(
+                "moves", moveList(Map.of(
                         "name", "Splash",
                         "damage", 20,
-                        "costs", Map.of("WATER", 2, "COLORLESS", 1))));
+                        "costs", costs(2, 1))));
+    }
+
+    private static Map<String, Object> moveList(Map<String, Object>... entries) {
+        Map<String, Object> spec = new LinkedHashMap<>();
+        spec.put("accessType", "item");
+        spec.put("values", List.of(entries));
+        return spec;
+    }
+
+    private static Map<String, Object> costs(Integer water, Integer colorless) {
+        Map<String, Object> spec = new LinkedHashMap<>();
+        spec.put("accessType", "item");
+        spec.put("pre", "clearCosts");
+        if (water != null) {
+            spec.put("WATER", water);
+        }
+        if (colorless != null) {
+            spec.put("COLORLESS", colorless);
+        }
+        return spec;
     }
 
     private List<String> mismatches(Unit unit, Map<String, Object> expect) {

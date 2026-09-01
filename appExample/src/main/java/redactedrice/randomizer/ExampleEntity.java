@@ -1,9 +1,30 @@
 package redactedrice.randomizer;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import redactedrice.randomizer.example.ExampleEntityType;
 
 // example entity with private fields and public getters setters
 public class ExampleEntity {
+
+    public static class Tag {
+        private String label = "";
+
+        public String getLabel() {
+            return label;
+        }
+
+        public void setLabel(String label) {
+            this.label = label;
+        }
+
+        public Tag copy() {
+            Tag copy = new Tag();
+            copy.label = label;
+            return copy;
+        }
+    }
 
     String name;
     ExampleEntityType type;
@@ -13,6 +34,12 @@ public class ExampleEntity {
     double damage;
     int speed;
     int defense;
+
+    private int numTags;
+    private final Tag[] tags = { new Tag(), new Tag(), new Tag() };
+    private int rankCounts;
+    private final Tag[] ranks = { new Tag(), new Tag(), new Tag() };
+    private final Map<String, Integer> perkRanks = new LinkedHashMap<>();
 
     public ExampleEntity(String name) {
         this("Unnamed", ExampleEntityType.WARRIOR, 100, 10.0, 10, 10);
@@ -85,9 +112,64 @@ public class ExampleEntity {
         this.startingItem = startingItem;
     }
 
+    public int getNumTags() {
+        return numTags;
+    }
+
+    public void setNumTags(int numTags) {
+        this.numTags = numTags;
+    }
+
+    public Tag getTag(int index) {
+        return tags[index].copy();
+    }
+
+    public boolean setTag(Tag tag, int index, boolean force) {
+        tags[index] = tag.copy();
+        return force || true;
+    }
+
+    public int getRankCounts() {
+        return rankCounts;
+    }
+
+    public void setRankCounts(int rankCounts) {
+        this.rankCounts = rankCounts;
+    }
+
+    public Tag getAtRank(int index) {
+        return ranks[index].copy();
+    }
+
+    public boolean setAtRank(Tag rank, int index, boolean force) {
+        ranks[index] = rank.copy();
+        return force || true;
+    }
+
+    public void clearPerkRanks() {
+        perkRanks.clear();
+    }
+
+    public void setPerkRank(String perk, int rank) {
+        perkRanks.put(perk, rank);
+    }
+
+    public int getPerkRank(String perk) {
+        return perkRanks.getOrDefault(perk, 0);
+    }
+
     public ExampleEntity copy() {
         ExampleEntity copy = new ExampleEntity(name, type, health, damage, speed, defense);
         copy.startingItem = this.startingItem;
+        copy.numTags = this.numTags;
+        for (int i = 0; i < tags.length; i++) {
+            copy.tags[i] = this.tags[i].copy();
+        }
+        copy.rankCounts = this.rankCounts;
+        for (int i = 0; i < ranks.length; i++) {
+            copy.ranks[i] = this.ranks[i].copy();
+        }
+        copy.perkRanks.putAll(this.perkRanks);
         return copy;
     }
 

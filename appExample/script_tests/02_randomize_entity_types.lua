@@ -1,7 +1,22 @@
 -- Types come from the EE_EntityTypes enum.
+-- tags/perkRanks use standard getX/setX names. ranks uses custom method names.
+local fields = require("support.fields")
+
 local entities = {
-	{ name = "Hero", type = "WARRIOR" },
-	{ name = "Mage", type = "MAGE" },
+	{
+		name = "Hero",
+		type = "WARRIOR",
+		tags = fields.tags({ { label = "veteran" }, { label = "scout" } }),
+		ranks = fields.ranks({ { label = "captain" } }),
+		perkRanks = fields.perkRanks({ melee = 2, range = 1 }),
+	},
+	{
+		name = "Mage",
+		type = "MAGE",
+		tags = fields.tags({ { label = "arcane" } }),
+		ranks = fields.ranks({ { label = "adept" } }),
+		perkRanks = fields.perkRanks({ arcane = 3 }),
+	},
 }
 
 return {
@@ -11,8 +26,20 @@ return {
 		seed = 42,
 		entities = entities,
 		expect = {
-			{ name = "Hero", type = "RANGER" },
-			{ name = "Mage", type = "RANGER" },
+			{
+				name = "Hero",
+				type = "RANGER",
+				tags = fields.tags({ { label = "veteran" }, { label = "scout" } }),
+				ranks = fields.ranks({ { label = "captain" } }),
+				perkRanks = fields.perkRanks({ melee = 2, range = 1 }),
+			},
+			{
+				name = "Mage",
+				type = "RANGER",
+				tags = fields.tags({ { label = "arcane" } }),
+				ranks = fields.ranks({ { label = "adept" } }),
+				perkRanks = fields.perkRanks({ arcane = 3 }),
+			},
 		},
 	},
 }

@@ -75,4 +75,101 @@ class ScriptTestValuesTest {
         assertEquals("A", spec.get("id"));
         assertEquals(spec, ScriptTestValues.withoutKey(spec, "missing"));
     }
+
+    @Test
+    void optionalListOfMapsUnwrapsInlineListSpec() {
+        List<Map<String, Object>> moves = ScriptTestValues.optionalListOfMaps(Map.of(
+                "values", List.of(Map.of("name", "Splash"))), "moves");
+        assertEquals("Splash", moves.get(0).get("name"));
+        assertTrue(ScriptTestValues.optionalListOfMaps(Map.of(
+                "values", Map.of()), "moves").isEmpty());
+    }
+
+    @Test
+    void parseListFieldSpecDefaultsWholeAccessFromFieldName() {
+        ScriptTestValues.ListFieldSpec moves = ScriptTestValues.parseListFieldSpec(Map.of(
+                "values", List.of(Map.of("name", "Splash"))), "moves");
+        assertEquals(ScriptTestValues.AccessType.WHOLE, moves.accessType());
+        assertEquals("getMoves", moves.getterMethod());
+        assertEquals("setMoves", moves.setterMethod());
+        assertEquals("getMove", moves.itemGetterMethod());
+        assertEquals("setMove", moves.itemSetterMethod());
+        assertNull(moves.countGetterMethod());
+        assertNull(moves.countSetterMethod());
+
+        ScriptTestValues.ListFieldSpec tags = ScriptTestValues.parseListFieldSpec(Map.of(
+                "values", List.of(Map.of("label", "veteran"))), "tags");
+        assertEquals("getTags", tags.getterMethod());
+        assertEquals("setTags", tags.setterMethod());
+        assertEquals("getTag", tags.itemGetterMethod());
+        assertEquals("setTag", tags.itemSetterMethod());
+    }
+
+    @Test
+    void parseListFieldSpecDefaultsItemAccessFromFieldName() {
+        ScriptTestValues.ListFieldSpec moves = ScriptTestValues.parseListFieldSpec(Map.of(
+                "accessType", "item",
+                "values", List.of(Map.of("name", "Splash"))), "moves");
+        assertEquals(ScriptTestValues.AccessType.ITEM, moves.accessType());
+        assertEquals("getMove", moves.getterMethod());
+        assertEquals("setMove", moves.setterMethod());
+        assertEquals("getNumMoves", moves.countGetterMethod());
+        assertEquals("setNumMoves", moves.countSetterMethod());
+    }
+
+    @Test
+    void parseListFieldSpecWholeIgnoresCountAccessors() {
+        ScriptTestValues.ListFieldSpec whole = ScriptTestValues.parseListFieldSpec(Map.of(
+                "countGetter", "getNumMoves",
+                "countSetter", "setNumMoves",
+                "values", List.of(Map.of("name", "Splash"))), "moves");
+        assertNull(whole.countGetterMethod());
+        assertNull(whole.countSetterMethod());
+    }
+
+    @Test
+    void parseListFieldSpecOnlyOverridesNonCompliantAccessors() {
+        ScriptTestValues.ListFieldSpec partial = ScriptTestValues.parseListFieldSpec(Map.of(
+                "getter", "getAtRank",
+                "values", List.of(Map.of("label", "captain"))), "moves");
+        assertEquals("getAtRank", partial.getterMethod());
+        assertEquals("setMoves", partial.setterMethod());
+        assertNull(partial.countGetterMethod());
+        assertNull(partial.countSetterMethod());
+
+        ScriptTestValues.ListFieldSpec custom = ScriptTestValues.parseListFieldSpec(Map.of(
+                "getter", "getAtRank",
+                "setter", "setAtRank",
+                "countGetter", "getRankCounts",
+                "countSetter", "setRankCounts",
+                "accessType", "item",
+                "values", List.of(Map.of("label", "captain"))), "ranks");
+        assertEquals("getAtRank", custom.getterMethod());
+        assertEquals("setAtRank", custom.setterMethod());
+        assertEquals("getRankCounts", custom.countGetterMethod());
+        assertEquals("setRankCounts", custom.countSetterMethod());
+    }
+
+    @Test
+    void parseKeyedMapSpecDefaultsWholeFromFieldName() {
+        ScriptTestValues.KeyedMapSpec costs = ScriptTestValues.parseKeyedMapSpec(Map.of(
+                "pre", List.of("clearCosts"),
+                "WATER", 2), "costs");
+        assertEquals(ScriptTestValues.AccessType.WHOLE, costs.accessType());
+        assertEquals("getCosts", costs.getterMethod());
+        assertEquals("setCosts", costs.setterMethod());
+        assertEquals(List.of("clearCosts"), costs.pre());
+        assertEquals(Map.of("WATER", 2), costs.entries());
+    }
+
+    @Test
+    void parseKeyedMapSpecDefaultsItemFromFieldName() {
+        ScriptTestValues.KeyedMapSpec costs = ScriptTestValues.parseKeyedMapSpec(Map.of(
+                "accessType", "item",
+                "pre", List.of("clearCosts"),
+                "WATER", 2), "costs");
+        assertEquals(ScriptTestValues.AccessType.ITEM, costs.accessType());
+        assertEquals("getCost", costs.getterMethod());
+        assertEquals("setCost", costs.setterMethod());
+    }
 }
