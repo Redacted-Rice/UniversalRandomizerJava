@@ -13,6 +13,10 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.OneArgFunction;
+
 import redactedrice.randomizer.context.JavaContext;
 
 class ScriptTestFieldsTest {
@@ -109,6 +113,28 @@ class ScriptTestFieldsTest {
 
         public void setType(Kind type) {
             this.type = type;
+        }
+    }
+
+    static class FlagTarget {
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    static class BothBooleanAccessors {
+        public boolean getEnabled() {
+            return false;
+        }
+
+        public boolean isEnabled() {
+            return true;
         }
     }
 
@@ -227,6 +253,62 @@ class ScriptTestFieldsTest {
 
         assertHas(mismatches, "unit type expected WATER but was FIRE");
         assertHas(mismatches, "unit name expected Flare but was Ember");
+    }
+
+    @Test
+    void collectMismatchesComparesBooleanFieldsDirectly() {
+        FlagTarget target = new FlagTarget();
+        target.setEnabled(true);
+        List<String> mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, target, Map.of("enabled", false),
+                mismatches, "target");
+        assertHas(mismatches, "target enabled expected false but was true");
+
+        mismatches.clear();
+        ScriptTestFields.collectMismatches(context, target, Map.of("enabled", true), mismatches,
+                "target");
+        assertTrue(mismatches.isEmpty(), mismatches.toString());
+    }
+
+    @Test
+    void collectMismatchesPrefersGetOverIsBooleanAccessors() {
+        List<String> mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, new BothBooleanAccessors(),
+                Map.of("enabled", false), mismatches, "target");
+        assertTrue(mismatches.isEmpty(), mismatches.toString());
+
+        mismatches.clear();
+        ScriptTestFields.collectMismatches(context, new BothBooleanAccessors(),
+                Map.of("enabled", true), mismatches, "target");
+        assertHas(mismatches, "target enabled expected true but was false");
+    }
+
+    @Test
+    void collectMismatchesUsesKeyFunctionBeforeGetOrIs() {
+        LuaTable target = new LuaTable();
+        target.set("getEnabled", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue self) {
+                return LuaValue.TRUE;
+            }
+        });
+        target.set("isEnabled", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue self) {
+                return LuaValue.TRUE;
+            }
+        });
+        target.set("enabled", new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue self) {
+                return LuaValue.FALSE;
+            }
+        });
+
+        List<String> mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, target, Map.of("enabled", false), mismatches,
+                "target");
+        assertTrue(mismatches.isEmpty(), mismatches.toString());
     }
 
     @Test

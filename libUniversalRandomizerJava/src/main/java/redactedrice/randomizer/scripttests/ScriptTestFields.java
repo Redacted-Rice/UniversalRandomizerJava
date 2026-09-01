@@ -372,11 +372,19 @@ public final class ScriptTestFields {
     }
 
     private static LuaValue read(LuaValue target, String key) {
+        LuaValue direct = target.get(key);
+        if (isFunction(direct)) {
+            return invoke(direct, target).arg1();
+        }
         LuaValue getter = target.get("get" + cap(key));
         if (isFunction(getter)) {
             return invoke(getter, target).arg1();
         }
-        return target.get(key);
+        getter = target.get("is" + cap(key));
+        if (isFunction(getter)) {
+            return invoke(getter, target).arg1();
+        }
+        return direct;
     }
 
     private static Class<?> enumParamType(Object java, String methodName) {
@@ -447,6 +455,9 @@ public final class ScriptTestFields {
             return expected == null;
         }
         Object actual = LuaJavaConverter.luaToJava(actualLua);
+        if (expected == null) {
+            return false;
+        }
         if (expected instanceof Number expectedNumber && actual instanceof Number actualNumber) {
             if (expectedNumber instanceof Double || expectedNumber instanceof Float
                     || actualNumber instanceof Double || actualNumber instanceof Float) {
@@ -454,6 +465,21 @@ public final class ScriptTestFields {
                         actualNumber.doubleValue()) == 0;
             }
             return expectedNumber.longValue() == actualNumber.longValue();
+        }
+        if (expected instanceof Boolean expectedBool) {
+            return actual instanceof Boolean actualBool && expectedBool.equals(actualBool);
+        }
+        if (actual instanceof Boolean) {
+            return false;
+        }
+        if (expected instanceof String expectedString && actual instanceof Enum<?> actualEnum) {
+            return expectedString.equals(actualEnum.name());
+        }
+        if (expected instanceof Enum<?> expectedEnum) {
+            if (actual instanceof Enum<?> actualEnum) {
+                return expectedEnum == actualEnum;
+            }
+            return expectedEnum.name().equals(String.valueOf(actual));
         }
         return String.valueOf(expected).equals(String.valueOf(actual));
     }
