@@ -48,8 +48,10 @@ public final class ScriptTestFields {
         List<String> lists = new ArrayList<>();
         for (String key : spec.keySet()) {
             Object value = spec.get(key);
-            if (isListOfMaps(value)) {
+            if (ScriptTestValues.isListFieldSpec(value)) {
                 lists.add(key);
+            } else if (value instanceof Map<?, ?> map && ScriptTestValues.isKeyedMapSpec(map)) {
+                maps.add(key);
             } else if (value instanceof Map<?, ?>) {
                 maps.add(key);
             } else {
@@ -64,7 +66,7 @@ public final class ScriptTestFields {
         }
         for (String key : lists) {
             applyList(context, target, key,
-                    ScriptTestValues.optionalListOfMaps(spec.get(key), key));
+                    ScriptTestValues.parseListFieldSpec(spec.get(key), key));
         }
     }
 
@@ -98,15 +100,8 @@ public final class ScriptTestFields {
 
     private static void applyMap(JavaContext context, LuaValue target, String key,
             Map<String, Object> values) {
-        LuaValue clearer = target.get("clear" + cap(key));
-        LuaValue setter = target.get(setterName(singular(key)));
-        if (isFunction(setter) && isScalarMap(values)) {
-            if (isFunction(clearer)) {
-                invoke(clearer, target);
-            }
-            for (Map.Entry<String, Object> entry : values.entrySet()) {
-                invoke(setter, target, LuaValue.valueOf(entry.getKey()), toLua(entry.getValue()));
-            }
+        if (ScriptTestValues.isKeyedMapSpec(values)) {
+            applyKeyedMap(target, ScriptTestValues.parseKeyedMapSpec(values, key));
             return;
         }
 
@@ -118,26 +113,58 @@ public final class ScriptTestFields {
         target.set(key, LuaJavaConverter.mapToLuaTable(values));
     }
 
+    private static void applyKeyedMap(LuaValue target, ScriptTestValues.KeyedMapSpec spec) {
+        invokeHooks(target, spec.pre());
+        LuaValue setter = target.get(spec.setterMethod());
+        if (!isFunction(setter)) {
+            throw new IllegalArgumentException(
+                    "No " + spec.setterMethod() + " method for keyed map");
+        }
+        if (spec.accessType() == ScriptTestValues.AccessType.WHOLE) {
+            invoke(setter, target, LuaJavaConverter.mapToLuaTable(spec.entries()));
+        } else {
+            for (Map.Entry<String, Object> entry : spec.entries().entrySet()) {
+                invoke(setter, target, LuaValue.valueOf(entry.getKey()), toLua(entry.getValue()));
+            }
+        }
+        invokeHooks(target, spec.post());
+    }
+
     private static void applyList(JavaContext context, LuaValue target, String key,
-            List<Map<String, Object>> entries) {
-        LuaValue setCount = target.get("setNum" + cap(key));
-        if (isFunction(setCount)) {
-            invoke(setCount, target, LuaValue.valueOf(entries.size()));
+            ScriptTestValues.ListFieldSpec list) {
+        invokeHooks(target, list.pre());
+
+        List<Map<String, Object>> entries = list.values();
+        if (list.accessType() == ScriptTestValues.AccessType.ITEM) {
+            applyItemList(context, target, key, list, entries);
+        } else {
+            applyWholeList(context, target, key, list, entries);
         }
 
-        String itemName = singular(key);
-        LuaValue getter = target.get("get" + cap(itemName));
-        LuaValue setter = target.get("set" + cap(itemName));
+        invokeHooks(target, list.post());
+    }
+
+    private static void applyItemList(JavaContext context, LuaValue target, String key,
+            ScriptTestValues.ListFieldSpec list, List<Map<String, Object>> entries) {
+        if (list.countSetterMethod() != null) {
+            LuaValue setCount = target.get(list.countSetterMethod());
+            if (isFunction(setCount)) {
+                invoke(setCount, target, LuaValue.valueOf(entries.size()));
+            }
+        }
+
+        LuaValue getter = target.get(list.getterMethod());
+        LuaValue setter = target.get(list.setterMethod());
         if (!isFunction(getter)) {
             throw new IllegalArgumentException(
-                    "Cannot apply list '" + key + "'. No get" + cap(itemName) + " method");
+                    "Cannot apply list '" + key + "'. No " + list.getterMethod() + " method");
         }
 
         for (int i = 0; i < entries.size(); i++) {
             LuaValue item = asTarget(context, invoke(getter, target, LuaValue.valueOf(i)).arg1());
             if (isNil(item)) {
                 throw new IllegalArgumentException(
-                        "get" + cap(itemName) + "(" + i + ") returned nil");
+                        list.getterMethod() + "(" + i + ") returned nil");
             }
             applyTarget(context, item, entries.get(i));
             if (isFunction(setter)) {
@@ -147,44 +174,60 @@ public final class ScriptTestFields {
         }
     }
 
+    private static void applyWholeList(JavaContext context, LuaValue target, String key,
+            ScriptTestValues.ListFieldSpec list, List<Map<String, Object>> entries) {
+        String itemGetterName = list.itemGetterMethod();
+        if (itemGetterName == null) {
+            throw new IllegalArgumentException(
+                    "Cannot apply whole list '" + key + "'. Needs item getter from field name");
+        }
+        LuaValue itemGetter = target.get(itemGetterName);
+        if (!isFunction(itemGetter)) {
+            throw new IllegalArgumentException(
+                    "Cannot apply whole list '" + key + "'. No " + itemGetterName + " method");
+        }
+
+        List<LuaValue> built = new ArrayList<>();
+        for (int i = 0; i < entries.size(); i++) {
+            LuaValue item = asTarget(context, invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
+            if (isNil(item)) {
+                throw new IllegalArgumentException(itemGetterName + "(" + i + ") returned nil");
+            }
+            applyTarget(context, item, entries.get(i));
+            built.add(item);
+        }
+
+        LuaValue setter = target.get(list.setterMethod());
+        if (!isFunction(setter)) {
+            throw new IllegalArgumentException(
+                    "Cannot apply whole list '" + key + "'. No " + list.setterMethod() + " method");
+        }
+        invoke(setter, target, toLuaList(built));
+    }
+
     private static void collectMismatch(JavaContext context, LuaValue target, String key,
             Object expected, List<String> mismatches, String path) {
         String fieldPath = path + " " + key;
-        if (isListOfMaps(expected)) {
-            List<Map<String, Object>> wanted =
-                    ScriptTestValues.optionalListOfMaps(expected, key);
-            LuaValue getCount = target.get("getNum" + cap(key));
-            if (isFunction(getCount)) {
-                int actualCount = invoke(getCount, target).arg1().toint();
-                if (actualCount != wanted.size()) {
-                    mismatches.add(fieldPath + " count expected " + wanted.size() + " but was "
-                            + actualCount);
-                    return;
-                }
-            }
-            LuaValue getter = target.get("get" + cap(singular(key)));
-            if (!isFunction(getter)) {
-                mismatches.add(fieldPath + " has no get" + cap(singular(key)) + " method");
-                return;
-            }
-            for (int i = 0; i < wanted.size(); i++) {
-                LuaValue item =
-                        asTarget(context, invoke(getter, target, LuaValue.valueOf(i)).arg1());
-                collectFromTarget(context, item, wanted.get(i), mismatches,
-                        fieldPath + "[" + (i + 1) + "]");
+        if (ScriptTestValues.isListFieldSpec(expected)) {
+            ScriptTestValues.ListFieldSpec list =
+                    ScriptTestValues.parseListFieldSpec(expected, key);
+            List<Map<String, Object>> wanted = list.values();
+            if (list.accessType() == ScriptTestValues.AccessType.ITEM) {
+                collectItemListMismatches(context, target, list, wanted, mismatches, fieldPath);
+            } else {
+                collectWholeListMismatches(context, target, list, wanted, mismatches, fieldPath);
             }
             return;
         }
 
         if (expected instanceof Map<?, ?>) {
             Map<String, Object> wanted = ScriptTestValues.optionalMap(expected);
-            String getterName = "get" + cap(singular(key));
-            LuaValue getter = target.get(getterName);
-            if (isFunction(getter) && isScalarMap(wanted)) {
-                collectEnumKeyedMismatches(target, getterName, getter, wanted, mismatches,
-                        fieldPath);
+            if (ScriptTestValues.isKeyedMapSpec(wanted)) {
+                collectKeyedMapMismatches(target,
+                        ScriptTestValues.parseKeyedMapSpec(wanted, key), mismatches, fieldPath);
                 return;
             }
+
             LuaValue nested = asTarget(context, read(target, key));
             if (isNil(nested)) {
                 mismatches.add(fieldPath + " expected a nested object but was missing");
@@ -197,6 +240,94 @@ public final class ScriptTestFields {
         LuaValue actual = read(target, key);
         if (!valuesMatch(expected, actual)) {
             mismatches.add(fieldPath + " expected " + expected + " but was " + describe(actual));
+        }
+    }
+
+    private static void collectItemListMismatches(JavaContext context, LuaValue target,
+            ScriptTestValues.ListFieldSpec list, List<Map<String, Object>> wanted,
+            List<String> mismatches, String fieldPath) {
+        if (list.countGetterMethod() != null) {
+            LuaValue getCount = target.get(list.countGetterMethod());
+            if (isFunction(getCount)) {
+                int actualCount = invoke(getCount, target).arg1().toint();
+                if (actualCount != wanted.size()) {
+                    mismatches.add(fieldPath + " count expected " + wanted.size() + " but was "
+                            + actualCount);
+                    return;
+                }
+            }
+        }
+        LuaValue getter = target.get(list.getterMethod());
+        if (!isFunction(getter)) {
+            mismatches.add(fieldPath + " has no " + list.getterMethod() + " method");
+            return;
+        }
+        for (int i = 0; i < wanted.size(); i++) {
+            LuaValue item = asTarget(context, invoke(getter, target, LuaValue.valueOf(i)).arg1());
+            collectFromTarget(context, item, wanted.get(i), mismatches,
+                    fieldPath + "[" + (i + 1) + "]");
+        }
+    }
+
+    private static void collectWholeListMismatches(JavaContext context, LuaValue target,
+            ScriptTestValues.ListFieldSpec list, List<Map<String, Object>> wanted,
+            List<String> mismatches, String fieldPath) {
+        LuaValue getter = target.get(list.getterMethod());
+        if (!isFunction(getter)) {
+            mismatches.add(fieldPath + " has no " + list.getterMethod() + " method");
+            return;
+        }
+        LuaValue actualList = invoke(getter, target).arg1();
+        if (!actualList.istable()) {
+            mismatches.add(fieldPath + " expected a list but was " + describe(actualList));
+            return;
+        }
+        int actualCount = actualList.length();
+        if (actualCount != wanted.size()) {
+            mismatches.add(fieldPath + " count expected " + wanted.size() + " but was "
+                    + actualCount);
+            return;
+        }
+        String itemGetterName = list.itemGetterMethod();
+        if (itemGetterName == null) {
+            mismatches.add(fieldPath + " whole list has no item getter from field name");
+            return;
+        }
+        for (int i = 0; i < wanted.size(); i++) {
+            LuaValue item = asTarget(context, actualList.get(i + 1));
+            collectFromTarget(context, item, wanted.get(i), mismatches,
+                    fieldPath + "[" + (i + 1) + "]");
+        }
+    }
+
+    private static void collectKeyedMapMismatches(LuaValue target,
+            ScriptTestValues.KeyedMapSpec spec, List<String> mismatches, String path) {
+        String getterName = spec.getterMethod();
+        LuaValue getter = target.get(getterName);
+        if (!isFunction(getter)) {
+            mismatches.add(path + " has no " + getterName + " method");
+            return;
+        }
+        if (spec.accessType() == ScriptTestValues.AccessType.WHOLE) {
+            collectWholeMapMismatches(target, getter, spec.entries(), mismatches, path);
+            return;
+        }
+        collectEnumKeyedMismatches(target, getterName, getter, spec.entries(), mismatches, path);
+    }
+
+    private static void collectWholeMapMismatches(LuaValue target, LuaValue getter,
+            Map<String, Object> wanted, List<String> mismatches, String path) {
+        LuaValue actualMap = invoke(getter, target).arg1();
+        if (!actualMap.istable()) {
+            mismatches.add(path + " expected a map but was " + describe(actualMap));
+            return;
+        }
+        for (Map.Entry<String, Object> entry : wanted.entrySet()) {
+            LuaValue actual = actualMap.get(entry.getKey());
+            if (!valuesMatch(entry.getValue(), actual)) {
+                mismatches.add(path + " " + entry.getKey() + " expected " + entry.getValue()
+                        + " but was " + describe(actual));
+            }
         }
     }
 
@@ -221,6 +352,16 @@ public final class ScriptTestFields {
                 mismatches.add(path + " " + entry.getKey() + " expected " + entry.getValue()
                         + " but was " + describe(actual));
             }
+        }
+    }
+
+    private static void invokeHooks(LuaValue target, List<String> hookNames) {
+        for (String hookName : hookNames) {
+            LuaValue hook = target.get(hookName);
+            if (!isFunction(hook)) {
+                throw new IllegalArgumentException("No hook method '" + hookName + "'");
+            }
+            invoke(hook, target);
         }
     }
 
@@ -280,6 +421,14 @@ public final class ScriptTestFields {
         return function.invoke(LuaValue.varargsOf(args));
     }
 
+    private static LuaValue toLuaList(List<LuaValue> items) {
+        LuaValue table = LuaValue.tableOf();
+        for (int i = 0; i < items.size(); i++) {
+            table.set(i + 1, items.get(i));
+        }
+        return table;
+    }
+
     private static LuaValue toLua(Object value) {
         if (value == null) {
             return LuaValue.NIL;
@@ -310,25 +459,6 @@ public final class ScriptTestFields {
         return String.valueOf(LuaJavaConverter.luaToJava(value));
     }
 
-    private static boolean isListOfMaps(Object value) {
-        if (!(value instanceof List<?> list)) {
-            return false;
-        }
-        return list.isEmpty() || list.get(0) instanceof Map<?, ?>;
-    }
-
-    private static boolean isScalarMap(Map<String, Object> values) {
-        if (values.isEmpty()) {
-            return false;
-        }
-        for (Object value : values.values()) {
-            if (value instanceof Map<?, ?> || value instanceof List<?>) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     private static boolean isString(Object value) {
         return value instanceof String;
     }
@@ -354,12 +484,5 @@ public final class ScriptTestFields {
             return name;
         }
         return Character.toUpperCase(name.charAt(0)) + name.substring(1);
-    }
-
-    private static String singular(String name) {
-        if (name != null && name.length() > 1 && name.endsWith("s") && !name.endsWith("ss")) {
-            return name.substring(0, name.length() - 1);
-        }
-        return name;
     }
 }

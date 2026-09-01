@@ -19,37 +19,44 @@ return {
 		changedetector.configure(isActive)
 
 		-- Table layout is configured here so formatting stays simple in detectChanges()
-		changedetector.monitor("Entities", context.entitiesModified, {
-			title = "Entities",
-			primaryKey = {
-				header = "Name",
-				getter = function(obj)
-					return obj:getName()
-				end,
-			},
-			fields = {
-				{ field = "health", header = "Health", align = "right", getter = function(obj) return obj:getHealth() end },
-				{ field = "damage", header = "Damage", align = "right", getter = function(obj) return obj:getDamage() end },
-				{ field = "speed", header = "Speed", align = "right", getter = function(obj) return obj:getSpeed() end },
-				{ field = "defense", header = "Defense", align = "right", getter = function(obj) return obj:getDefense() end },
-				{ field = "type", header = "Type", getter = function(obj) return obj:getType() end },
-				{ field = "startingItemRarity", header = "Starting Rarity" },
-				{ field = "startingItem", header = "Starting Item", getter = function(obj) return obj:getStartingItem() end },
-			},
-		})
+		-- script tests may only register entities or items, not both
+		local entities = context.entitiesModified
+		if entities and #entities > 0 then
+			changedetector.monitor("Entities", entities, {
+				title = "Entities",
+				primaryKey = {
+					header = "Name",
+					getter = function(obj)
+						return obj:getName()
+					end,
+				},
+				fields = {
+					{ field = "health", header = "Health", align = "right", getter = function(obj) return obj:getHealth() end },
+					{ field = "damage", header = "Damage", align = "right", getter = function(obj) return obj:getDamage() end },
+					{ field = "speed", header = "Speed", align = "right", getter = function(obj) return obj:getSpeed() end },
+					{ field = "defense", header = "Defense", align = "right", getter = function(obj) return obj:getDefense() end },
+					{ field = "type", header = "Type", getter = function(obj) return obj:getType() end },
+					{ field = "startingItemRarity", header = "Starting Rarity" },
+					{ field = "startingItem", header = "Starting Item", getter = function(obj) return obj:getStartingItem() end },
+				},
+			})
+		end
 
 		-- Items use plain table fields instead of Java getters
-		changedetector.monitor("Items", context.itemsModified, {
-			title = "Items",
-			primaryKey = { field = "name", header = "Name" },
-			fields = {
-				{ field = "rarity", header = "Rarity" },
-				{ field = "attackBonus", header = "Attack Bonus", align = "right" },
-				{ field = "defenseBonus", header = "Defense Bonus", align = "right" },
-				{ field = "healthBonus", header = "Health Bonus", align = "right" },
-				{ field = "speedBonus", header = "Speed Bonus", align = "right" },
-			},
-		})
+		local items = context.itemsModified
+		if items and #items > 0 then
+			changedetector.monitor("Items", items, {
+				title = "Items",
+				primaryKey = { field = "name", header = "Name" },
+				fields = {
+					{ field = "rarity", header = "Rarity" },
+					{ field = "attackBonus", header = "Attack Bonus", align = "right" },
+					{ field = "defenseBonus", header = "Defense Bonus", align = "right" },
+					{ field = "healthBonus", header = "Health Bonus", align = "right" },
+					{ field = "speedBonus", header = "Speed Bonus", align = "right" },
+				},
+			})
+		end
 
 		local entries = changedetector.getMonitoredEntryNames()
 		if #entries > 0 then
