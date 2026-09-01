@@ -57,13 +57,13 @@ This includes an example app showing how this can be used. To run the example:
 
 You should see the results output to the console.
 
-The example also ships a few Lua script tests under `appExample/script_tests`. These are a small sample of how a host app can pin module behavior with in-memory fixtures. Run them with:
+The example also ships a few Lua script tests under `appExample/script_tests`, next to `lua_modules`. These are a small sample of how a host app can pin module behavior with in-memory fixtures. Run them with:
 
 ```bash
 ./gradlew runExampleScriptTests
 ```
 
-After building the example fat JAR (`./gradlew :appExample:fatJar`), you can also run the same tests from `appExample` with `runScriptTests.bat` (copied into `appExample/app` on build). The batch file runs `java -jar ExampleApp-*.jar --script-tests` with `lua_modules` and `script_tests` on disk next to the script, same layout as dev.
+You can also pass `--script-tests` when running the example app directly (same working directory as `runExample`).
 
 ## Usage
 

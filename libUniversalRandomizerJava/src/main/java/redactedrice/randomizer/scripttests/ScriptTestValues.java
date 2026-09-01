@@ -137,10 +137,20 @@ public final class ScriptTestValues {
         return value instanceof Map<?, ?> map && map.containsKey("values");
     }
 
+    // List specs use "values". Keyed maps use accessor metadata. Nested object tables must not
+    // reuse those key names. pre/post alone only count when the map has no nested-data keys.
     public static boolean isKeyedMapSpec(Map<?, ?> map) {
-        return map.containsKey("setter") || map.containsKey("getter")
-                || map.containsKey("pre") || map.containsKey("post")
-                || map.containsKey("accessType");
+        if (map == null || map.isEmpty() || map.containsKey("values")) {
+            return false;
+        }
+        if (map.containsKey("setter") || map.containsKey("getter")
+                || map.containsKey("accessType")) {
+            return true;
+        }
+        if (!map.containsKey("pre") && !map.containsKey("post")) {
+            return false;
+        }
+        return !hasNestedDataKeys(map);
     }
 
     @SuppressWarnings("unchecked")
@@ -342,6 +352,7 @@ public final class ScriptTestValues {
                 "Field '" + field + "' must be 'whole' or 'item'");
     }
 
+    // Naive plural trim only. Irregular names like "class" need explicit getter/setter in the spec.
     private static String singularName(String fieldName) {
         if (fieldName == null || fieldName.length() <= 1) {
             return fieldName;
@@ -350,6 +361,31 @@ public final class ScriptTestValues {
             return fieldName.substring(0, fieldName.length() - 1);
         }
         return fieldName;
+    }
+
+    private static boolean hasNestedDataKeys(Map<?, ?> map) {
+        for (Object keyObject : map.keySet()) {
+            if (!(keyObject instanceof String key)) {
+                continue;
+            }
+            if (isKeyedMetadataKey(key)) {
+                continue;
+            }
+            if ("name".equals(key) || "label".equals(key) || "damage".equals(key)
+                    || "hp".equals(key) || "health".equals(key) || "type".equals(key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isKeyedMetadataKey(String key) {
+        for (String metadata : KEYED_METADATA) {
+            if (metadata.equals(key)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String methodFromName(String prefix, String name) {

@@ -290,6 +290,33 @@ class ScriptTestFieldsTest {
     }
 
     @Test
+    void collectWholeListUsesItemGetter() {
+        Unit unit = new Unit();
+        unit.moves[0].name.setText("Splash");
+        unit.moves[0].damage = 20;
+        unit.moves[1].name.setText("Flare");
+        unit.moves[1].damage = 30;
+        unit.setNumMoves(2);
+
+        Map<String, Object> movesSpec = new LinkedHashMap<>();
+        movesSpec.put("accessType", "whole");
+        movesSpec.put("values", List.of(
+                Map.of("name", "Splash", "damage", 20),
+                Map.of("name", "Flare", "damage", 30)));
+
+        List<String> mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, unit, Map.of("moves", movesSpec),
+                mismatches, "unit");
+        assertTrue(mismatches.isEmpty(), mismatches.toString());
+
+        unit.moves[1].name.setText("wrong");
+        mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, unit, Map.of("moves", movesSpec),
+                mismatches, "unit");
+        assertHas(mismatches, "unit moves[2] name expected Flare but was wrong");
+    }
+
+    @Test
     void failIfMismatchesThrowsTheJoinedMessage() {
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> ScriptTestFields.failIfMismatches("case", List.of("a", "b")));

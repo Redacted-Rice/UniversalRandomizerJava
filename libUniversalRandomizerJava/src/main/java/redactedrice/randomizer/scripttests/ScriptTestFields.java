@@ -272,31 +272,37 @@ public final class ScriptTestFields {
     private static void collectWholeListMismatches(JavaContext context, LuaValue target,
             ScriptTestValues.ListFieldSpec list, List<Map<String, Object>> wanted,
             List<String> mismatches, String fieldPath) {
-        LuaValue getter = target.get(list.getterMethod());
-        if (!isFunction(getter)) {
-            mismatches.add(fieldPath + " has no " + list.getterMethod() + " method");
-            return;
-        }
-        LuaValue actualList = invoke(getter, target).arg1();
-        if (!actualList.istable()) {
-            mismatches.add(fieldPath + " expected a list but was " + describe(actualList));
-            return;
-        }
-        int actualCount = actualList.length();
-        if (actualCount != wanted.size()) {
-            mismatches.add(fieldPath + " count expected " + wanted.size() + " but was "
-                    + actualCount);
-            return;
-        }
         String itemGetterName = list.itemGetterMethod();
         if (itemGetterName == null) {
             mismatches.add(fieldPath + " whole list has no item getter from field name");
             return;
         }
+        LuaValue itemGetter = target.get(itemGetterName);
+        if (!isFunction(itemGetter)) {
+            mismatches.add(fieldPath + " has no " + itemGetterName + " method");
+            return;
+        }
         for (int i = 0; i < wanted.size(); i++) {
-            LuaValue item = asTarget(context, actualList.get(i + 1));
+            LuaValue item = asTarget(context,
+                    invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
+            if (isNil(item)) {
+                mismatches.add(fieldPath + " count expected " + wanted.size() + " but was " + i);
+                return;
+            }
             collectFromTarget(context, item, wanted.get(i), mismatches,
                     fieldPath + "[" + (i + 1) + "]");
+        }
+        if (hasListItemAt(itemGetter, target, wanted.size())) {
+            mismatches.add(fieldPath + " count expected " + wanted.size() + " but was at least "
+                    + (wanted.size() + 1));
+        }
+    }
+
+    private static boolean hasListItemAt(LuaValue itemGetter, LuaValue target, int index) {
+        try {
+            return !isNil(invoke(itemGetter, target, LuaValue.valueOf(index)).arg1());
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

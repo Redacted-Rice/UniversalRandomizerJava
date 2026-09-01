@@ -1,6 +1,7 @@
 package redactedrice.randomizer.scripttests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -171,5 +172,21 @@ class ScriptTestValuesTest {
         assertEquals(ScriptTestValues.AccessType.ITEM, costs.accessType());
         assertEquals("getCost", costs.getterMethod());
         assertEquals("setCost", costs.setterMethod());
+    }
+
+    @Test
+    void isKeyedMapSpecTreatsListValuesAndNestedObjectsSeparately() {
+        assertTrue(ScriptTestValues.isKeyedMapSpec(Map.of(
+                "accessType", "item",
+                "pre", List.of("clearCosts"),
+                "WATER", 2)));
+        assertFalse(ScriptTestValues.isKeyedMapSpec(Map.of(
+                "values", List.of(Map.of("name", "Splash")))));
+        assertFalse(ScriptTestValues.isKeyedMapSpec(Map.of(
+                "name", "Splash",
+                "pre", "beforeHook")));
+        assertFalse(ScriptTestValues.isKeyedMapSpec(Map.of(
+                "setter", "setCosts",
+                "values", List.of(Map.of("name", "Splash")))));
     }
 }
