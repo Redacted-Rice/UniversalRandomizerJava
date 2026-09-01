@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import redactedrice.randomizer.LuaRandomizerWrapper;
@@ -13,6 +14,9 @@ import redactedrice.randomizer.utils.Logger;
 // Headless runner for Lua case files in a folder. Hosts wire this to a --script-tests flag.
 public final class ScriptTestCli {
     public static final String FLAG = "--script-tests";
+    // Case files use a numeric prefix so helpers at the folder root are not picked up by mistake.
+    private static final Pattern CASE_FILE_NAME = Pattern.compile("\\d+_.+\\.lua",
+            Pattern.CASE_INSENSITIVE);
 
     private ScriptTestCli() {}
 
@@ -112,10 +116,17 @@ public final class ScriptTestCli {
             throw new IllegalArgumentException(
                     "No script test named '" + fileName + "' in " + testsDir.toAbsolutePath());
         }
+        if (!isLuaCase(caseFile)) {
+            throw new IllegalArgumentException(
+                    "Script test files must match NN_name.lua, got '" + fileName + "'");
+        }
         return List.of(caseFile);
     }
 
-    private static boolean isLuaCase(Path path) {
-        return Files.isRegularFile(path) && path.getFileName().toString().endsWith(".lua");
+    static boolean isLuaCase(Path path) {
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
+        return CASE_FILE_NAME.matcher(path.getFileName().toString()).matches();
     }
 }

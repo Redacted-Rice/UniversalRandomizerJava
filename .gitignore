@@ -20,9 +20,6 @@ build
 # Ignore coverage reports
 coverage/
 
-# Runnable application JAR and files copied next to it (fatJar output)
-appExample/app/
-
 # Ignore randomizer files from the core randomizer moved to the resources folder
 # or extracted by the appExample
 libUniversalRandomizerJava/src/main/resources/

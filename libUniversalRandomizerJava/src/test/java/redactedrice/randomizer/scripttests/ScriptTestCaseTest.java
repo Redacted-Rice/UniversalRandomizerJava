@@ -1,6 +1,7 @@
 package redactedrice.randomizer.scripttests;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,12 +59,27 @@ class ScriptTestCaseTest {
 
     @Test
     void selectCasesRequiresAFileNameNotAPath(@TempDir Path tempDir) throws Exception {
-        Files.writeString(tempDir.resolve("one.lua"), "return { module = \"x\" }");
+        Files.writeString(tempDir.resolve("01_one.lua"), "return { module = \"x\" }");
+        Files.writeString(tempDir.resolve("helper.lua"), "return {}");
 
-        assertEquals(List.of(tempDir.resolve("one.lua")),
-                ScriptTestCli.selectCases(tempDir, "one"));
+        assertEquals(List.of(tempDir.resolve("01_one.lua")),
+                ScriptTestCli.selectCases(tempDir, "01_one"));
         assertThrows(IllegalArgumentException.class,
-                () -> ScriptTestCli.selectCases(tempDir, "../one.lua"));
-        assertTrue(ScriptTestCli.selectCases(tempDir, null).contains(tempDir.resolve("one.lua")));
+                () -> ScriptTestCli.selectCases(tempDir, "../01_one.lua"));
+        assertThrows(IllegalArgumentException.class,
+                () -> ScriptTestCli.selectCases(tempDir, "helper"));
+        assertEquals(List.of(tempDir.resolve("01_one.lua")),
+                ScriptTestCli.selectCases(tempDir, null));
+    }
+
+    @Test
+    void isLuaCaseRequiresNumericPrefix(@TempDir Path tempDir) throws Exception {
+        Files.writeString(tempDir.resolve("01_case.lua"), "return { module = \"x\" }");
+        Files.writeString(tempDir.resolve("1_x.lua"), "return { module = \"x\" }");
+        Files.writeString(tempDir.resolve("helper.lua"), "return {}");
+
+        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("01_case.lua")));
+        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("1_x.lua")));
+        assertFalse(ScriptTestCli.isLuaCase(tempDir.resolve("helper.lua")));
     }
 }
