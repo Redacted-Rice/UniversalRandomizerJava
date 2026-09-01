@@ -186,6 +186,9 @@ class ScriptTestValuesTest {
                 "name", "Splash",
                 "pre", "beforeHook")));
         assertFalse(ScriptTestValues.isKeyedMapSpec(Map.of(
+                "pre", "clearFoo",
+                "stage", 1)));
+        assertFalse(ScriptTestValues.isKeyedMapSpec(Map.of(
                 "setter", "setCosts",
                 "values", List.of(Map.of("name", "Splash")))));
     }

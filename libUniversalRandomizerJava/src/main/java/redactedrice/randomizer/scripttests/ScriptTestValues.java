@@ -137,20 +137,14 @@ public final class ScriptTestValues {
         return value instanceof Map<?, ?> map && map.containsKey("values");
     }
 
-    // List specs use "values". Keyed maps use accessor metadata. Nested object tables must not
-    // reuse those key names. pre/post alone only count when the map has no nested-data keys.
+    // List specs use "values". Keyed maps need explicit accessor metadata so pre/post hooks
+    // on nested object tables are not mistaken for keyed map specs.
     public static boolean isKeyedMapSpec(Map<?, ?> map) {
         if (map == null || map.isEmpty() || map.containsKey("values")) {
             return false;
         }
-        if (map.containsKey("setter") || map.containsKey("getter")
-                || map.containsKey("accessType")) {
-            return true;
-        }
-        if (!map.containsKey("pre") && !map.containsKey("post")) {
-            return false;
-        }
-        return !hasNestedDataKeys(map);
+        return map.containsKey("setter") || map.containsKey("getter")
+                || map.containsKey("accessType");
     }
 
     @SuppressWarnings("unchecked")
@@ -361,31 +355,6 @@ public final class ScriptTestValues {
             return fieldName.substring(0, fieldName.length() - 1);
         }
         return fieldName;
-    }
-
-    private static boolean hasNestedDataKeys(Map<?, ?> map) {
-        for (Object keyObject : map.keySet()) {
-            if (!(keyObject instanceof String key)) {
-                continue;
-            }
-            if (isKeyedMetadataKey(key)) {
-                continue;
-            }
-            if ("name".equals(key) || "label".equals(key) || "damage".equals(key)
-                    || "hp".equals(key) || "health".equals(key) || "type".equals(key)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isKeyedMetadataKey(String key) {
-        for (String metadata : KEYED_METADATA) {
-            if (metadata.equals(key)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String methodFromName(String prefix, String name) {

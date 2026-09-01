@@ -3,6 +3,7 @@ package redactedrice.randomizer.scripttests;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
@@ -14,8 +15,8 @@ import redactedrice.randomizer.utils.Logger;
 // Headless runner for Lua case files in a folder. Hosts wire this to a --script-tests flag.
 public final class ScriptTestCli {
     public static final String FLAG = "--script-tests";
-    // Case files use a numeric prefix so helpers at the folder root are not picked up by mistake.
-    private static final Pattern CASE_FILE_NAME = Pattern.compile("\\d+_.+\\.lua",
+    // Case files use a test_ prefix so helpers at the folder root are not picked up by mistake.
+    private static final Pattern CASE_FILE_NAME = Pattern.compile("test_.+\\.lua",
             Pattern.CASE_INSENSITIVE);
 
     private ScriptTestCli() {}
@@ -98,35 +99,64 @@ public final class ScriptTestCli {
         }
 
         if (requestedName == null || requestedName.isBlank()) {
-            try (Stream<Path> files = Files.list(testsDir)) {
-                return files.filter(ScriptTestCli::isLuaCase).sorted().toList();
-            }
+            return listAllCases(testsDir);
         }
 
+        return List.of(findCaseFile(testsDir, requestedName));
+    }
+
+    private static List<Path> listAllCases(Path testsDir) throws IOException {
+        try (Stream<Path> files = Files.walk(testsDir)) {
+            return files.filter(ScriptTestCli::isLuaCase).sorted().toList();
+        }
+    }
+
+    private static Path findCaseFile(Path testsDir, String requestedName) throws IOException {
         String fileName = requestedName;
         if (!fileName.toLowerCase(Locale.ROOT).endsWith(".lua")) {
             fileName = fileName + ".lua";
         }
-        if (fileName.contains("/") || fileName.contains("\\") || fileName.contains("..")) {
+        final String matchName = fileName;
+        if (matchName.contains("/") || matchName.contains("\\") || matchName.contains("..")) {
             throw new IllegalArgumentException("Pass a test file name, not a path");
         }
 
-        Path caseFile = testsDir.resolve(fileName);
-        if (!Files.isRegularFile(caseFile)) {
-            throw new IllegalArgumentException(
-                    "No script test named '" + fileName + "' in " + testsDir.toAbsolutePath());
+        Path direct = testsDir.resolve(matchName);
+        if (Files.isRegularFile(direct)) {
+            if (!isLuaCase(direct)) {
+                throw new IllegalArgumentException(
+                        "Script test files must match test_name.lua, got '" + matchName + "'");
+            }
+            return direct;
         }
-        if (!isLuaCase(caseFile)) {
-            throw new IllegalArgumentException(
-                    "Script test files must match NN_name.lua, got '" + fileName + "'");
+
+        List<Path> matches = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(testsDir)) {
+            files.filter(ScriptTestCli::isLuaCase)
+                    .filter(path -> path.getFileName().toString().equalsIgnoreCase(matchName))
+                    .forEach(matches::add);
         }
-        return List.of(caseFile);
+        matches.sort(Path::compareTo);
+
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException("No script test named '" + matchName + "' under "
+                    + testsDir.toAbsolutePath());
+        }
+        if (matches.size() > 1) {
+            throw new IllegalArgumentException("Multiple script tests named '" + matchName + "': "
+                    + matches.stream().map(path -> testsDir.relativize(path).toString()).toList());
+        }
+        return matches.get(0);
     }
 
     static boolean isLuaCase(Path path) {
         if (!Files.isRegularFile(path)) {
             return false;
         }
-        return CASE_FILE_NAME.matcher(path.getFileName().toString()).matches();
+        return isLuaCaseFileName(path.getFileName().toString());
+    }
+
+    public static boolean isLuaCaseFileName(String fileName) {
+        return CASE_FILE_NAME.matcher(fileName).matches();
     }
 }

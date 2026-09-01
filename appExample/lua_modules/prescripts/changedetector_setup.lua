@@ -14,6 +14,9 @@ return {
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
 
+		-- Make sure change detector is in a clear/reset state
+		changedetector.stopMonitoringAll()
+
 		-- Respect the GUI/config toggle for whether change detection runs at all
 		local isActive = context.config and context.config.changeDetectionActive or false
 		changedetector.configure(isActive)

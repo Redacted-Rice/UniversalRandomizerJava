@@ -59,27 +59,43 @@ class ScriptTestCaseTest {
 
     @Test
     void selectCasesRequiresAFileNameNotAPath(@TempDir Path tempDir) throws Exception {
-        Files.writeString(tempDir.resolve("01_one.lua"), "return { module = \"x\" }");
+        Files.writeString(tempDir.resolve("test_one.lua"), "return { module = \"x\" }");
         Files.writeString(tempDir.resolve("helper.lua"), "return {}");
 
-        assertEquals(List.of(tempDir.resolve("01_one.lua")),
-                ScriptTestCli.selectCases(tempDir, "01_one"));
+        assertEquals(List.of(tempDir.resolve("test_one.lua")),
+                ScriptTestCli.selectCases(tempDir, "test_one"));
         assertThrows(IllegalArgumentException.class,
-                () -> ScriptTestCli.selectCases(tempDir, "../01_one.lua"));
+                () -> ScriptTestCli.selectCases(tempDir, "../test_one.lua"));
         assertThrows(IllegalArgumentException.class,
                 () -> ScriptTestCli.selectCases(tempDir, "helper"));
-        assertEquals(List.of(tempDir.resolve("01_one.lua")),
+        assertEquals(List.of(tempDir.resolve("test_one.lua")),
                 ScriptTestCli.selectCases(tempDir, null));
     }
 
     @Test
-    void isLuaCaseRequiresNumericPrefix(@TempDir Path tempDir) throws Exception {
-        Files.writeString(tempDir.resolve("01_case.lua"), "return { module = \"x\" }");
-        Files.writeString(tempDir.resolve("1_x.lua"), "return { module = \"x\" }");
+    void isLuaCaseRequiresTestPrefix(@TempDir Path tempDir) throws Exception {
+        Files.writeString(tempDir.resolve("test_case.lua"), "return { module = \"x\" }");
         Files.writeString(tempDir.resolve("helper.lua"), "return {}");
+        Files.writeString(tempDir.resolve("01_case.lua"), "return { module = \"x\" }");
 
-        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("01_case.lua")));
-        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("1_x.lua")));
+        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("test_case.lua")));
         assertFalse(ScriptTestCli.isLuaCase(tempDir.resolve("helper.lua")));
+        assertFalse(ScriptTestCli.isLuaCase(tempDir.resolve("01_case.lua")));
+    }
+
+    @Test
+    void selectCasesFindsTestsInSubfolders(@TempDir Path tempDir) throws Exception {
+        Path nested = tempDir.resolve("cards");
+        Files.createDirectories(nested);
+        Files.writeString(tempDir.resolve("test_root.lua"), "return { module = \"x\" }");
+        Files.writeString(nested.resolve("test_nested.lua"), "return { module = \"x\" }");
+        Files.writeString(nested.resolve("helper.lua"), "return {}");
+
+        List<Path> cases = ScriptTestCli.selectCases(tempDir, null);
+        assertEquals(2, cases.size());
+        assertTrue(cases.contains(tempDir.resolve("test_root.lua")));
+        assertTrue(cases.contains(nested.resolve("test_nested.lua")));
+        assertEquals(List.of(nested.resolve("test_nested.lua")),
+                ScriptTestCli.selectCases(tempDir, "test_nested"));
     }
 }
