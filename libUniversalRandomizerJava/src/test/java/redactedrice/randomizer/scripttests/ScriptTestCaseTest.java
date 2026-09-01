@@ -12,6 +12,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import redactedrice.randomizer.utils.LogLevel;
+
 class ScriptTestCaseTest {
 
     @Test
@@ -97,5 +99,31 @@ class ScriptTestCaseTest {
         assertTrue(cases.contains(nested.resolve("test_nested.lua")));
         assertEquals(List.of(nested.resolve("test_nested.lua")),
                 ScriptTestCli.selectCases(tempDir, "test_nested"));
+    }
+
+    @Test
+    void parseRunOptionsDefaultsLogLevelToWarn() {
+        ScriptTestCli.RunOptions options =
+                ScriptTestCli.parseRunOptions(new String[] { ScriptTestCli.FLAG });
+        assertEquals(ScriptTestCli.DEFAULT_LOG_LEVEL, options.logLevel());
+        assertEquals(null, options.testFile());
+    }
+
+    @Test
+    void parseRunOptionsReadsLogLevelAndTestFile() {
+        ScriptTestCli.RunOptions options = ScriptTestCli.parseRunOptions(new String[] {
+                ScriptTestCli.FLAG, ScriptTestCli.LOG_LEVEL_FLAG, "info", "test_one" });
+        assertEquals(LogLevel.INFO, options.logLevel());
+        assertEquals("test_one", options.testFile());
+    }
+
+    @Test
+    void parseRunOptionsRejectsUnknownFlagsAndExtraFiles() {
+        assertThrows(IllegalArgumentException.class,
+                () -> ScriptTestCli.parseRunOptions(new String[] { ScriptTestCli.FLAG, "--nope" }));
+        assertThrows(IllegalArgumentException.class, () -> ScriptTestCli.parseRunOptions(
+                new String[] { ScriptTestCli.FLAG, "test_one", "test_two" }));
+        assertThrows(IllegalArgumentException.class, () -> ScriptTestCli.parseRunOptions(
+                new String[] { ScriptTestCli.FLAG, ScriptTestCli.LOG_LEVEL_FLAG }));
     }
 }
