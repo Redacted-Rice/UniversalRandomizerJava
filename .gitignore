@@ -24,3 +24,4 @@ coverage/
 # or extracted by the appExample
 libUniversalRandomizerJava/src/main/resources/
 appExample/randomizer/
+appExample/backups/

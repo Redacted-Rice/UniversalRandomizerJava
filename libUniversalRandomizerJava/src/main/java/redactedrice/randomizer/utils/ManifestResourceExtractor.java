@@ -10,12 +10,15 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ManifestResourceExtractor {
 
-    public static void extract(String resourcePath, String outputPath, boolean overwriteExisting)
-            throws IOException {
+    // Always just overlays the manifest's files onto outputPath, overwriting whichever of them
+    // are already there. Never touches anything else under outputPath (existing files not in the
+    // manifest are left alone), so it's safe to call on a directory shared with other content.
+    // Callers that want stale/edited files preserved instead of silently overwritten should back
+    // them up first (see VersionedResourceInstaller).
+    public static void extract(String resourcePath, String outputPath) throws IOException {
         if (resourcePath == null || resourcePath.trim().isEmpty()) {
             throw new IllegalArgumentException("Resource path cannot be null or empty");
         }
@@ -24,11 +27,6 @@ public class ManifestResourceExtractor {
         }
 
         Path targetDir = Paths.get(outputPath);
-
-        if (overwriteExisting && Files.exists(targetDir)) {
-            deleteDirectory(targetDir);
-        }
-
         if (!Files.exists(targetDir)) {
             Files.createDirectories(targetDir);
         }
@@ -39,11 +37,6 @@ public class ManifestResourceExtractor {
         // Copy each file
         for (String file : files) {
             Path targetFile = targetDir.resolve(file);
-
-            if (Files.exists(targetFile) && !overwriteExisting) {
-                continue;
-            }
-
             Files.createDirectories(targetFile.getParent());
 
             String fullResourcePath = resourcePath + "/" + file;
@@ -53,7 +46,19 @@ public class ManifestResourceExtractor {
                 }
                 Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
             }
+
+            // JAR entries dont carry the unix exec bit so shell wrapper scripts extract as
+            // non executable. Fix that up here instead of making every caller remember to chmod.
+            if (file.endsWith(".sh")) {
+                targetFile.toFile().setExecutable(true, false);
+            }
         }
+    }
+
+    // Exposed so hosts can enumerate what a resource ships (e.g. to back up specific files
+    // before an overwrite) without duplicating manifest parsing.
+    public static List<String> listFiles(String resourcePath) throws IOException {
+        return readManifest(resourcePath);
     }
 
     private static List<String> readManifest(String resourcePath) throws IOException {
@@ -79,19 +84,4 @@ public class ManifestResourceExtractor {
         }
         return ManifestResourceExtractor.class.getClassLoader();
     }
-
-    private static void deleteDirectory(Path directory) throws IOException {
-        if (!Files.exists(directory))
-            return;
-        try (Stream<Path> paths = Files.walk(directory)) {
-            paths.sorted((a, b) -> b.compareTo(a)).forEach(path -> {
-                try {
-                    Files.delete(path);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
-    }
 }
-

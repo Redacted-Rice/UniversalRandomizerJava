@@ -270,7 +270,7 @@ public class ExampleApp {
     }
 
     static LuaRandomizerWrapper createWrapper(File appDir) {
-        File randomizerDir = RandomizerBundledResources.install(appDir, true);
+        File randomizerDir = RandomizerBundledResources.install(appDir, false);
         File modulesDir = new File(appDir, "lua_modules");
         CoreRequirements requirements = new CoreRequirements();
         requirements.addCoreRequirement(ExampleAppVersion.PLATFORM_KEY, ExampleAppVersion.VERSION,
