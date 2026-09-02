@@ -114,21 +114,13 @@ public final class ScriptTestCli {
     }
 
     private static void printResult(ScriptTestRunResult result) {
-        int shown = 0;
         for (ScriptTestFailure failure : result.failures()) {
             System.out.println(failure.displayName() + " FAIL");
             if (failure.message() != null && !failure.message().isBlank()) {
                 System.out.println("  " + failure.message());
             }
-            shown++;
         }
-        int passed = result.passed();
-        int failed = result.failed();
-        if (shown < failed) {
-            // loadAll failed for a whole file before any sub-case ran
-            passed = Math.max(0, passed);
-        }
-        System.out.println(passed + " passed, " + failed + " failed");
+        System.out.println(result.passed() + " passed, " + result.failed() + " failed");
     }
 
     static List<Path> selectCases(Path testsDir, String requestedName) throws IOException {

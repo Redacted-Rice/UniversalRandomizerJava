@@ -12,6 +12,7 @@ import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
+import redactedrice.randomizer.lua.sandbox.security.BaseFunctionsPolicy;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 
 // One case from a Lua file. A file may return this table, or an array of them.
@@ -39,6 +40,8 @@ public final class ScriptTestCase {
     public static List<ScriptTestCase> loadAll(Path caseFile) throws IOException {
         String lua = Files.readString(caseFile, StandardCharsets.UTF_8);
         Globals globals = JsePlatform.standardGlobals();
+        // Apply similar restrictions as to the real sandbox
+        new BaseFunctionsPolicy().applyToGlobals(globals);
         allowRequiresFrom(globals, caseFile.getParent());
         LuaValue chunk = globals.load(lua, caseFile.getFileName().toString());
         Object loaded = LuaJavaConverter.luaToJava(chunk.call());
