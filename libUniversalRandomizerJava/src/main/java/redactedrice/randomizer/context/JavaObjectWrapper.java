@@ -54,8 +54,8 @@ public class JavaObjectWrapper {
         Map<String, Method> methodCache = new HashMap<>();
 
         LuaTable metatable = new LuaTable();
-        metatable.set(LuaValue.INDEX, new WrapperIndex(javaObject, userdata, wrapper, methodCache,
-                enumRegistry, this));
+        metatable.set(LuaValue.INDEX,
+                new WrapperIndex(javaObject, userdata, wrapper, methodCache, enumRegistry, this));
         metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper, this));
 
         wrapper.rawset("__userdata", userdata);
@@ -170,14 +170,10 @@ public class JavaObjectWrapper {
     }
 
     private static Field findPublicField(Class<?> type, String name) {
-        Class<?> current = type;
-        while (current != null) {
-            try {
-                return current.getField(name);
-            } catch (NoSuchFieldException ignored) {
-                current = current.getSuperclass();
-            }
+        try {
+            return type.getField(name);
+        } catch (NoSuchFieldException e) {
+            return null;
         }
-        return null;
     }
 }

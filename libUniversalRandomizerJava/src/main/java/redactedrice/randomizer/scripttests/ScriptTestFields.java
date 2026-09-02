@@ -50,9 +50,8 @@ public final class ScriptTestFields {
             Object value = spec.get(key);
             if (ScriptTestValues.isListFieldSpec(value)) {
                 lists.add(key);
-            } else if (value instanceof Map<?, ?> map && ScriptTestValues.isKeyedMapSpec(map)) {
-                maps.add(key);
             } else if (value instanceof Map<?, ?>) {
+                // Keyed map vs nested object table is sorted out later in applyMap
                 maps.add(key);
             } else {
                 scalars.add(key);

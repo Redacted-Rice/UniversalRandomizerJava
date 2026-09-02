@@ -24,6 +24,16 @@ public class ExampleEntity {
             copy.label = label;
             return copy;
         }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof Tag tag && label.equals(tag.label);
+        }
+
+        @Override
+        public int hashCode() {
+            return label.hashCode();
+        }
     }
 
     String name;
@@ -125,8 +135,11 @@ public class ExampleEntity {
     }
 
     public boolean setTag(Tag tag, int index, boolean force) {
+        if (!force && tags[index].equals(tag)) {
+            return false;
+        }
         tags[index] = tag.copy();
-        return force || true;
+        return true;
     }
 
     public int getRankCounts() {
@@ -142,8 +155,11 @@ public class ExampleEntity {
     }
 
     public boolean setAtRank(Tag rank, int index, boolean force) {
+        if (!force && ranks[index].equals(rank)) {
+            return false;
+        }
         ranks[index] = rank.copy();
-        return force || true;
+        return true;
     }
 
     public void clearPerkRanks() {
