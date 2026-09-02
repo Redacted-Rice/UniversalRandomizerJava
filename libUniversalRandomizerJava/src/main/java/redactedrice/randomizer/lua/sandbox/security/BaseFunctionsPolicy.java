@@ -20,7 +20,7 @@ public class BaseFunctionsPolicy {
         removeDangerousBaseFunctions(globals);
     }
 
-    // TODO: Tie in with package policy values?
+    // TODO now: Tie in with package policy values?
     private void removeBlockedModules(Globals globals) {
         // Remove blocked modules completely
         // Note this does NOT include debug intentionally
