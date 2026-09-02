@@ -27,7 +27,7 @@ tasks.register("runExample") {
         dependsOn(":appExample:run")
     } else {
         doFirst {
-            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+            throw GradleException("Unexpected error. AppExample should have been automatically included")
         }
     }
 }
@@ -41,7 +41,7 @@ tasks.register("runExampleScriptTests") {
         dependsOn(":appExample:runExampleScriptTests")
     } else {
         doFirst {
-            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+            throw GradleException("Unexpected error. AppExample should have been automatically included")
         }
     }
 }
@@ -55,7 +55,7 @@ tasks.register<JacocoReport>("coverageCombined") {
 
     if (appProject == null) {
         doFirst {
-            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+            throw GradleException("Unexpected error. AppExample should have been automatically included")
         }
     }
 
@@ -103,7 +103,7 @@ tasks.register("coverageExample") {
         dependsOn(":appExample:coverage")
     } else {
         doFirst {
-            throw GradleException( "Unexpected error. AppExample should have been automatically included")
+            throw GradleException("Unexpected error. AppExample should have been automatically included")
         }
     }
 }

@@ -48,8 +48,8 @@ public final class VersionedResourceInstaller {
 
     // Backs up whatever's currently on disk for resourcePath then extracts the fresh copy, with
     // no version check or marker write. Exposed for callers sharing one marker across several
-    // resources (see PtcgBundledResources), which need to gate the check once but back up and
-    // install each resource individually.
+    // resources, which need to gate the check once but back up and install each resource
+    // individually.
     public static void backupAndInstall(String resourcePath, File targetDir, File backupsDir,
             String backupSubDir) throws IOException {
         File resourceBackupDir = backupSubDir == null || backupSubDir.isEmpty() ? backupsDir

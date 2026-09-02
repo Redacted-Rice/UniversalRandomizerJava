@@ -51,10 +51,6 @@ public class ExampleEntity {
     private final Tag[] ranks = { new Tag(), new Tag(), new Tag() };
     private final Map<String, Integer> perkRanks = new LinkedHashMap<>();
 
-    public ExampleEntity(String name) {
-        this("Unnamed", ExampleEntityType.WARRIOR, 100, 10.0, 10, 10);
-    }
-
     public ExampleEntity(String name, ExampleEntityType type, int health, double damage, int speed,
             int defense) {
         this.name = name;

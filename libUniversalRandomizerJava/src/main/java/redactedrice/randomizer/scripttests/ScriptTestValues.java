@@ -12,9 +12,6 @@ public final class ScriptTestValues {
         ITEM
     }
 
-    private static final String[] LIST_METADATA = {
-            "accessType", "getter", "setter", "countGetter", "countSetter", "pre", "post"
-    };
     private static final String[] KEYED_METADATA = {
             "accessType", "getter", "setter", "pre", "post"
     };
