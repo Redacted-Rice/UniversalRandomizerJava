@@ -26,7 +26,7 @@ public class Module {
     // Currently I call these "scripts" (run automatically before & after triggers)
     // vs "modules"
     // (run only when manual specified)
-    // TODO: I think I want to move this to a seraprate class in the future
+    // TODO now: I think I want to move this to a seraprate class in the future
     String when;
 
     String author;
@@ -218,7 +218,7 @@ public class Module {
         return String.format(
                 "Module{id='%s', name='%s', groups=%s, description='%s', arguments=%d, "
                         + "seedOffset=%d, seedOffsetFromMetadata=%s, seeded=%s, when='%s', filePath='%s', author='%s', version='%s'}",
-                id, name, groups, description, arguments.size(), seedOffset,
-                seedOffsetFromMetadata, seeded, when, filePath, author, version);
+                id, name, groups, description, arguments.size(), seedOffset, seedOffsetFromMetadata,
+                seeded, when, filePath, author, version);
     }
 }

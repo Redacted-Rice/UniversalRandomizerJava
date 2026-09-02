@@ -42,8 +42,7 @@ public class LuaRandomizerWrapper {
 
         this.searchPaths = new ArrayList<>(searchPaths != null ? searchPaths : new ArrayList<>());
         this.sandbox = new LuaSandbox(allowedDirectories);
-        this.moduleRegistry =
-                new ModuleRegistry(sandbox, definedGroups, requirementContext);
+        this.moduleRegistry = new ModuleRegistry(sandbox, definedGroups, requirementContext);
         this.moduleExecutor = new ModuleExecutor(sandbox);
         this.sharedEnumContext = new JavaContext(); // Shared enum context
     }
@@ -70,8 +69,7 @@ public class LuaRandomizerWrapper {
 
     public void requireModulesLoaded() {
         if (getAvailableModules().isEmpty()) {
-            throw new IllegalStateException(
-                    "No action modules loaded from " + getSearchPaths());
+            throw new IllegalStateException("No action modules loaded from " + getSearchPaths());
         }
         if (IssueTracker.hasErrors()) {
             throw new IllegalStateException("Module load failed: " + IssueTracker.getErrors());
@@ -148,7 +146,7 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getScript(moduleId);
     }
 
-    // TODO: Keep these exposed and remove delegating fns or remove these and add more
+    // TODO now: Keep these exposed and remove delegating fns or remove these and add more
     // delegating fns?
     public ModuleRegistry getModuleRegistry() {
         return moduleRegistry;
@@ -164,7 +162,8 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Context cannot be null");
         }
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
-        context.mergeDynamicFieldTypes(moduleRegistry.getDynamicVarRegistry().providedTypesByName());
+        context.mergeDynamicFieldTypes(
+                moduleRegistry.getDynamicVarRegistry().providedTypesByName());
     }
 
     // Start of a randomize batch manually executed piece by piece. This clears prior execution
@@ -293,15 +292,16 @@ public class LuaRandomizerWrapper {
                 String argLabel = arg.getRegisteredDisplayName() != null
                         ? arg.getDisplayName() + " (" + arg.getName() + ")"
                         : arg.getName();
-                String descriptionInfo = arg.getDescription() != null && !arg.getDescription().isBlank()
-                        ? " - " + arg.getDescription()
-                        : "";
+                String descriptionInfo =
+                        arg.getDescription() != null && !arg.getDescription().isBlank()
+                                ? " - " + arg.getDescription()
+                                : "";
                 String defaultInfo =
                         arg.getDefaultValue() != null ? " (default: " + arg.getDefaultValue() + ")"
                                 : "";
-                System.out.println("    - " + argLabel + descriptionInfo + " ("
-                        + arg.getTypeDefinition() + "): " + arg.getConstraint().getDescription()
-                        + defaultInfo);
+                System.out.println(
+                        "    - " + argLabel + descriptionInfo + " (" + arg.getTypeDefinition()
+                                + "): " + arg.getConstraint().getDescription() + defaultInfo);
             });
             System.out.println("  File: " + module.getFilePath());
             System.out.println();
