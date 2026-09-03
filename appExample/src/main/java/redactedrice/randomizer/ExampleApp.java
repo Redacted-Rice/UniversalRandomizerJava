@@ -278,12 +278,12 @@ public class ExampleApp {
         UniversalRandomizerVersions.addTo(requirements);
         LuaRandomizerWrapper wrapper =
                 LuaRandomizerWrapper.forApp(randomizerDir, modulesDir, requirements);
-        registerSharedEnums(wrapper.getSharedContext());
+        registerSharedEnums(wrapper);
         return wrapper;
     }
 
-    static void registerSharedEnums(JavaContext context) {
-        context.registerEnum("EE_EntityTypes", ExampleEntityType.class);
-        context.registerEnum("ItemRarity", ItemRarity.class);
+    static void registerSharedEnums(LuaRandomizerWrapper wrapper) {
+        wrapper.registerSharedEnum("EE_EntityTypes", ExampleEntityType.class);
+        wrapper.registerSharedEnum("ItemRarity", ItemRarity.class);
     }
 }

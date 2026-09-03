@@ -7,9 +7,7 @@ import redactedrice.randomizer.lua.sandbox.LuaLogFunctions;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 // Secure Lua environment that uses the security policies
 public class SecureLuaEnvironment {
@@ -23,12 +21,10 @@ public class SecureLuaEnvironment {
         MetatablePolicy metatablePolicy = new MetatablePolicy();
         GlobalsPolicy globalsPolicy = new GlobalsPolicy();
 
-        Set<String> blockedModules = new HashSet<>(BaseFunctionsPolicy.REMOVED_MODULES);
-        blockedModules.addAll(BaseFunctionsPolicy.MODIFIED_MODULES);
-
         // runtime policies that need to be held on to
         FileSystemPolicy fileSystemPolicy = new FileSystemPolicy(allowedRootDirectories);
-        PackagePolicy packagePolicy = new PackagePolicy(fileSystemPolicy, blockedModules);
+        PackagePolicy packagePolicy =
+                new PackagePolicy(fileSystemPolicy, SandboxModulePolicy.blockedModulesForRequire());
 
         // Setup globals
         Globals globals = JsePlatform.standardGlobals();

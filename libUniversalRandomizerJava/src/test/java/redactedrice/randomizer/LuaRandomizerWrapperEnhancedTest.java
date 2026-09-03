@@ -50,7 +50,7 @@ public class LuaRandomizerWrapperEnhancedTest {
 
         // Register EntityType enum in shared context before loading modules
         // This allows enum_expansion_test.lua to expand it during onLoad
-        wrapper.getSharedContext().registerEnum("EntityType", EntityType.class);
+        wrapper.registerSharedEnum("EntityType", EntityType.class);
 
         wrapper.loadModules();
     }
@@ -342,7 +342,7 @@ public class LuaRandomizerWrapperEnhancedTest {
 
     @Test
     public void testEnumExtensionFromLua() {
-        EnumRegistry sharedRegistry = wrapper.getSharedContext().getEnumRegistry();
+        EnumRegistry sharedRegistry = wrapper.getEnumRegistry();
         EnumDefinition entityTypeDef = sharedRegistry.getEnum("EntityType");
 
         // Enum is extended on load which already occurred by the time this test runs
