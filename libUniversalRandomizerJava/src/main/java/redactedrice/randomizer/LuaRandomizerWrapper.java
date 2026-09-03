@@ -146,14 +146,34 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getScript(moduleId);
     }
 
-    // TODO now: Keep these exposed and remove delegating fns or remove these and add more
-    // delegating fns?
-    public ModuleRegistry getModuleRegistry() {
-        return moduleRegistry;
+    public List<Module> getAllScripts(String timing) {
+        return moduleRegistry.getAllScripts(timing);
     }
 
-    public JavaContext getSharedContext() {
-        return sharedEnumContext;
+    public <E extends Enum<E>> void registerSharedEnum(Class<E> enumClass) {
+        sharedEnumContext.registerEnum(enumClass);
+    }
+
+    public <E extends Enum<E>> void registerSharedEnum(Class<E> enumClass,
+            Map<String, String> valueDisplayNames) {
+        sharedEnumContext.registerEnum(enumClass, valueDisplayNames);
+    }
+
+    public <E extends Enum<E>> void registerSharedEnum(String name, Class<E> enumClass) {
+        sharedEnumContext.registerEnum(name, enumClass);
+    }
+
+    public <E extends Enum<E>> void registerSharedEnum(String name, Class<E> enumClass,
+            Map<String, String> valueDisplayNames) {
+        sharedEnumContext.registerEnum(name, enumClass, valueDisplayNames);
+    }
+
+    public void registerSharedEnum(String name, String... values) {
+        sharedEnumContext.registerEnum(name, values);
+    }
+
+    public EnumRegistry getEnumRegistry() {
+        return sharedEnumContext.getEnumRegistry();
     }
 
     // Copy onLoad enums and provided field types onto this execution context.
@@ -312,15 +332,11 @@ public class LuaRandomizerWrapper {
         if (enumName == null || enumName.trim().isEmpty()) {
             throw new IllegalArgumentException("Enum name cannot be null or empty");
         }
-        return sharedEnumContext.getEnumRegistry().getEnum(enumName);
+        return getEnumRegistry().getEnum(enumName);
     }
 
     public Set<String> getRegisteredEnumNames() {
-        return sharedEnumContext.getEnumRegistry().getEnumNames();
-    }
-
-    public LuaSandbox getSandbox() {
-        return sandbox;
+        return getEnumRegistry().getEnumNames();
     }
 
     public Set<String> getDefinedGroupValues() {

@@ -1,8 +1,5 @@
 package redactedrice.randomizer.lua.sandbox.security;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
@@ -10,21 +7,16 @@ import org.luaj.vm2.LuaValue;
 // Removes dangerous base functions and restricts the debug library
 public class BaseFunctionsPolicy {
 
-    public static final Set<String> REMOVED_MODULES =
-            new HashSet<>(Arrays.asList("io", "os", "luajava"));
-    public static final Set<String> MODIFIED_MODULES = new HashSet<>(Arrays.asList("debug"));
-
     public void applyToGlobals(Globals globals) {
         removeBlockedModules(globals);
         restrictDebugLibrary(globals);
         removeDangerousBaseFunctions(globals);
     }
 
-    // TODO now: Tie in with package policy values?
     private void removeBlockedModules(Globals globals) {
         // Remove blocked modules completely
         // Note this does NOT include debug intentionally
-        for (String module : REMOVED_MODULES) {
+        for (String module : SandboxModulePolicy.REMOVED_MODULES) {
             globals.set(module, LuaValue.NIL);
         }
     }

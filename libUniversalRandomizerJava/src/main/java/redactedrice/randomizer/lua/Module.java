@@ -22,11 +22,8 @@ public class Module {
     // Whether this module participates in seed configuration (true for modules, false for scripts)
     boolean seeded;
     // When to execute: each randomization or for each module or null for regular
-    // modules
-    // Currently I call these "scripts" (run automatically before & after triggers)
-    // vs "modules"
-    // (run only when manual specified)
-    // TODO now: I think I want to move this to a seraprate class in the future
+    // modules. Currently I call these "scripts" (run automatically before & after triggers)
+    // vs "modules" (run only when manual specified)
     String when;
 
     String author;
