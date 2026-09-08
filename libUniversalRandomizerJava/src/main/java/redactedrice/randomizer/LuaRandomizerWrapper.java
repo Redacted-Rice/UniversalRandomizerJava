@@ -15,7 +15,7 @@ import redactedrice.randomizer.lua.Issue;
 import redactedrice.randomizer.lua.Module;
 import redactedrice.randomizer.lua.ModuleExecutor;
 import redactedrice.randomizer.lua.ModuleRegistry;
-import redactedrice.randomizer.lua.dynamicVar.DynamicVarRegistry;
+import redactedrice.randomizer.lua.dynamicVar.DynamicVarProvide;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -182,8 +182,7 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Context cannot be null");
         }
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
-        context.mergeDynamicFieldTypes(
-                moduleRegistry.getDynamicVarRegistry().providedTypesByName());
+        context.mergeDynamicFieldTypes(getProvidedDynamicFieldTypes());
     }
 
     // Start of a randomize batch manually executed piece by piece. This clears prior execution
@@ -347,8 +346,16 @@ public class LuaRandomizerWrapper {
         return moduleRegistry.getModulesByGroup(group);
     }
 
-    public DynamicVarRegistry getDynamicVarRegistry() {
-        return moduleRegistry.getDynamicVarRegistry();
+    public Map<String, String> getProvidedDynamicFieldTypes() {
+        return moduleRegistry.getDynamicVarRegistry().providedTypesByName();
+    }
+
+    public List<DynamicVarProvide> getDynamicVarProviders() {
+        return moduleRegistry.getDynamicVarRegistry().getAllProviders();
+    }
+
+    public List<DynamicVarProvide> getDynamicVarProvidersByName(String name) {
+        return moduleRegistry.getDynamicVarRegistry().getProvidersByName(name);
     }
 
     /**
