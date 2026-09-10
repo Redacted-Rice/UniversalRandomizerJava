@@ -2,8 +2,10 @@ package redactedrice.randomizer.scripttests;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.Varargs;
@@ -17,12 +19,24 @@ public final class ScriptTestFields {
     private ScriptTestFields() {}
 
     public static void apply(JavaContext context, Object javaObject, Map<String, Object> spec) {
-        applyTarget(context, wrap(context, javaObject), spec);
+        apply(context, javaObject, spec, null);
+    }
+
+    public static void apply(JavaContext context, Object javaObject, Map<String, Object> spec,
+            List<String> skipFields) {
+        applyTarget(context, wrap(context, javaObject), spec, skipFieldSet(skipFields));
     }
 
     public static void collectMismatches(JavaContext context, Object javaObject,
             Map<String, Object> spec, List<String> mismatches, String path) {
-        collectFromTarget(context, wrap(context, javaObject), spec, mismatches, path);
+        collectMismatches(context, javaObject, spec, mismatches, path, null);
+    }
+
+    public static void collectMismatches(JavaContext context, Object javaObject,
+            Map<String, Object> spec, List<String> mismatches, String path,
+            List<String> skipFields) {
+        collectFromTarget(context, wrap(context, javaObject), spec, mismatches, path,
+                skipFieldSet(skipFields));
     }
 
     public static void failIfMismatches(String label, List<String> mismatches) {
@@ -39,7 +53,15 @@ public final class ScriptTestFields {
         return context.wrap(javaObject);
     }
 
-    private static void applyTarget(JavaContext context, LuaValue target, Map<String, Object> spec) {
+    private static Set<String> skipFieldSet(List<String> skipFields) {
+        if (skipFields == null || skipFields.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(skipFields);
+    }
+
+    private static void applyTarget(JavaContext context, LuaValue target, Map<String, Object> spec,
+            Set<String> skipFields) {
         if (spec == null || spec.isEmpty()) {
             return;
         }
@@ -47,6 +69,9 @@ public final class ScriptTestFields {
         List<String> maps = new ArrayList<>();
         List<String> lists = new ArrayList<>();
         for (String key : spec.keySet()) {
+            if (skipFields.contains(key)) {
+                continue;
+            }
             Object value = spec.get(key);
             if (ScriptTestValues.isListFieldSpec(value)) {
                 lists.add(key);
@@ -70,11 +95,15 @@ public final class ScriptTestFields {
     }
 
     private static void collectFromTarget(JavaContext context, LuaValue target,
-            Map<String, Object> spec, List<String> mismatches, String path) {
+            Map<String, Object> spec, List<String> mismatches, String path,
+            Set<String> skipFields) {
         if (spec == null) {
             return;
         }
         for (Map.Entry<String, Object> entry : spec.entrySet()) {
+            if (skipFields.contains(entry.getKey())) {
+                continue;
+            }
             collectMismatch(context, target, entry.getKey(), entry.getValue(), mismatches, path);
         }
     }
@@ -106,7 +135,7 @@ public final class ScriptTestFields {
 
         LuaValue nested = asTarget(context, target.get(key));
         if (!isNil(nested) && (nested.istable() || nested.isuserdata())) {
-            applyTarget(context, nested, values);
+            applyTarget(context, nested, values, Set.of());
             return;
         }
         target.set(key, LuaJavaConverter.mapToLuaTable(values));
@@ -165,7 +194,7 @@ public final class ScriptTestFields {
                 throw new IllegalArgumentException(
                         list.getterMethod() + "(" + i + ") returned nil");
             }
-            applyTarget(context, item, entries.get(i));
+            applyTarget(context, item, entries.get(i), Set.of());
             if (isFunction(setter)) {
                 // true = force set even for assignments
                 invoke(setter, target, item, LuaValue.valueOf(i), LuaValue.TRUE);
@@ -192,7 +221,7 @@ public final class ScriptTestFields {
             if (isNil(item)) {
                 throw new IllegalArgumentException(itemGetterName + "(" + i + ") returned nil");
             }
-            applyTarget(context, item, entries.get(i));
+            applyTarget(context, item, entries.get(i), Set.of());
             built.add(item);
         }
 
@@ -232,7 +261,7 @@ public final class ScriptTestFields {
                 mismatches.add(fieldPath + " expected a nested object but was missing");
                 return;
             }
-            collectFromTarget(context, nested, wanted, mismatches, fieldPath);
+            collectFromTarget(context, nested, wanted, mismatches, fieldPath, Set.of());
             return;
         }
 
@@ -264,7 +293,7 @@ public final class ScriptTestFields {
         for (int i = 0; i < wanted.size(); i++) {
             LuaValue item = asTarget(context, invoke(getter, target, LuaValue.valueOf(i)).arg1());
             collectFromTarget(context, item, wanted.get(i), mismatches,
-                    fieldPath + "[" + (i + 1) + "]");
+                    fieldPath + "[" + (i + 1) + "]", Set.of());
         }
     }
 
@@ -289,7 +318,7 @@ public final class ScriptTestFields {
                 return;
             }
             collectFromTarget(context, item, wanted.get(i), mismatches,
-                    fieldPath + "[" + (i + 1) + "]");
+                    fieldPath + "[" + (i + 1) + "]", Set.of());
         }
         if (hasListItemAt(itemGetter, target, wanted.size())) {
             mismatches.add(fieldPath + " count expected " + wanted.size() + " but was at least "
