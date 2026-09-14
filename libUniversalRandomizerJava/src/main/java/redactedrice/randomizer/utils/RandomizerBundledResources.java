@@ -12,7 +12,7 @@ import redactedrice.randomizer.UniversalRandomizerVersions;
  *
  * Reinstall is gated on UniversalRandomizerVersions CORE_VERSION via VersionedResourceInstaller.
  * Once installed for a version, later calls for the same core version are a no op. Pass
- * forceReinstall to redo it anyways.
+ * forceReinstall to redo it anyways. installMode controls how existing files are backed up.
  */
 public final class RandomizerBundledResources {
     public static final String RESOURCE_ROOT = "randomizer";
@@ -23,17 +23,20 @@ public final class RandomizerBundledResources {
     private RandomizerBundledResources() {}
 
     public static File install(File workingDir, boolean forceReinstall) {
-        return install(workingDir, new File(workingDir, DEFAULT_BACKUPS_DIR_NAME), forceReinstall);
+        return install(workingDir, new File(workingDir, DEFAULT_BACKUPS_DIR_NAME), forceReinstall,
+                ResourceInstallMode.UPGRADE);
     }
 
     // backupsDir lets a host that already keeps its own backups folder (for its own bundled
     // resources) reuse it here too instead of ending up with two separate backup folders.
-    public static File install(File workingDir, File backupsDir, boolean forceReinstall) {
+    public static File install(File workingDir, File backupsDir, boolean forceReinstall,
+            ResourceInstallMode installMode) {
         File targetDir = new File(workingDir, INSTALL_DIR_NAME);
         try {
             File versionMarker = new File(targetDir, VERSION_MARKER_FILE_NAME);
             VersionedResourceInstaller.installIfNeeded(RESOURCE_ROOT, targetDir, versionMarker,
-                    UniversalRandomizerVersions.CORE_VERSION, backupsDir, forceReinstall);
+                    UniversalRandomizerVersions.CORE_VERSION, backupsDir, targetDir.getName(),
+                    forceReinstall, installMode);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to install randomizer Lua library", e);
         }
