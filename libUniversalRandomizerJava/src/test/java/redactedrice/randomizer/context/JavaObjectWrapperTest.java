@@ -11,20 +11,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class JavaObjectWrapperTest {
 
-    public static class Card {
+    public static class Monster {
         public String name;
         public int hp;
 
-        public Card(String name, int hp) {
+        public Monster(String name, int hp) {
             this.name = name;
             this.hp = hp;
         }
 
-        public List<Card> getCards() {
-            List<Card> cards = new ArrayList<>();
-            cards.add(new Card("a", 10));
-            cards.add(new Card("b", 20));
-            return cards;
+        public List<Monster> getMonsters() {
+            List<Monster> monsters = new ArrayList<>();
+            monsters.add(new Monster("a", 10));
+            monsters.add(new Monster("b", 20));
+            return monsters;
         }
     }
 
@@ -91,17 +91,17 @@ public class JavaObjectWrapperTest {
     @Test
     public void methodReturnedListItemsAreExtensibleWrappers() {
         JavaContext context = new JavaContext();
-        Card root = new Card("root", 1);
+        Monster root = new Monster("root", 1);
         context.register("root", root);
 
         LuaTable luaContext = context.toLuaTable();
         LuaValue rootWrapper = luaContext.get("root");
         assertTrue(rootWrapper.istable());
 
-        LuaValue cards = rootWrapper.get("getCards").call(rootWrapper);
-        assertTrue(cards.istable());
+        LuaValue monsters = rootWrapper.get("getMonsters").call(rootWrapper);
+        assertTrue(monsters.istable());
 
-        LuaValue first = cards.get(1);
+        LuaValue first = monsters.get(1);
         assertTrue(first.istable(), "list items should be wrapper tables, not userdata");
 
         first.set("tier", LuaValue.valueOf(2));
@@ -112,7 +112,7 @@ public class JavaObjectWrapperTest {
     @Test
     public void clearWrapperCacheDropsDynamicFields() {
         JavaContext context = new JavaContext();
-        Card root = new Card("root", 1);
+        Monster root = new Monster("root", 1);
         context.register("root", root);
 
         LuaValue rootWrapper = context.toLuaTable().get("root");
