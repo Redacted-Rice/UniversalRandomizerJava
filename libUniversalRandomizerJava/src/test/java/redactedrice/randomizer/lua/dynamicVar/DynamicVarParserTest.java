@@ -28,22 +28,22 @@ class DynamicVarParserTest {
     void parsesProvidesAndNeedsWithTypes() throws IOException {
         Module module = parse(writeModule("""
                 provides = {
-                    { name = "evoLineId", type = "integer" },
-                    { name = "evoLineMaxStage", type = "EvolutionStage" },
+                    { name = "groupId", type = "integer" },
+                    { name = "groupRank", type = "Rank" },
                 },
                 needs = {
-                    { name = "numMoves", type = "integer" },
+                    { name = "itemCount", type = "integer" },
                 },
                 """));
         assertTrue(IssueTracker.getErrors().isEmpty(), () -> IssueTracker.getErrors().toString());
 
         assertEquals(2, module.getProvides().size());
-        assertEquals("evoLineId", module.getProvides().get(0).getName());
+        assertEquals("groupId", module.getProvides().get(0).getName());
         assertEquals("integer", module.getProvides().get(0).getType());
-        assertEquals("EvolutionStage", module.getProvides().get(1).getType());
+        assertEquals("Rank", module.getProvides().get(1).getType());
 
         assertEquals(1, module.getNeeds().size());
-        assertEquals("numMoves", module.getNeeds().get(0).getName());
+        assertEquals("itemCount", module.getNeeds().get(0).getName());
         assertEquals("integer", module.getNeeds().get(0).getType());
     }
 
@@ -83,7 +83,7 @@ class DynamicVarParserTest {
     void rejectsMapStyleProvides() throws IOException {
         Module module = parse(writeModule("""
                 provides = {
-                    evoLineId = { name = "evoLineId", type = "integer" },
+                    groupId = { name = "groupId", type = "integer" },
                 },
                 """));
         assertNull(module);

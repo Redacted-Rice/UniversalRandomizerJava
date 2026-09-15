@@ -153,7 +153,7 @@ class ScriptTestFieldsTest {
         assertEquals("Ember", unit.name.toString());
         assertEquals(40, unit.getHp());
         assertEquals(Kind.FIRE, unit.type);
-        assertEquals(3, context.wrap(unit).get("evoLineId").toint());
+        assertEquals(3, context.wrap(unit).get("groupId").toint());
         assertEquals(1, unit.getNumMoves());
         assertEquals("Splash", unit.moves[0].name.toString());
         assertEquals(20, unit.moves[0].damage);
@@ -239,10 +239,10 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesReportsWrongScalarAndDynamicFields() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("hp", 99, "evoLineId", 1));
+        List<String> mismatches = mismatches(unit, Map.of("hp", 99, "groupId", 1));
 
         assertHas(mismatches, "unit hp expected 99 but was 40");
-        assertHas(mismatches, "unit evoLineId expected 1 but was 3");
+        assertHas(mismatches, "unit groupId expected 1 but was 3");
         assertEquals(2, mismatches.size(), mismatches.toString());
     }
 
@@ -314,9 +314,9 @@ class ScriptTestFieldsTest {
     @Test
     void collectMismatchesReportsMissingDynamicField() {
         Unit unit = appliedUnit();
-        List<String> mismatches = mismatches(unit, Map.of("evoLineMaxStage", "STAGE_1"));
+        List<String> mismatches = mismatches(unit, Map.of("groupRank", "RANK_ONE"));
 
-        assertHas(mismatches, "unit evoLineMaxStage expected STAGE_1 but was nil");
+        assertHas(mismatches, "unit groupRank expected RANK_ONE but was nil");
     }
 
     @Test
@@ -412,7 +412,7 @@ class ScriptTestFieldsTest {
                 "name", "Ember",
                 "hp", 40,
                 "type", "FIRE",
-                "evoLineId", 3,
+                "groupId", 3,
                 "kindTag", "FIRE",
                 "moves", moveList(Map.of(
                         "name", "Splash",
@@ -426,7 +426,7 @@ class ScriptTestFieldsTest {
                 "name", "Ember",
                 "hp", 40,
                 "type", "FIRE",
-                "evoLineId", 3,
+                "groupId", 3,
                 "moves", moveList(Map.of(
                         "name", "Splash",
                         "damage", 20,

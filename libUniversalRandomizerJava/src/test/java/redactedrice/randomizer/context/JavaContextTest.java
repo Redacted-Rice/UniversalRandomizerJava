@@ -57,9 +57,9 @@ public class JavaContextTest {
     @Test
     public void testRegisterDynamicFieldRejectsInvalidNames() {
         assertThrows(IllegalArgumentException.class,
-                () -> context.registerDynamicField(null, "EvolutionStage"));
+                () -> context.registerDynamicField(null, "Rank"));
         assertThrows(IllegalArgumentException.class,
-                () -> context.registerDynamicField("", "EvolutionStage"));
+                () -> context.registerDynamicField("", "Rank"));
         assertThrows(IllegalArgumentException.class,
                 () -> context.registerDynamicField("maxStage", ""));
     }
@@ -77,10 +77,10 @@ public class JavaContextTest {
 
     @Test
     public void testExecutionModuleInToLuaTable() {
-        context.setExecutionModuleName("shuffle_hp");
+        context.setExecutionModuleName("example_module");
 
         LuaTable table = context.toLuaTable();
-        assertEquals("shuffle_hp", table.get("executionModule").tojstring());
+        assertEquals("example_module", table.get("executionModule").tojstring());
 
         context.clearExecutionModuleName();
         table = context.toLuaTable();

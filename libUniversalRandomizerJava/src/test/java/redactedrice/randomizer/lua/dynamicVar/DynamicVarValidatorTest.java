@@ -33,12 +33,12 @@ class DynamicVarValidatorTest {
 
     @Test
     void satisfiedNeedRecordsCompatibleProviders() {
-        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
-                List.of(new DynamicVar("evoLineId", "integer"),
-                        new DynamicVar("evoLineMaxStage", "EvolutionStage")),
+        Module provider = module("set_group_metadata", "Set Group Metadata",
+                List.of(new DynamicVar("groupId", "integer"),
+                        new DynamicVar("groupRank", "Rank")),
                 List.of());
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         repository.registerModule(provider, m -> true);
         repository.registerModule(consumer, m -> true);
@@ -46,18 +46,18 @@ class DynamicVarValidatorTest {
         List<Issue> issues = DynamicVarValidator.validate(repository, registry, null);
 
         assertTrue(issues.isEmpty(), () -> issues.toString());
-        assertEquals(List.of("set_evo_line_metadata"), registry.getNeedsForConsumer("fix_evo_line_hp")
+        assertEquals(List.of("set_group_metadata"), registry.getNeedsForConsumer("align_group_score")
                 .get(0).getCompatibleProviderModuleIds());
-        assertEquals("EvolutionStage", registry.providedTypesByName().get("evoLineMaxStage"));
-        assertEquals("integer", registry.providedTypesByName().get("evoLineId"));
+        assertEquals("Rank", registry.providedTypesByName().get("groupRank"));
+        assertEquals("integer", registry.providedTypesByName().get("groupId"));
     }
 
     @Test
     void needIsSatisfiedRegardlessOfModuleRegistrationOrder() {
-        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
-                List.of(new DynamicVar("evoLineId", "integer")), List.of());
-        Module consumer = module("even_rando_evo_line_types", "Even Random Evo Line Types",
-                List.of(), List.of(new DynamicVar("evoLineId", "integer")));
+        Module provider = module("set_group_metadata", "Set Group Metadata",
+                List.of(new DynamicVar("groupId", "integer")), List.of());
+        Module consumer = module("shuffle_group_types", "Shuffle Group Types",
+                List.of(), List.of(new DynamicVar("groupId", "integer")));
 
         repository.registerModule(consumer, m -> true);
         repository.registerModule(provider, m -> true);
@@ -70,9 +70,9 @@ class DynamicVarValidatorTest {
     @Test
     void duplicateProvideNameWithDifferentTypeIsWarning() {
         Module first = module("first_provider", "First Provider",
-                List.of(new DynamicVar("evoLineId", "integer")), List.of());
+                List.of(new DynamicVar("groupId", "integer")), List.of());
         Module second = module("second_provider", "Second Provider",
-                List.of(new DynamicVar("evoLineId", "string")), List.of());
+                List.of(new DynamicVar("groupId", "string")), List.of());
 
         repository.registerModule(first, m -> true);
         repository.registerModule(second, m -> true);
@@ -81,20 +81,20 @@ class DynamicVarValidatorTest {
 
         assertEquals(1, issues.size());
         assertFalse(issues.get(0).isError());
-        assertEquals("evoLineId", issues.get(0).getSubject());
+        assertEquals("groupId", issues.get(0).getSubject());
     }
 
     @Test
     void missingProviderIsReported() {
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
         repository.registerModule(consumer, m -> true);
 
         List<Issue> issues = DynamicVarValidator.validate(repository, registry, null);
 
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
-        assertEquals("evoLineId", issues.get(0).getSubject());
+        assertEquals("groupId", issues.get(0).getSubject());
     }
 
     @Test
@@ -148,9 +148,9 @@ class DynamicVarValidatorTest {
     @Test
     void typeMismatchDoesNotCountAsCompatibleProvider() {
         Module provider = module("wrong_type_provider", "Wrong Type Provider",
-                List.of(new DynamicVar("evoLineId", "string")), List.of());
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+                List.of(new DynamicVar("groupId", "string")), List.of());
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         repository.registerModule(provider, m -> true);
         repository.registerModule(consumer, m -> true);
@@ -158,15 +158,15 @@ class DynamicVarValidatorTest {
         List<Issue> issues = DynamicVarValidator.validate(repository, registry, null);
 
         assertEquals(1, issues.size());
-        assertTrue(issues.get(0).getMessage().contains("evoLineId"));
+        assertTrue(issues.get(0).getMessage().contains("groupId"));
     }
 
     @Test
     void executionPlanPassesWhenProviderRunsBeforeConsumer() {
-        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
-                List.of(new DynamicVar("evoLineId", "integer")), List.of());
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+        Module provider = module("set_group_metadata", "Set Group Metadata",
+                List.of(new DynamicVar("groupId", "integer")), List.of());
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
                 ExecutionPlan.fromSteps(List.of(provider, consumer)), null);
@@ -176,10 +176,10 @@ class DynamicVarValidatorTest {
 
     @Test
     void executionPlanFailsWhenProviderRunsAfterConsumer() {
-        Module provider = module("set_evo_line_metadata", "Set Evo Line Metadata",
-                List.of(new DynamicVar("evoLineId", "integer")), List.of());
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+        Module provider = module("set_group_metadata", "Set Group Metadata",
+                List.of(new DynamicVar("groupId", "integer")), List.of());
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
                 ExecutionPlan.fromSteps(List.of(consumer, provider)), null);
@@ -187,13 +187,13 @@ class DynamicVarValidatorTest {
         assertEquals(1, issues.size());
         assertTrue(issues.get(0).isError());
         assertTrue(issues.get(0).getMessage().contains("later"));
-        assertEquals("evoLineId", issues.get(0).getSubject());
+        assertEquals("groupId", issues.get(0).getSubject());
     }
 
     @Test
     void executionPlanFailsWhenProviderIsMissingFromPlan() {
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
                 ExecutionPlan.fromSteps(List.of(consumer)), null);
@@ -206,9 +206,9 @@ class DynamicVarValidatorTest {
     @Test
     void executionPlanFailsWhenEarlierProvideHasIncompatibleType() {
         Module wrongType = module("wrong_type", "Wrong Type",
-                List.of(new DynamicVar("evoLineId", "string")), List.of());
-        Module consumer = module("fix_evo_line_hp", "Fix Evo Line HP", List.of(),
-                List.of(new DynamicVar("evoLineId", "integer")));
+                List.of(new DynamicVar("groupId", "string")), List.of());
+        Module consumer = module("align_group_score", "Align Group Score", List.of(),
+                List.of(new DynamicVar("groupId", "integer")));
 
         List<Issue> issues = DynamicVarValidator.validateExecutionPlan(
                 ExecutionPlan.fromSteps(List.of(wrongType, consumer)), null);
