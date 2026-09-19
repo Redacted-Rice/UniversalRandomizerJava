@@ -127,6 +127,42 @@ public class JavaObjectWrapperTest {
     }
 
     @Test
+    public void clearingDynamicFieldRemovesStaleWrapperValue() {
+        JavaContext context = new JavaContext();
+        Monster root = new Monster("root", 1);
+        LuaValue wrapper = context.wrap(root);
+
+        LuaTable branchIds = new LuaTable();
+        branchIds.set(1, LuaValue.valueOf(52));
+        wrapper.set("evoBranchIds", branchIds);
+        assertEquals(52, wrapper.get("evoBranchIds").get(1).toint());
+
+        wrapper.set("evoBranchIds", LuaValue.NIL);
+        assertTrue(wrapper.get("evoBranchIds").isnil(),
+                "nil assign must drop dynamic field so metadata re-runs can reassign");
+
+        LuaTable rebuilt = new LuaTable();
+        rebuilt.set(1, LuaValue.valueOf(1));
+        wrapper.set("evoBranchIds", rebuilt);
+        assertEquals(1, wrapper.get("evoBranchIds").get(1).toint());
+    }
+
+    @Test
+    public void dynamicFieldAssignDoesNotTouchJavaFields() {
+        JavaContext context = new JavaContext();
+        Monster root = new Monster("root", 1);
+        LuaValue wrapper = context.wrap(root);
+
+        wrapper.set("evoBranchIds", new LuaTable());
+        assertEquals("root", wrapper.get("name").tojstring());
+        assertEquals(1, wrapper.get("hp").toint());
+
+        wrapper.set("name", LuaValue.valueOf("renamed"));
+        assertEquals("renamed", root.name);
+        assertTrue(wrapper.get("evoBranchIds").istable());
+    }
+
+    @Test
     public void wrappedReturnValuesWorkWithJavaMethodOverloads() {
         JavaContext context = new JavaContext();
         ValueHolder holder = new ValueHolder(7);

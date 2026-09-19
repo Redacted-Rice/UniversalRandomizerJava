@@ -19,7 +19,8 @@ public class JavaObjectWrapper {
     private final EnumRegistry enumRegistry;
     // We need to cache objects so we can store and keep lua assigned values to them
     private final Map<Object, LuaTable> wrapperCache = new IdentityHashMap<>();
-    // Name to type from module provides. Used when Lua assigns a string to a dynamic field.
+    // Name to type from module provides. Used when Lua assigns a string to a
+    // dynamic field.
     private final Map<String, String> dynamicFieldTypes = new LinkedHashMap<>();
 
     public JavaObjectWrapper(EnumRegistry enumRegistry) {
@@ -33,7 +34,10 @@ public class JavaObjectWrapper {
         dynamicFieldTypes.putAll(types);
     }
 
-    /** Clears cached wrappers so a new randomization does not reuse stale dynamic Lua fields */
+    /**
+     * Clears cached wrappers so a new randomization does not reuse stale dynamic
+     * Lua fields
+     */
     public void clearCache() {
         wrapperCache.clear();
     }
@@ -105,7 +109,10 @@ public class JavaObjectWrapper {
         }
     }
 
-    /** __newindex: Java fields when possible, otherwise dynamic Lua fields on the wrapper */
+    /**
+     * __newindex: real Java fields on userdata, dynamic Lua fields only on the
+     * wrapper
+     */
     private static final class WrapperNewIndex extends ThreeArgFunction {
         private final LuaValue userdata;
         private final LuaTable wrapper;
@@ -120,13 +127,28 @@ public class JavaObjectWrapper {
         @Override
         public LuaValue call(LuaValue table, LuaValue key, LuaValue value) {
             LuaValue toSet = coerceAssignedValue(key, value);
-            try {
+            if (isJavaInstanceField(key)) {
                 userdata.set(key, toSet);
-            } catch (Throwable e) {
-                // Must catch Throwable because LuaJ throws LuaError
+                // Drop any shadowing dynamic value so reads hit the Java field.
+                wrapper.rawset(key, LuaValue.NIL);
+            } else {
+                // Dynamic fields live only on the wrapper.
+                // Always rawset - including NIL - so clears actually remove stale tables.
+                // (userdata.set(NIL) can succeed without throwing and leave the old value.)
                 wrapper.rawset(key, toSet);
             }
             return LuaValue.NIL;
+        }
+
+        private boolean isJavaInstanceField(LuaValue key) {
+            if (!key.isstring() || !userdata.isuserdata()) {
+                return false;
+            }
+            Object java = userdata.touserdata();
+            if (java == null) {
+                return false;
+            }
+            return findPublicField(java.getClass(), key.tojstring()) != null;
         }
 
         private LuaValue coerceAssignedValue(LuaValue key, LuaValue value) {
