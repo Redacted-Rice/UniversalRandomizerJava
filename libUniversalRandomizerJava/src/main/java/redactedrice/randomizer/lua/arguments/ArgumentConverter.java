@@ -67,8 +67,10 @@ public class ArgumentConverter {
 
             case TABLE:
                 // recursively convert keys and values
-                return convertToTable(value, typeDef.getKeyType(), typeDef.getValueType(),
-                        enumRegistry);
+                return convertToTable(value, typeDef, enumRegistry);
+
+            case TUPLE:
+                return convertToTuple(value, typeDef.getTupleFields(), enumRegistry);
 
             default:
                 throw new IllegalArgumentException("Unknown type: " + typeDef.getBaseType());
@@ -212,8 +214,10 @@ public class ArgumentConverter {
     }
 
     @SuppressWarnings("unchecked")
-    private static Map<Object, Object> convertToTable(Object value, TypeDefinition keyType,
-            TypeDefinition valueType, EnumRegistry enumRegistry) {
+    private static Map<Object, Object> convertToTable(Object value, TypeDefinition tableType,
+            EnumRegistry enumRegistry) {
+        TypeDefinition keyType = tableType.getKeyType();
+        TypeDefinition valueType = tableType.getValueType();
         List<Map.Entry<Object, Object>> entries = new ArrayList<>();
 
         if (value instanceof Map) {
@@ -250,7 +254,65 @@ public class ArgumentConverter {
         for (Map.Entry<Object, Object> entry : entries) {
             result.put(entry.getKey(), entry.getValue());
         }
+
+        if (tableType.hasFixedKeys()) {
+            LinkedHashMap<Object, Object> ordered = new LinkedHashMap<>();
+            for (String fixedKey : tableType.getFixedKeys()) {
+                Object key = convertAndValidate(fixedKey, keyType, enumRegistry);
+                Object fixedValue;
+                if (tableType.isFixedValue(fixedKey)) {
+                    fixedValue = convertAndValidate(tableType.getFixedValues().get(fixedKey),
+                            valueType, enumRegistry);
+                } else {
+                    Object existing = result.get(key);
+                    fixedValue = existing != null ? existing
+                            : defaultTableValue(valueType, enumRegistry);
+                }
+                ordered.put(key, fixedValue);
+            }
+            return ordered;
+        }
         return result;
+    }
+
+    private static Object defaultTableValue(TypeDefinition valueType, EnumRegistry enumRegistry) {
+        return switch (valueType.getBaseType()) {
+            case STRING -> "";
+            case INTEGER -> 0;
+            case DOUBLE -> 0.0;
+            case BOOLEAN -> Boolean.FALSE;
+            default -> null;
+        };
+    }
+
+    private static Map<String, Object> convertToTuple(Object value,
+            List<TupleFieldDefinition> fields, EnumRegistry enumRegistry) {
+        if (fields.size() != 2) {
+            throw new IllegalArgumentException("Tuple must have exactly two fields");
+        }
+        TupleFieldDefinition field0 = fields.get(0);
+        TupleFieldDefinition field1 = fields.get(1);
+        Object field0Raw;
+        Object field1Raw;
+
+        if (value instanceof Map<?, ?> entryMap) {
+            field0Raw = entryMap.get(field0.name());
+            field1Raw = entryMap.get(field1.name());
+        } else if (value instanceof LuaTable entryTable) {
+            field0Raw = LuaJavaConverter.luaToJava(entryTable.get(field0.name()), true);
+            field1Raw = LuaJavaConverter.luaToJava(entryTable.get(field1.name()), true);
+        } else {
+            throw new IllegalArgumentException("Tuple value must be a table with named fields");
+        }
+
+        if (field0Raw == null) {
+            throw new IllegalArgumentException("Tuple missing '" + field0.name() + "' field");
+        }
+
+        Object converted0 = convertAndValidate(field0Raw, field0.type(), enumRegistry);
+        Object converted1 = field1Raw == null ? null
+                : convertAndValidate(field1Raw, field1.type(), enumRegistry);
+        return TupleEntry.of(fields, converted0, converted1);
     }
 
     // Enum keys follow the registered enum's declaration order. Other keys keep encounter order
