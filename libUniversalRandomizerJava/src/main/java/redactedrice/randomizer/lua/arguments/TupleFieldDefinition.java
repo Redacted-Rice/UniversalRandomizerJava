@@ -9,9 +9,9 @@ public record TupleFieldDefinition(String name, TypeDefinition type) {
         if (type == null) {
             throw new IllegalArgumentException("Tuple field type cannot be null");
         }
-        if (type.isComplex() || type.isTuple()) {
+        if (type.isList() || type.isTuple()) {
             throw new IllegalArgumentException(
-                    "Tuple field '" + name + "' must be a scalar or enum type, got: " + type);
+                    "Tuple field '" + name + "' cannot be a list or nested tuple, got: " + type);
         }
     }
 }
