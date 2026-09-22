@@ -242,6 +242,31 @@ public class TypeParserTest {
     }
 
     @Test
+    public void testParseTupleWithTableField() {
+        Map<String, Object> shapeTableSpec = new HashMap<>();
+        shapeTableSpec.put("type", "table");
+        shapeTableSpec.put("keyDefinition", "string");
+        shapeTableSpec.put("valueDefinition", "integer");
+        shapeTableSpec.put("fixedKeys", List.of("BASIC", "STAGE_1", "STAGE_2"));
+
+        Map<String, Object> weightField = new HashMap<>();
+        weightField.put("name", "weight");
+        weightField.put("definition", "integer");
+
+        Map<String, Object> shapeField = new HashMap<>();
+        shapeField.put("name", "shape");
+        shapeField.put("definition", shapeTableSpec);
+
+        Map<String, Object> tupleSpec = new HashMap<>();
+        tupleSpec.put("type", "tuple");
+        tupleSpec.put("fields", List.of(weightField, shapeField));
+
+        TypeDefinition tupleType = TypeParser.parse(tupleSpec);
+        assertEquals(ArgumentType.TABLE, tupleType.getTupleField(1).type().getBaseType());
+        assertTrue(tupleType.getTupleField(1).type().hasFixedKeys());
+    }
+
+    @Test
     public void testParseTupleWithListFieldThrows() {
         Map<String, Object> tagsSpec = new HashMap<>();
         tagsSpec.put("type", "list");
