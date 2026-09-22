@@ -82,8 +82,8 @@ public class ExampleApp {
         // Logger.setMinLogLevel(LogLevel.INFO);
 
         System.out.println("Logging configuration:");
-        System.out.println("  All levels → Console + " + logFile.getName());
-        System.out.println("  WARN/ERROR → " + warnErrFile.getName());
+        System.out.println("  All levels -> Console + " + logFile.getName());
+        System.out.println("  WARN/ERROR -> " + warnErrFile.getName());
 
         System.out.println("Loading modules...");
         int loaded = wrapper.loadModules();

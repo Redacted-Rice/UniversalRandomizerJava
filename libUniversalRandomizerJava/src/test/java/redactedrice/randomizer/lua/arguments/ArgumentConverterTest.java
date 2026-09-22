@@ -316,4 +316,68 @@ public class ArgumentConverterTest {
         List<String> input = Arrays.asList("EASY", "NORMAL", "HARD");
         assertTrue(ArgumentConverter.convertAndValidate(input, enumListType, enumContext) instanceof List);
     }
+
+    @Test
+    public void testConvertAndValidateTuple() {
+        TypeDefinition tupleType = TypeDefinition.tupleOf("weight",
+                TypeDefinition.integer(ArgumentConstraint.range(1, 99)), "shape",
+                TypeDefinition.string());
+
+        Map<String, Object> entry = TupleEntry.of("weight", 5, "shape", "linear_3");
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) ArgumentConverter
+                .convertAndValidate(entry, tupleType, null);
+        assertEquals(5, result.get("weight"));
+        assertEquals("linear_3", result.get("shape"));
+    }
+
+    @Test
+    public void testTupleWithListFieldThrows() {
+        assertThrows(IllegalArgumentException.class,
+                () -> TypeDefinition.tupleOf("label", TypeDefinition.string(), "tags",
+                        TypeDefinition.listOf(TypeDefinition.string())));
+    }
+
+    @Test
+    public void testConvertAndValidateTableWithFixedKeysFillsMissingEntries() {
+        TypeDefinition tableType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.integer(), List.of("BASIC", "STAGE_1", "STAGE_2"));
+
+        Map<String, Integer> partial = Map.of("BASIC", 1);
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> result = (Map<Object, Object>) ArgumentConverter
+                .convertAndValidate(partial, tableType, null);
+
+        assertEquals(List.of("BASIC", "STAGE_1", "STAGE_2"), new ArrayList<>(result.keySet()));
+        assertEquals(1, result.get("BASIC"));
+        assertEquals(0, result.get("STAGE_1"));
+        assertEquals(0, result.get("STAGE_2"));
+    }
+
+    @Test
+    public void testConvertAndValidateTableWithFixedValuesOverridesInput() {
+        TypeDefinition tableType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.integer(), List.of("BASIC", "STAGE_1", "STAGE_2"),
+                Map.of("BASIC", 1));
+
+        Map<String, Integer> input = Map.of("BASIC", 99, "STAGE_1", 3);
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> result = (Map<Object, Object>) ArgumentConverter
+                .convertAndValidate(input, tableType, null);
+
+        assertEquals(1, result.get("BASIC"));
+        assertEquals(3, result.get("STAGE_1"));
+        assertEquals(0, result.get("STAGE_2"));
+    }
+
+    @Test
+    public void testConvertAndValidateTupleMissingFieldThrows() {
+        TypeDefinition tupleType = TypeDefinition.tupleOf("weight", TypeDefinition.integer(),
+                "shape", TypeDefinition.string());
+        Map<String, Object> badEntry = new LinkedHashMap<>();
+        badEntry.put("shape", "onlyShape");
+        assertThrows(IllegalArgumentException.class,
+                () -> ArgumentConverter.convertAndValidate(badEntry, tupleType, null));
+    }
 }

@@ -88,11 +88,89 @@ public class TypeParser {
                     throw new IllegalArgumentException(
                             "Table type must specify 'keyDefinition' and 'valueDefinition'");
                 }
-                return TypeDefinition.tableOf(parse(keySpec), parse(valueSpec));
+                List<String> fixedKeys = parseFixedKeys(typeMap.get("fixedKeys"));
+                return TypeDefinition.tableOf(parse(keySpec), parse(valueSpec), fixedKeys,
+                        parseFixedValues(typeMap.get("fixedValues"), fixedKeys));
+
+            case "tuple":
+                return parseTupleType(typeMap);
 
             default:
                 throw new IllegalArgumentException("Unknown type: " + baseTypeStr);
         }
+    }
+
+    private static List<String> parseFixedKeys(Object fixedKeysObj) {
+        if (fixedKeysObj == null) {
+            return List.of();
+        }
+        if (!(fixedKeysObj instanceof List<?> fixedKeys)) {
+            throw new IllegalArgumentException("Table 'fixedKeys' must be a list of strings");
+        }
+        List<String> result = new ArrayList<>();
+        for (Object key : fixedKeys) {
+            if (!(key instanceof String str) || str.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Table 'fixedKeys' entries must be non-empty strings");
+            }
+            result.add(str);
+        }
+        return result;
+    }
+
+    private static Map<String, Object> parseFixedValues(Object fixedValuesObj,
+            List<String> fixedKeys) {
+        if (fixedValuesObj == null) {
+            return Map.of();
+        }
+        if (!(fixedValuesObj instanceof Map<?, ?> fixedValues)) {
+            throw new IllegalArgumentException("Table 'fixedValues' must be a map");
+        }
+        if (fixedValues.isEmpty()) {
+            return Map.of();
+        }
+        if (fixedKeys.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Table 'fixedValues' requires 'fixedKeys' to be specified");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : fixedValues.entrySet()) {
+            if (!(entry.getKey() instanceof String key) || key.isBlank()) {
+                throw new IllegalArgumentException(
+                        "Table 'fixedValues' keys must be non-empty strings");
+            }
+            if (!fixedKeys.contains(key)) {
+                throw new IllegalArgumentException(
+                        "Table 'fixedValues' key '" + key + "' must appear in 'fixedKeys'");
+            }
+            result.put(key, entry.getValue());
+        }
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static TypeDefinition parseTupleType(Map<?, ?> typeMap) {
+        Object fieldsObj = typeMap.get("fields");
+        if (!(fieldsObj instanceof List<?> fields) || fields.size() != 2) {
+            throw new IllegalArgumentException("Tuple type must specify exactly two 'fields'");
+        }
+        TupleFieldDefinition[] parsed = new TupleFieldDefinition[2];
+        for (int i = 0; i < 2; i++) {
+            Object fieldSpec = fields.get(i);
+            if (!(fieldSpec instanceof Map<?, ?> fieldMap)) {
+                throw new IllegalArgumentException("Tuple field must be a map with 'name' and 'definition'");
+            }
+            Object nameObj = fieldMap.get("name");
+            Object definitionObj = fieldMap.get("definition");
+            if (!(nameObj instanceof String name) || name.isBlank()) {
+                throw new IllegalArgumentException("Tuple field must have a non-empty 'name'");
+            }
+            if (definitionObj == null) {
+                throw new IllegalArgumentException("Tuple field '" + name + "' must have 'definition'");
+            }
+            parsed[i] = new TupleFieldDefinition(name, parse(definitionObj));
+        }
+        return TypeDefinition.tupleOf(parsed[0], parsed[1]);
     }
 
     private static TypeDefinition parseEnumType(Map<?, ?> typeMap, Object constraintObj) {

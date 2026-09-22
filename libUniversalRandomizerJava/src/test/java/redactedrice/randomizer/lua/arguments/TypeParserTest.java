@@ -3,6 +3,7 @@ package redactedrice.randomizer.lua.arguments;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -125,8 +126,7 @@ public class TypeParserTest {
         Map<String, Object> stepType = Map.of("type", "integer", "constraint", stepConstraint);
         assertNotNull(TypeParser.parse(stepType).getConstraint());
 
-        Map<String, Object> enumConstraint =
-                Map.of("type", "enum", "values", java.util.Arrays.asList("A", "B", "C"));
+        Map<String, Object> enumConstraint = Map.of("type", "enum", "values", java.util.Arrays.asList("A", "B", "C"));
         Map<String, Object> enumType = Map.of("type", "string", "constraint", enumConstraint);
         assertNotNull(TypeParser.parse(enumType).getConstraint());
     }
@@ -191,7 +191,8 @@ public class TypeParserTest {
 
     @Test
     public void testParseNestedGroupLikeTableType() {
-        // Table<String, Table<String, List<Integer>>> — group whose values are groups of lists
+        // Table<String, Table<String, List<Integer>>> - group whose values are groups
+        // of lists
         Map<String, Object> listSpec = new HashMap<>();
         listSpec.put("type", "list");
         listSpec.put("elementDefinition", "integer");
@@ -216,6 +217,86 @@ public class TypeParserTest {
         assertEquals(ArgumentType.LIST, innerType.getValueType().getBaseType());
         assertEquals(ArgumentType.INTEGER,
                 innerType.getValueType().getElementType().getBaseType());
+    }
+
+    @Test
+    public void testParseTupleType() {
+        Map<String, Object> weightField = new HashMap<>();
+        weightField.put("name", "weight");
+        weightField.put("definition", "integer");
+
+        Map<String, Object> shapeField = new HashMap<>();
+        shapeField.put("name", "shape");
+        shapeField.put("definition", "string");
+
+        Map<String, Object> tupleSpec = new HashMap<>();
+        tupleSpec.put("type", "tuple");
+        tupleSpec.put("fields", List.of(weightField, shapeField));
+
+        TypeDefinition tupleType = TypeParser.parse(tupleSpec);
+        assertEquals(ArgumentType.TUPLE, tupleType.getBaseType());
+        assertEquals("weight", tupleType.getTupleField(0).name());
+        assertEquals(ArgumentType.INTEGER, tupleType.getTupleField(0).type().getBaseType());
+        assertEquals("shape", tupleType.getTupleField(1).name());
+        assertEquals(ArgumentType.STRING, tupleType.getTupleField(1).type().getBaseType());
+    }
+
+    @Test
+    public void testParseTupleWithListFieldThrows() {
+        Map<String, Object> tagsSpec = new HashMap<>();
+        tagsSpec.put("type", "list");
+        tagsSpec.put("elementDefinition", "string");
+
+        Map<String, Object> labelField = new HashMap<>();
+        labelField.put("name", "label");
+        labelField.put("definition", "string");
+
+        Map<String, Object> tagsField = new HashMap<>();
+        tagsField.put("name", "tags");
+        tagsField.put("definition", tagsSpec);
+
+        Map<String, Object> tupleSpec = new HashMap<>();
+        tupleSpec.put("type", "tuple");
+        tupleSpec.put("fields", List.of(labelField, tagsField));
+
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(tupleSpec));
+    }
+
+    @Test
+    public void testParseTableWithFixedKeys() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", "integer");
+        tableSpec.put("fixedKeys", List.of("BASIC", "STAGE_1", "STAGE_2"));
+
+        TypeDefinition tableType = TypeParser.parse(tableSpec);
+        assertTrue(tableType.hasFixedKeys());
+        assertEquals(List.of("BASIC", "STAGE_1", "STAGE_2"), tableType.getFixedKeys());
+    }
+
+    @Test
+    public void testParseTableWithFixedValues() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", "integer");
+        tableSpec.put("fixedKeys", List.of("BASIC", "STAGE_1", "STAGE_2"));
+        tableSpec.put("fixedValues", Map.of("BASIC", 1));
+
+        TypeDefinition tableType = TypeParser.parse(tableSpec);
+        assertTrue(tableType.isFixedValue("BASIC"));
+        assertEquals(1, tableType.getFixedValues().get("BASIC"));
+    }
+
+    @Test
+    public void testParseTableFixedValuesRequiresFixedKeys() {
+        Map<String, Object> tableSpec = new HashMap<>();
+        tableSpec.put("type", "table");
+        tableSpec.put("keyDefinition", "string");
+        tableSpec.put("valueDefinition", "integer");
+        tableSpec.put("fixedValues", Map.of("BASIC", 1));
+        assertThrows(IllegalArgumentException.class, () -> TypeParser.parse(tableSpec));
     }
 
     @Test
