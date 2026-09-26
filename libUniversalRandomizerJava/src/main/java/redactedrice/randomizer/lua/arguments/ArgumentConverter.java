@@ -199,6 +199,9 @@ public class ArgumentConverter {
                             elementType, enumRegistry));
                 }
             }
+        } else if (value instanceof Map<?, ?> map && map.isEmpty()) {
+            // Lua {} has no array part so luaToJava treats it as a map
+            return result;
         } else if (value.getClass().isArray()) {
             // handle java arrays
             Object[] array = (Object[]) value;
