@@ -318,6 +318,15 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testEmptyMapConvertsToEmptyList() {
+        TypeDefinition stringListType = TypeDefinition.listOf(TypeDefinition.string());
+        @SuppressWarnings("unchecked")
+        List<Object> result = (List<Object>) ArgumentConverter
+                .convertAndValidate(new LinkedHashMap<>(), stringListType, null);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     public void testConvertAndValidateTuple() {
         TypeDefinition tupleType = TypeDefinition.tupleOf("weight",
                 TypeDefinition.integer(ArgumentConstraint.range(1, 99)), "shape",
