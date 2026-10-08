@@ -39,6 +39,15 @@ public final class ScriptTestFields {
                 skipFieldSet(skipFields));
     }
 
+    public static List<String> skipFieldsFrom(Map<String, Object> caseData) {
+        if (caseData == null) {
+            return null;
+        }
+        List<String> fields =
+                ScriptTestValues.optionalStringList(caseData.get("skipFields"), "skipFields");
+        return fields.isEmpty() ? null : fields;
+    }
+
     public static void failIfMismatches(String label, List<String> mismatches) {
         if (mismatches == null || mismatches.isEmpty()) {
             return;
@@ -217,7 +226,8 @@ public final class ScriptTestFields {
 
         List<LuaValue> built = new ArrayList<>();
         for (int i = 0; i < entries.size(); i++) {
-            LuaValue item = asTarget(context, invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
+            LuaValue item =
+                    asTarget(context, invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
             if (isNil(item)) {
                 throw new IllegalArgumentException(itemGetterName + "(" + i + ") returned nil");
             }
@@ -251,8 +261,8 @@ public final class ScriptTestFields {
         if (expected instanceof Map<?, ?>) {
             Map<String, Object> wanted = ScriptTestValues.optionalMap(expected);
             if (ScriptTestValues.isKeyedMapSpec(wanted)) {
-                collectKeyedMapMismatches(target,
-                        ScriptTestValues.parseKeyedMapSpec(wanted, key), mismatches, fieldPath);
+                collectKeyedMapMismatches(target, ScriptTestValues.parseKeyedMapSpec(wanted, key),
+                        mismatches, fieldPath);
                 return;
             }
 
@@ -311,8 +321,8 @@ public final class ScriptTestFields {
             return;
         }
         for (int i = 0; i < wanted.size(); i++) {
-            LuaValue item = asTarget(context,
-                    invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
+            LuaValue item =
+                    asTarget(context, invoke(itemGetter, target, LuaValue.valueOf(i)).arg1());
             if (isNil(item)) {
                 mismatches.add(fieldPath + " count expected " + wanted.size() + " but was " + i);
                 return;

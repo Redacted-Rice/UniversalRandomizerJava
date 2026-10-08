@@ -295,7 +295,14 @@ public class TypeDefinition {
             case LIST:
                 return "List<" + elementType + ">";
             case TABLE:
-                return "Table<" + keyType + ", " + valueType + ">";
+                String tableDesc = "Table<" + keyType + ", " + valueType + ">";
+                if (!fixedKeys.isEmpty()) {
+                    tableDesc += " fixedKeys=" + fixedKeys;
+                }
+                if (!fixedValues.isEmpty()) {
+                    tableDesc += " fixedValues=" + fixedValues.keySet();
+                }
+                return tableDesc;
             case TUPLE:
                 return "Tuple<" + tupleFields.get(0).type() + ", " + tupleFields.get(1).type()
                         + ">";

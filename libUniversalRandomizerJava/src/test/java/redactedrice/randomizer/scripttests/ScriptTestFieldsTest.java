@@ -237,6 +237,33 @@ class ScriptTestFieldsTest {
     }
 
     @Test
+    void skipFieldsIgnoresTopLevelKeysWhenApplyingAndAsserting() {
+        Unit unit = new Unit();
+        ScriptTestFields.apply(context, unit,
+                Map.of("hp", 40, "groupId", 3, "scratch", "old"),
+                List.of("scratch"));
+        assertEquals(40, unit.getHp());
+        assertEquals(3, context.wrap(unit).get("groupId").toint());
+        assertTrue(context.wrap(unit).get("scratch").isnil());
+
+        unit = appliedUnit();
+        List<String> mismatches = new ArrayList<>();
+        ScriptTestFields.collectMismatches(context, unit,
+                Map.of("hp", 99, "groupId", 1, "scratch", "ignored"),
+                mismatches, "unit", List.of("scratch", "groupId"));
+        assertHas(mismatches, "unit hp expected 99 but was 40");
+        assertEquals(1, mismatches.size(), mismatches.toString());
+    }
+
+    @Test
+    void skipFieldsFromReadsCaseTable() {
+        assertEquals(null, ScriptTestFields.skipFieldsFrom(null));
+        assertEquals(null, ScriptTestFields.skipFieldsFrom(Map.of()));
+        assertEquals(List.of("a", "b"),
+                ScriptTestFields.skipFieldsFrom(Map.of("skipFields", List.of("a", "b"))));
+    }
+
+    @Test
     void collectMismatchesReportsWrongScalarAndDynamicFields() {
         Unit unit = appliedUnit();
         List<String> mismatches = mismatches(unit, Map.of("hp", 99, "groupId", 1));
