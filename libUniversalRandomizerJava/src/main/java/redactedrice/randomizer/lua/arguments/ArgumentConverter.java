@@ -268,8 +268,16 @@ public class ArgumentConverter {
                             valueType, enumRegistry);
                 } else {
                     Object existing = result.get(key);
-                    fixedValue = existing != null ? existing
-                            : defaultTableValue(valueType, enumRegistry);
+                    if (existing != null) {
+                        fixedValue = existing;
+                    } else {
+                        fixedValue = defaultTableValue(valueType, enumRegistry);
+                        if (fixedValue == null) {
+                            throw new IllegalArgumentException(
+                                    "Table with fixedKeys missing value for key '" + fixedKey
+                                            + "' (type " + valueType + " has no default)");
+                        }
+                    }
                 }
                 ordered.put(key, fixedValue);
             }

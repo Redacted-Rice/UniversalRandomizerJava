@@ -44,6 +44,7 @@ public final class ExampleScriptTestRunner {
         @Override
         public void populateContext(JavaContext context, ScriptTestCase testCase) {
             Map<String, Object> data = testCase.data();
+            List<String> skipFields = ScriptTestFields.skipFieldsFrom(data);
             List<Map<String, Object>> entitySpecs = specs(data, "entities");
             List<Map<String, Object>> itemSpecs = specs(data, "items");
             if (entitySpecs.isEmpty() && itemSpecs.isEmpty()) {
@@ -52,15 +53,16 @@ public final class ExampleScriptTestRunner {
             }
 
             // Same starting values on both sides. Modules that shuffle from original still work.
-            context.register("entitiesOriginal", buildEntities(context, entitySpecs));
-            context.register("entitiesModified", buildEntities(context, entitySpecs));
-            context.register("itemsOriginal", buildItems(context, itemSpecs));
-            context.register("itemsModified", buildItems(context, itemSpecs));
+            context.register("entitiesOriginal", buildEntities(context, entitySpecs, skipFields));
+            context.register("entitiesModified", buildEntities(context, entitySpecs, skipFields));
+            context.register("itemsOriginal", buildItems(context, itemSpecs, skipFields));
+            context.register("itemsModified", buildItems(context, itemSpecs, skipFields));
         }
 
         @Override
         public void assertExpect(ScriptTestCase testCase, JavaContext context) {
             String label = testCase.displayName();
+            List<String> skipFields = ScriptTestFields.skipFieldsFrom(testCase.data());
             List<Map<String, Object>> expect =
                     ScriptTestValues.listOfMaps(testCase.data().get("expect"), "expect");
             @SuppressWarnings("unchecked")
@@ -79,7 +81,7 @@ public final class ExampleScriptTestRunner {
                     continue;
                 }
                 ScriptTestFields.collectMismatches(context, match, expected, mismatches,
-                        kind + " '" + name + "'");
+                        kind + " '" + name + "'", skipFields);
             }
             ScriptTestFields.failIfMismatches(label, mismatches);
         }
@@ -89,12 +91,12 @@ public final class ExampleScriptTestRunner {
         }
 
         private static List<ExampleEntity> buildEntities(JavaContext context,
-                List<Map<String, Object>> specs) {
+                List<Map<String, Object>> specs, List<String> skipFields) {
             List<ExampleEntity> entities = new ArrayList<>();
             for (Map<String, Object> spec : specs) {
                 ExampleEntity entity =
                         new ExampleEntity("Unnamed", ExampleEntityType.WARRIOR, 100, 10.0, 10, 10);
-                ScriptTestFields.apply(context, entity, spec);
+                ScriptTestFields.apply(context, entity, spec, skipFields);
                 if (entity.getName() == null || entity.getName().isBlank()) {
                     throw new IllegalArgumentException("Entity spec needs a name");
                 }
@@ -104,11 +106,11 @@ public final class ExampleScriptTestRunner {
         }
 
         private static List<ExampleItem> buildItems(JavaContext context,
-                List<Map<String, Object>> specs) {
+                List<Map<String, Object>> specs, List<String> skipFields) {
             List<ExampleItem> items = new ArrayList<>();
             for (Map<String, Object> spec : specs) {
                 ExampleItem item = new ExampleItem("Unnamed", ItemRarity.COMMON, 0, 0, 0, 0);
-                ScriptTestFields.apply(context, item, spec);
+                ScriptTestFields.apply(context, item, spec, skipFields);
                 if (item.name == null || item.name.isBlank()) {
                     throw new IllegalArgumentException("Item spec needs a name");
                 }

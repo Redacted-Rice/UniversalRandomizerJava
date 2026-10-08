@@ -381,6 +381,62 @@ public class ArgumentConverterTest {
     }
 
     @Test
+    public void testFixedKeysTableDropsUnknownKeys() {
+        TypeDefinition tableType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.integer(), List.of("BASIC", "STAGE_1"));
+
+        Map<String, Integer> input = new LinkedHashMap<>();
+        input.put("BASIC", 1);
+        input.put("EXTRA", 99);
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> result = (Map<Object, Object>) ArgumentConverter
+                .convertAndValidate(input, tableType, null);
+
+        assertEquals(List.of("BASIC", "STAGE_1"), new ArrayList<>(result.keySet()));
+        assertEquals(1, result.get("BASIC"));
+        assertEquals(0, result.get("STAGE_1"));
+        assertFalse(result.containsKey("EXTRA"));
+    }
+
+    @Test
+    public void testConvertAndValidateListOfTuple() {
+        TypeDefinition rowType = TypeDefinition.tupleOf("weight", TypeDefinition.integer(),
+                "shape", TypeDefinition.string());
+        TypeDefinition listType = TypeDefinition.listOf(rowType);
+
+        LuaTable row0 = new LuaTable();
+        row0.set("weight", LuaInteger.valueOf(3));
+        row0.set("shape", LuaValue.valueOf("linear"));
+        LuaTable row1 = new LuaTable();
+        row1.set("weight", LuaInteger.valueOf(5));
+        row1.set("shape", LuaValue.valueOf("bell"));
+
+        LuaTable rows = new LuaTable();
+        rows.set(1, row0);
+        rows.set(2, row1);
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> result = (List<Map<String, Object>>) ArgumentConverter
+                .convertAndValidate(rows, listType, null);
+        assertEquals(2, result.size());
+        assertEquals(3, result.get(0).get("weight"));
+        assertEquals("linear", result.get(0).get("shape"));
+        assertEquals(5, result.get(1).get("weight"));
+        assertEquals("bell", result.get(1).get("shape"));
+    }
+
+    @Test
+    public void testFixedKeysTableRequiresValuesForComplexValueTypes() {
+        EnumRegistry enumContext = createTestEnumRegistry();
+        TypeDefinition tableType = TypeDefinition.tableOf(TypeDefinition.string(),
+                TypeDefinition.enumType("Difficulty"), List.of("primary", "secondary"));
+
+        Map<String, String> partial = Map.of("primary", "EASY");
+        assertThrows(IllegalArgumentException.class, () -> ArgumentConverter
+                .convertAndValidate(partial, tableType, enumContext));
+    }
+
+    @Test
     public void testConvertAndValidateTupleMissingFieldThrows() {
         TypeDefinition tupleType = TypeDefinition.tupleOf("weight", TypeDefinition.integer(),
                 "shape", TypeDefinition.string());

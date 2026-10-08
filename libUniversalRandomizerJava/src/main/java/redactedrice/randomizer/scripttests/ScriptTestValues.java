@@ -267,6 +267,23 @@ public final class ScriptTestValues {
     }
 
     @SuppressWarnings("unchecked")
+    public static List<String> optionalStringList(Object value, String field) {
+        if (value == null) {
+            return List.of();
+        }
+        if (!(value instanceof List<?> list)) {
+            throw new IllegalArgumentException(field + " must be an array of strings");
+        }
+        List<String> result = new ArrayList<>();
+        for (Object entry : list) {
+            if (!(entry instanceof String text) || text.isBlank()) {
+                throw new IllegalArgumentException(field + " entries must be non-empty strings");
+            }
+            result.add(text);
+        }
+        return result;
+    }
+
     public static List<Map<String, Object>> optionalListOfMaps(Object value, String field) {
         if (isListFieldSpec(value)) {
             value = ((Map<String, Object>) value).get("values");
