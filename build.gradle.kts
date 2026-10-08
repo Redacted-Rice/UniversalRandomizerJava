@@ -113,9 +113,9 @@ tasks.register<Exec>("coreTests") {
     description = "Runs UniversalRandomizerCore Lua tests via busted"
     workingDir = file("UniversalRandomizerCore")
     if (System.getProperty("os.name").lowercase().contains("windows")) {
-        commandLine("cmd", "/c", "run_tests.bat")
+        commandLine("cmd", "/c", "run.bat", "-t")
     } else {
-        commandLine("./run_tests.sh")
+        commandLine("./run.sh", "-t")
     }
     logging.captureStandardOutput(org.gradle.api.logging.LogLevel.LIFECYCLE)
     logging.captureStandardError(org.gradle.api.logging.LogLevel.LIFECYCLE)
