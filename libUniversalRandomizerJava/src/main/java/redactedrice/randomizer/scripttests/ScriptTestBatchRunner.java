@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import redactedrice.randomizer.LuaRandomizerWrapper;
+
 // Shared run loop for CLI and programmatic hosts (e.g. JUnit).
 public final class ScriptTestBatchRunner {
     private ScriptTestBatchRunner() {}
@@ -44,8 +46,15 @@ public final class ScriptTestBatchRunner {
             }
 
             for (ScriptTestCase testCase : fileCases) {
-                ScriptTestSession session =
-                        new ScriptTestSession(wrapperFactory.create(), fixtures);
+                LuaRandomizerWrapper wrapper;
+                try {
+                    wrapper = wrapperFactory.create();
+                } catch (Exception e) {
+                    failed++;
+                    failures.add(new ScriptTestFailure(testCase.displayName(), e.getMessage()));
+                    continue;
+                }
+                ScriptTestSession session = new ScriptTestSession(wrapper, fixtures);
                 try {
                     session.run(testCase);
                     passed++;
