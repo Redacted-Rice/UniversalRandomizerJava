@@ -29,7 +29,8 @@ public final class ExampleScriptTestRunner {
     public static int run(String[] args) {
         File appDir = new File(".").getAbsoluteFile();
         File testsDir = new File(appDir, SCRIPT_TESTS_DIR_NAME);
-        return ScriptTestCli.run(args, testsDir.toPath(), loadWrapper(appDir), new Fixtures());
+        return ScriptTestCli.run(args, testsDir.toPath(), () -> loadWrapper(appDir),
+                new Fixtures());
     }
 
     private static LuaRandomizerWrapper loadWrapper(File appDir) {

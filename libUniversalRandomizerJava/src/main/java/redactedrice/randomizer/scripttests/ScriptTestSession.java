@@ -26,6 +26,7 @@ public final class ScriptTestSession {
     }
 
     public void run(ScriptTestCase testCase) {
+        IssueTracker.clear();
         JavaContext context = new JavaContext();
         wrapper.prepareContext(context);
         context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);

@@ -10,14 +10,19 @@ public final class ScriptTestBatchRunner {
     private ScriptTestBatchRunner() {}
 
     public static ScriptTestRunResult runRequestedCases(Path testsDir, String requestedName,
-            ScriptTestSession session) throws IOException {
-        return runCaseFiles(ScriptTestCli.selectCases(testsDir, requestedName), session);
+            ScriptTestWrapperFactory wrapperFactory, ScriptTestFixtures fixtures)
+            throws IOException {
+        return runCaseFiles(ScriptTestCli.selectCases(testsDir, requestedName), wrapperFactory,
+                fixtures);
     }
 
     public static ScriptTestRunResult runCaseFiles(List<Path> caseFiles,
-            ScriptTestSession session) {
-        if (session == null) {
-            throw new IllegalArgumentException("Session cannot be null");
+            ScriptTestWrapperFactory wrapperFactory, ScriptTestFixtures fixtures) {
+        if (wrapperFactory == null) {
+            throw new IllegalArgumentException("Wrapper factory cannot be null");
+        }
+        if (fixtures == null) {
+            throw new IllegalArgumentException("Fixtures cannot be null");
         }
         if (caseFiles == null) {
             throw new IllegalArgumentException("Case files cannot be null");
@@ -39,6 +44,8 @@ public final class ScriptTestBatchRunner {
             }
 
             for (ScriptTestCase testCase : fileCases) {
+                ScriptTestSession session =
+                        new ScriptTestSession(wrapperFactory.create(), fixtures);
                 try {
                     session.run(testCase);
                     passed++;

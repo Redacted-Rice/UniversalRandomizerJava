@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ManifestResourceExtractor {
@@ -19,28 +20,32 @@ public class ManifestResourceExtractor {
     // Callers that want stale/edited files preserved instead of silently overwritten should back
     // them up first (see VersionedResourceInstaller).
     public static void extract(String resourcePath, String outputPath) throws IOException {
+        extract(resourcePath, outputPath, ManifestResourceExtractor.class.getClassLoader());
+    }
+
+    public static void extract(String resourcePath, String outputPath, ClassLoader classLoader)
+            throws IOException {
         if (resourcePath == null || resourcePath.trim().isEmpty()) {
             throw new IllegalArgumentException("Resource path cannot be null or empty");
         }
         if (outputPath == null || outputPath.trim().isEmpty()) {
             throw new IllegalArgumentException("Output path cannot be null or empty");
         }
+        ClassLoader loader = Objects.requireNonNull(classLoader, "ClassLoader cannot be null");
 
         Path targetDir = Paths.get(outputPath);
         if (!Files.exists(targetDir)) {
             Files.createDirectories(targetDir);
         }
 
-        // Read manifest to get list of files
-        List<String> files = readManifest(resourcePath);
+        List<String> files = readManifest(resourcePath, loader);
 
-        // Copy each file
         for (String file : files) {
             Path targetFile = targetDir.resolve(file);
             Files.createDirectories(targetFile.getParent());
 
             String fullResourcePath = resourcePath + "/" + file;
-            try (InputStream in = resourceClassLoader().getResourceAsStream(fullResourcePath)) {
+            try (InputStream in = loader.getResourceAsStream(fullResourcePath)) {
                 if (in == null) {
                     throw new IOException("Resource not found: " + fullResourcePath);
                 }
@@ -58,12 +63,18 @@ public class ManifestResourceExtractor {
     // Exposed so hosts can enumerate what a resource ships (e.g. to back up specific files
     // before an overwrite) without duplicating manifest parsing.
     public static List<String> listFiles(String resourcePath) throws IOException {
-        return readManifest(resourcePath);
+        return listFiles(resourcePath, ManifestResourceExtractor.class.getClassLoader());
     }
 
-    private static List<String> readManifest(String resourcePath) throws IOException {
+    public static List<String> listFiles(String resourcePath, ClassLoader classLoader)
+            throws IOException {
+        return readManifest(resourcePath, Objects.requireNonNull(classLoader));
+    }
+
+    private static List<String> readManifest(String resourcePath, ClassLoader classLoader)
+            throws IOException {
         String manifestFile = resourcePath + "/.manifest";
-        try (InputStream manifestStream = resourceClassLoader().getResourceAsStream(manifestFile)) {
+        try (InputStream manifestStream = classLoader.getResourceAsStream(manifestFile)) {
             if (manifestStream == null) {
                 throw new IOException("Manifest file not found: " + manifestFile);
             }
@@ -75,13 +86,5 @@ public class ManifestResourceExtractor {
                         .collect(Collectors.toList());
             }
         }
-    }
-
-    private static ClassLoader resourceClassLoader() {
-        ClassLoader context = Thread.currentThread().getContextClassLoader();
-        if (context != null) {
-            return context;
-        }
-        return ManifestResourceExtractor.class.getClassLoader();
     }
 }

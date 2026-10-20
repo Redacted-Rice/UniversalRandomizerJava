@@ -36,7 +36,7 @@ public final class RandomizerBundledResources {
             File versionMarker = new File(targetDir, VERSION_MARKER_FILE_NAME);
             VersionedResourceInstaller.installIfNeeded(RESOURCE_ROOT, targetDir, versionMarker,
                     UniversalRandomizerVersions.CORE_VERSION, backupsDir, targetDir.getName(),
-                    forceReinstall, installMode);
+                    forceReinstall, installMode, RandomizerBundledResources.class.getClassLoader());
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to install randomizer Lua library", e);
         }
