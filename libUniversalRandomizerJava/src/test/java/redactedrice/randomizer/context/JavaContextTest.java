@@ -1,10 +1,13 @@
 package redactedrice.randomizer.context;
 
 import redactedrice.randomizer.context.testsupport.ContextTestEnum;
+import redactedrice.randomizer.context.testsupport.StaticMethodsTestEnum;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaValue;
 
 import java.util.*;
 
@@ -108,5 +111,57 @@ public class JavaContextTest {
     public void testRegisterRejectsInvalidNames() {
         assertThrows(IllegalArgumentException.class, () -> context.register(null, "value"));
         assertThrows(IllegalArgumentException.class, () -> context.register("", "value"));
+    }
+
+    @Test
+    public void testToLuaTableJavaBackedEnumTable() {
+        context.registerEnum(StaticMethodsTestEnum.class);
+
+        LuaTable enumTable = context.toLuaTable().get("StaticMethodsTestEnum").checktable();
+        assertSame(StaticMethodsTestEnum.A, enumTable.get("A").touserdata());
+        assertTrue(enumTable.get("values").istable());
+        assertEquals(0, enumTable.get("values").checktable().get("A").toint());
+        assertTrue(enumTable.get("join").isfunction());
+        assertEquals("A+B",
+                enumTable.get("join").call(LuaValue.valueOf("A"), LuaValue.valueOf("B")).tojstring());
+        assertThrows(LuaError.class, () -> enumTable.set("extra", LuaValue.valueOf("x")));
+    }
+
+    @Test
+    public void testToLuaTableLuaOnlyEnumHasNoStaticMethods() {
+        context.registerEnum("Difficulty", "EASY", "NORMAL", "HARD");
+
+        LuaTable enumTable = context.toLuaTable().get("Difficulty").checktable();
+        assertEquals("EASY", enumTable.get(1).tojstring());
+        assertTrue(enumTable.get("join").isnil());
+    }
+
+    @Test
+    public void testRegisterJavaClassExposesStaticMethods() {
+        context.register("StaticMethodsTestEnum", StaticMethodsTestEnum.class);
+
+        LuaValue classOnly = context.toLuaTable().get("StaticMethodsTestEnum");
+        assertEquals("B+A",
+                classOnly.get("join").call(LuaValue.valueOf("B"), LuaValue.valueOf("A")).tojstring());
+
+        context.registerEnum("AliasRarity", StaticMethodsTestEnum.class);
+        assertEquals("A+B",
+                classOnly.get("join").call(LuaValue.valueOf("A"), LuaValue.valueOf("B")).tojstring());
+    }
+
+    @Test
+    public void testExtendEnumKeepsJavaEnumStaticMethods() {
+        context.registerEnum(StaticMethodsTestEnum.class);
+
+        LuaTable contextTable = context.toLuaTable();
+        LuaTable extra = new LuaTable();
+        extra.set("EXTRA", LuaValue.valueOf(2));
+
+        contextTable.get("extendEnum").call(LuaValue.valueOf("StaticMethodsTestEnum"), extra);
+
+        LuaTable enumTable = contextTable.get("StaticMethodsTestEnum").checktable();
+        assertEquals("EXTRA", enumTable.get("EXTRA").tojstring());
+        assertEquals("A+B",
+                enumTable.get("join").call(LuaValue.valueOf("A"), LuaValue.valueOf("B")).tojstring());
     }
 }

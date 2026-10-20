@@ -220,7 +220,14 @@ public class EnumRegistry {
                 return enumValue;
             }
         }
-        return null;
+
+        try {
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            Enum<?> direct = Enum.valueOf((Class) enumClass, valueName);
+            return direct;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     public boolean hasEnum(String name) {
@@ -244,12 +251,17 @@ public class EnumRegistry {
     }
 
     public Map<String, LuaTable> toLuaTables() {
+        return toLuaTables(null);
+    }
+
+    public Map<String, LuaTable> toLuaTables(JavaObjectWrapper objectWrapper) {
         Map<String, LuaTable> luaEnums = new HashMap<>();
 
         for (String enumName : getEnumNames()) {
             EnumDefinition enumDef = getEnum(enumName);
             if (enumDef != null) {
-                LuaTable enumTable = LuaJavaConverter.enumDefinitionToLuaTable(enumName, enumDef);
+                LuaTable enumTable =
+                        LuaJavaConverter.enumDefinitionToLuaTable(enumName, enumDef, objectWrapper);
                 if (enumTable != null) {
                     luaEnums.put(enumName, enumTable);
                 }

@@ -286,4 +286,5 @@ public class ExampleApp {
         wrapper.registerSharedEnum("EE_EntityTypes", ExampleEntityType.class);
         wrapper.registerSharedEnum("ItemRarity", ItemRarity.class);
     }
+
 }

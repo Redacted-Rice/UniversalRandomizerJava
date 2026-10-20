@@ -3,6 +3,9 @@ package redactedrice.randomizer.context;
 import org.junit.jupiter.api.Test;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+
+import redactedrice.randomizer.context.testsupport.StaticMethodsTestEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -283,4 +286,23 @@ public class JavaObjectWrapperTest {
         wrapper.set("maxStage", LuaValue.valueOf("FIRE"));
         assertEquals(Kind.FIRE, wrapper.get("maxStage").touserdata());
     }
+
+    @Test
+    public void wrapClassAndMergedEnumTableExposeStaticMethods() {
+        JavaObjectWrapper objectWrapper = new JavaObjectWrapper(new EnumRegistry());
+        LuaTable classTable = (LuaTable) objectWrapper.wrapClass(StaticMethodsTestEnum.class);
+        assertEquals("B+A",
+                classTable.get("join").call(LuaValue.valueOf("B"), LuaValue.valueOf("A")).tojstring());
+
+        EnumRegistry enumRegistry = new EnumRegistry();
+        enumRegistry.registerEnum(StaticMethodsTestEnum.class);
+        objectWrapper = new JavaObjectWrapper(enumRegistry);
+
+        LuaTable enumTable = enumRegistry.toLuaTables(objectWrapper).get("StaticMethodsTestEnum");
+        assertTrue(enumTable.get("join").isfunction());
+        LuaValue tag = enumTable.get("tag");
+        assertEquals("@A", tag.call(LuaValue.valueOf("A")).tojstring());
+        assertEquals("@B", tag.call(CoerceJavaToLua.coerce(StaticMethodsTestEnum.B)).tojstring());
+    }
+
 }

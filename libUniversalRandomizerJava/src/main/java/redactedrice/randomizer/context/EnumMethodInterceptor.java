@@ -7,6 +7,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import redactedrice.randomizer.utils.LuaJavaConverter;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Map;
 
 // Intercepts method calls to convert string parameters to enum values
@@ -19,10 +20,18 @@ public class EnumMethodInterceptor extends VarArgFunction {
     private final Map<String, Method> methodCache;
     private final EnumRegistry enumRegistry;
     private final JavaObjectWrapper objectWrapper;
+    private final boolean isStaticMethod;
 
     public EnumMethodInterceptor(Object javaObject, String methodName, LuaValue originalMethod,
             LuaValue userdata, Map<String, Method> methodCache, EnumRegistry enumRegistry,
             JavaObjectWrapper objectWrapper) {
+        this(javaObject, methodName, originalMethod, userdata, methodCache, enumRegistry,
+                objectWrapper, false);
+    }
+
+    public EnumMethodInterceptor(Object javaObject, String methodName, LuaValue originalMethod,
+            LuaValue userdata, Map<String, Method> methodCache, EnumRegistry enumRegistry,
+            JavaObjectWrapper objectWrapper, boolean isStaticMethod) {
         this.javaObject = javaObject;
         this.methodName = methodName;
         this.originalMethod = originalMethod;
@@ -30,15 +39,18 @@ public class EnumMethodInterceptor extends VarArgFunction {
         this.methodCache = methodCache;
         this.enumRegistry = enumRegistry;
         this.objectWrapper = objectWrapper;
+        this.isStaticMethod = isStaticMethod;
     }
 
     @Override
     public Varargs invoke(Varargs args) {
         // Try to find the Java method using reflection
-        Method javaMethod = findJavaMethod(javaObject.getClass(), methodName, args.narg() - 1, args);
+        int paramCount = isStaticMethod ? args.narg() : args.narg() - 1;
+        Method javaMethod =
+                findJavaMethod(resolveTargetClass(javaObject), methodName, paramCount, args);
 
-        // Always use userdata as 'self' (first argument)
-        LuaValue self = determineSelf(args);
+        // Instance calls pass a wrapper table as self. Static API uses the class userdata only.
+        LuaValue self = isStaticMethod ? userdata : determineSelf(args);
 
         if (javaMethod != null) {
             // Convert arguments, converting strings to enums when appropriate
@@ -67,6 +79,20 @@ public class EnumMethodInterceptor extends VarArgFunction {
     }
 
     private LuaValue[] convertArguments(Varargs args, Class<?>[] paramTypes, LuaValue self) {
+        if (isStaticMethod) {
+            LuaValue[] newArgs = new LuaValue[args.narg() + 1];
+            newArgs[0] = self;
+            for (int i = 0; i < args.narg(); i++) {
+                LuaValue arg = unwrapJavaWrapper(args.arg(i + 1));
+                if (i < paramTypes.length && paramTypes[i].isEnum()) {
+                    newArgs[i + 1] = convertEnumArgument(arg, paramTypes[i]);
+                } else {
+                    newArgs[i + 1] = arg;
+                }
+            }
+            return newArgs;
+        }
+
         LuaValue[] newArgs = new LuaValue[args.narg()];
         newArgs[0] = self;
 
@@ -97,6 +123,15 @@ public class EnumMethodInterceptor extends VarArgFunction {
     }
 
     private LuaValue[] buildArgsArray(Varargs args, LuaValue self) {
+        if (isStaticMethod) {
+            LuaValue[] newArgs = new LuaValue[args.narg() + 1];
+            newArgs[0] = self;
+            for (int i = 0; i < args.narg(); i++) {
+                newArgs[i + 1] = unwrapJavaWrapper(args.arg(i + 1));
+            }
+            return newArgs;
+        }
+
         LuaValue[] newArgs = new LuaValue[args.narg()];
         newArgs[0] = self;
         for (int i = 1; i < args.narg(); i++) {
@@ -138,6 +173,13 @@ public class EnumMethodInterceptor extends VarArgFunction {
                 || value instanceof Float || value instanceof Double;
     }
 
+    private static Class<?> resolveTargetClass(Object javaObject) {
+        if (javaObject instanceof Class<?>) {
+            return (Class<?>) javaObject;
+        }
+        return javaObject.getClass();
+    }
+
     private Method findJavaMethod(Class<?> clazz, String methodName, int paramCount, Varargs args) {
         String cacheKey = clazz.getName() + "#" + methodName + "#" + paramCount + "#"
                 + argumentSignature(args);
@@ -146,9 +188,13 @@ public class EnumMethodInterceptor extends VarArgFunction {
             return cached;
         }
 
+        boolean staticOnly = javaObject instanceof Class;
         Method bestMatch = null;
         int bestScore = Integer.MIN_VALUE;
         for (Method method : clazz.getMethods()) {
+            if (staticOnly && !Modifier.isStatic(method.getModifiers())) {
+                continue;
+            }
             if (!method.getName().equals(methodName) || method.getParameterCount() != paramCount) {
                 continue;
             }
@@ -163,9 +209,10 @@ public class EnumMethodInterceptor extends VarArgFunction {
         return bestMatch;
     }
 
-    private static String argumentSignature(Varargs args) {
+    private String argumentSignature(Varargs args) {
         StringBuilder signature = new StringBuilder();
-        for (int i = 2; i <= args.narg(); i++) {
+        int start = isStaticMethod ? 1 : 2;
+        for (int i = start; i <= args.narg(); i++) {
             if (signature.length() > 0) {
                 signature.append(',');
             }
@@ -189,8 +236,9 @@ public class EnumMethodInterceptor extends VarArgFunction {
     private int scoreMethodMatch(Method method, Varargs args) {
         Class<?>[] paramTypes = method.getParameterTypes();
         int score = 0;
+        int argOffset = isStaticMethod ? 1 : 2;
         for (int i = 0; i < paramTypes.length; i++) {
-            LuaValue arg = unwrapJavaWrapper(args.arg(i + 2));
+            LuaValue arg = unwrapJavaWrapper(args.arg(i + argOffset));
             score += scoreArgumentMatch(arg, paramTypes[i]);
         }
         return score;

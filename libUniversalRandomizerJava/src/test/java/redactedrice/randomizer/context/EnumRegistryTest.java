@@ -2,6 +2,7 @@ package redactedrice.randomizer.context;
 
 import redactedrice.randomizer.context.testsupport.TestEnumWithValue;
 import redactedrice.randomizer.context.testsupport.RegistryTestEnum;
+import redactedrice.randomizer.context.testsupport.StaticMethodsTestEnum;
 
 import org.junit.jupiter.api.Test;
 
@@ -86,6 +87,11 @@ public class EnumRegistryTest {
     @Test
     public void testStringToEnumByClassFindsCustomRegisteredNames() {
         EnumRegistry registry = new EnumRegistry();
+
+        assertEquals(StaticMethodsTestEnum.A,
+                registry.stringToEnum(StaticMethodsTestEnum.class, "A"));
+        assertNull(registry.stringToEnum(StaticMethodsTestEnum.class, "INVALID"));
+
         registry.registerEnum("CustomName", RegistryTestEnum.class);
 
         assertEquals(RegistryTestEnum.VALUE1, registry.stringToEnum(RegistryTestEnum.class, "VALUE1"));
