@@ -9,7 +9,6 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import redactedrice.randomizer.LuaRandomizerWrapper;
 import redactedrice.randomizer.utils.LogLevel;
 import redactedrice.randomizer.utils.Logger;
 
@@ -72,7 +71,7 @@ public final class ScriptTestCli {
         return new RunOptions(logLevel, testFile);
     }
 
-    public static int run(String[] args, Path testsDir, LuaRandomizerWrapper wrapper,
+    public static int run(String[] args, Path testsDir, ScriptTestWrapperFactory wrapperFactory,
             ScriptTestFixtures fixtures) {
         RunOptions options;
         try {
@@ -82,8 +81,8 @@ public final class ScriptTestCli {
             System.err.println(usage());
             return 2;
         }
-        if (wrapper == null) {
-            throw new IllegalArgumentException("Wrapper cannot be null");
+        if (wrapperFactory == null) {
+            throw new IllegalArgumentException("Wrapper factory cannot be null");
         }
         if (fixtures == null) {
             throw new IllegalArgumentException("Fixtures cannot be null");
@@ -107,8 +106,8 @@ public final class ScriptTestCli {
 
         Logger.setEnabled(true);
         Logger.setMinLogLevel(options.logLevel());
-        ScriptTestSession session = new ScriptTestSession(wrapper, fixtures);
-        ScriptTestRunResult result = ScriptTestBatchRunner.runCaseFiles(cases, session);
+        ScriptTestRunResult result =
+                ScriptTestBatchRunner.runCaseFiles(cases, wrapperFactory, fixtures);
         printResult(result);
         return result.exitCode();
     }

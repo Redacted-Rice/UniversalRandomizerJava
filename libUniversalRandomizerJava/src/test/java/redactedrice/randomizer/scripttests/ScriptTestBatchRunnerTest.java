@@ -38,9 +38,8 @@ class ScriptTestBatchRunnerTest {
         Path caseFile = tempDir.resolve("test_bad.lua");
         Files.writeString(caseFile, "return { not valid");
 
-        ScriptTestSession session = new ScriptTestSession(wrapper, noopFixtures());
-        ScriptTestRunResult result =
-                ScriptTestBatchRunner.runCaseFiles(List.of(caseFile), session);
+        ScriptTestRunResult result = ScriptTestBatchRunner.runCaseFiles(List.of(caseFile),
+                () -> wrapper, noopFixtures());
 
         assertEquals(0, result.passed());
         assertEquals(1, result.failed());
@@ -78,9 +77,8 @@ class ScriptTestBatchRunnerTest {
             }
         };
 
-        ScriptTestSession session = new ScriptTestSession(wrapper, fixtures);
-        ScriptTestRunResult result =
-                ScriptTestBatchRunner.runCaseFiles(List.of(caseFile), session);
+        ScriptTestRunResult result = ScriptTestBatchRunner.runCaseFiles(List.of(caseFile),
+                () -> wrapper, fixtures);
 
         assertEquals(1, result.passed());
         assertEquals(1, result.failed());

@@ -2,6 +2,7 @@ package redactedrice.randomizer.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,10 +38,19 @@ public final class VersionedResourceInstaller {
     public static boolean installIfNeeded(String resourcePath, File targetDir, File versionMarker,
             String currentVersion, File backupsDir, String backupSubDir, boolean forceReinstall,
             ResourceInstallMode installMode) throws IOException {
+        return installIfNeeded(resourcePath, targetDir, versionMarker, currentVersion, backupsDir,
+                backupSubDir, forceReinstall, installMode,
+                ManifestResourceExtractor.class.getClassLoader());
+    }
+
+    public static boolean installIfNeeded(String resourcePath, File targetDir, File versionMarker,
+            String currentVersion, File backupsDir, String backupSubDir, boolean forceReinstall,
+            ResourceInstallMode installMode, ClassLoader classLoader) throws IOException {
         if (!needsReinstall(versionMarker, currentVersion, forceReinstall)) {
             return false;
         }
-        backupAndInstall(resourcePath, targetDir, backupsDir, backupSubDir, installMode);
+        backupAndInstall(resourcePath, targetDir, backupsDir, backupSubDir, installMode,
+                classLoader);
         writeVersionMarker(versionMarker, currentVersion);
         return true;
     }
@@ -57,17 +67,25 @@ public final class VersionedResourceInstaller {
 
     public static void backupAndInstall(String resourcePath, File targetDir, File backupsDir,
             String backupSubDir, ResourceInstallMode installMode) throws IOException {
+        backupAndInstall(resourcePath, targetDir, backupsDir, backupSubDir, installMode,
+                ManifestResourceExtractor.class.getClassLoader());
+    }
+
+    public static void backupAndInstall(String resourcePath, File targetDir, File backupsDir,
+            String backupSubDir, ResourceInstallMode installMode, ClassLoader classLoader)
+            throws IOException {
+        Objects.requireNonNull(classLoader, "ClassLoader cannot be null");
         File resourceBackupDir = backupSubDir == null || backupSubDir.isEmpty() ? backupsDir
                 : new File(backupsDir, backupSubDir);
         if (installMode == ResourceInstallMode.CLEAN_SLATE) {
             backupDirectoryIfPresent(targetDir, resourceBackupDir);
         } else {
-            for (String file : ManifestResourceExtractor.listFiles(resourcePath)) {
+            for (String file : ManifestResourceExtractor.listFiles(resourcePath, classLoader)) {
                 backupIfPresent(new File(targetDir, file), resourceBackupDir, file);
             }
         }
 
-        ManifestResourceExtractor.extract(resourcePath, targetDir.getAbsolutePath());
+        ManifestResourceExtractor.extract(resourcePath, targetDir.getAbsolutePath(), classLoader);
     }
 
     public static boolean needsReinstall(File versionMarker, String currentVersion,
