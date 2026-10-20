@@ -36,5 +36,17 @@ return {
 		randomizer.randomize(entitiesModified, args.weightedRarityPool, function(entity, rarity)
 			entity.startingItemRarity = rarity
 		end)
+
+		-- Java enum static helper on the same context table as ItemRarity values
+		for _, entity in ipairs(entitiesModified) do
+			local rarity = entity.startingItemRarity
+			if rarity ~= nil then
+				logger.info(
+					entity:getName()
+						.. " starting item rarity: "
+						.. context.ItemRarity.displayLabel(rarity)
+				)
+			end
+		end
 	end,
 }

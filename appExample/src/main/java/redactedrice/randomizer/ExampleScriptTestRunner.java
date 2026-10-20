@@ -58,6 +58,7 @@ public final class ExampleScriptTestRunner {
             context.register("entitiesModified", buildEntities(context, entitySpecs, skipFields));
             context.register("itemsOriginal", buildItems(context, itemSpecs, skipFields));
             context.register("itemsModified", buildItems(context, itemSpecs, skipFields));
+            context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
         }
 
         @Override

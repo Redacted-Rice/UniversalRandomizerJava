@@ -162,9 +162,11 @@ public class JavaContext {
             Object value = entry.getValue();
             LuaValue luaValue;
 
-            // Wrap complex objects for method access, including objects inside lists/maps
-            if (value != null && !isPrimitiveOrWrapper(value) && !(value instanceof String)
+            if (value instanceof Class<?>) {
+                luaValue = objectWrapper.wrapClass((Class<?>) value);
+            } else if (value != null && !isPrimitiveOrWrapper(value) && !(value instanceof String)
                     && !(value instanceof Enum)) {
+                // Wrap complex objects for method access, including objects inside lists/maps
                 // Pass wrapper to converter so it can wrap nested objects
                 luaValue = LuaJavaConverter.javaToLua(value, objectWrapper);
             } else {
@@ -188,7 +190,7 @@ public class JavaContext {
 
         // Add enums directly to root (not nested)
         if (!enumRegistry.getEnumNames().isEmpty()) {
-            Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
+            Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables(objectWrapper);
             for (Map.Entry<String, LuaTable> enumEntry : luaEnums.entrySet()) {
                 table.set(enumEntry.getKey(), enumEntry.getValue());
             }
@@ -214,7 +216,7 @@ public class JavaContext {
                         parsedEnum.getValueDisplayNames());
 
                 // Return the enum table (convert back to Lua format)
-                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
+                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables(objectWrapper);
                 LuaTable newEnumTable = luaEnums.get(enumName);
 
                 // Also add it to the context table for immediate access
@@ -251,7 +253,7 @@ public class JavaContext {
                 }
 
                 // Return the updated enum
-                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables();
+                Map<String, LuaTable> luaEnums = enumRegistry.toLuaTables(objectWrapper);
                 LuaTable extendedEnumTable = luaEnums.get(enumName);
 
                 // Also update the context

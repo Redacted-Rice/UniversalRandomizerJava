@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import redactedrice.randomizer.context.EnumDefinition;
 import redactedrice.randomizer.context.EnumRegistry;
 import redactedrice.randomizer.context.testsupport.ContextTestEnum;
+import redactedrice.randomizer.context.testsupport.StaticMethodsTestEnum;
+import redactedrice.randomizer.context.JavaContext;
+
+import org.luaj.vm2.LuaTable;
+import org.luaj.vm2.LuaValue;
 import redactedrice.support.test.EntityType;
 import redactedrice.support.test.FlagEnum;
 
@@ -76,5 +81,18 @@ public class LuaRandomizerWrapperSharedEnumTest {
 
         assertSame(registry, wrapper.getEnumRegistry());
         assertTrue(registry.hasEnum("ContextTestEnum"));
+    }
+
+    @Test
+    void prepareContextIncludesStaticMethodsOnSharedJavaEnum() {
+        wrapper.registerSharedEnum(StaticMethodsTestEnum.class);
+
+        JavaContext context = new JavaContext();
+        wrapper.prepareContext(context);
+
+        LuaTable enumTable = context.toLuaTable().get("StaticMethodsTestEnum").checktable();
+        LuaValue join = enumTable.get("join");
+        assertTrue(join.isfunction());
+        assertEquals("A+B", join.call(LuaValue.valueOf("A"), LuaValue.valueOf("B")).tojstring());
     }
 }

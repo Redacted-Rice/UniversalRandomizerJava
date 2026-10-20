@@ -19,6 +19,7 @@ public class JavaObjectWrapper {
     private final EnumRegistry enumRegistry;
     // We need to cache objects so we can store and keep lua assigned values to them
     private final Map<Object, LuaTable> wrapperCache = new IdentityHashMap<>();
+    private final Map<Class<?>, LuaTable> staticClassCache = new HashMap<>();
     // Name to type from module provides. Used when Lua assigns a string to a
     // dynamic field.
     private final Map<String, String> dynamicFieldTypes = new LinkedHashMap<>();
@@ -40,6 +41,57 @@ public class JavaObjectWrapper {
      */
     public void clearCache() {
         wrapperCache.clear();
+        staticClassCache.clear();
+    }
+
+    // Exposes public static methods on a Java class or enum type (enum value lists
+    // stay on context.registerEnum/shared enums)
+    public LuaValue wrapClass(Class<?> clazz) {
+        if (clazz == null) {
+            return LuaValue.NIL;
+        }
+
+        LuaTable cached = staticClassCache.get(clazz);
+        if (cached != null) {
+            return cached;
+        }
+
+        LuaValue classUserdata = CoerceJavaToLua.coerce(clazz);
+        LuaTable wrapper = new LuaTable();
+        Map<String, Method> methodCache = new HashMap<>();
+
+        LuaTable metatable = new LuaTable();
+        metatable.set(LuaValue.INDEX, new StaticClassIndex(clazz, classUserdata, methodCache,
+                enumRegistry, this));
+
+        wrapper.setmetatable(metatable);
+        staticClassCache.put(clazz, wrapper);
+        return wrapper;
+    }
+
+    // One context table for Java enums. Value keys stay on the table, statics come
+    // from wrapClass.
+    public void mergeEnumTableWithClassStatics(LuaTable enumTable, Class<?> clazz) {
+        if (enumTable == null || clazz == null) {
+            return;
+        }
+
+        LuaTable staticWrapper = (LuaTable) wrapClass(clazz);
+        LuaValue staticIndex = staticWrapper.getmetatable().get(LuaValue.INDEX);
+
+        LuaTable metatable = new LuaTable();
+        metatable.set(LuaValue.NEWINDEX, LuaValue.valueOf("Enums are read-only"));
+        metatable.set(LuaValue.INDEX, new TwoArgFunction() {
+            @Override
+            public LuaValue call(LuaValue table, LuaValue key) {
+                LuaValue onEnum = enumTable.rawget(key);
+                if (!onEnum.isnil()) {
+                    return onEnum;
+                }
+                return staticIndex.call(staticWrapper, key);
+            }
+        });
+        enumTable.setmetatable(metatable);
     }
 
     // Wrap a Java object in a Lua table with method interception
@@ -67,6 +119,38 @@ public class JavaObjectWrapper {
 
         wrapperCache.put(javaObject, wrapper);
         return wrapper;
+    }
+
+    /** __index: static methods on a registered Java Class */
+    private static final class StaticClassIndex extends TwoArgFunction {
+        private final Class<?> clazz;
+        private final LuaValue classUserdata;
+        private final Map<String, Method> methodCache;
+        private final EnumRegistry enumRegistry;
+        private final JavaObjectWrapper objectWrapper;
+
+        StaticClassIndex(Class<?> clazz, LuaValue classUserdata, Map<String, Method> methodCache,
+                EnumRegistry enumRegistry, JavaObjectWrapper objectWrapper) {
+            this.clazz = clazz;
+            this.classUserdata = classUserdata;
+            this.methodCache = methodCache;
+            this.enumRegistry = enumRegistry;
+            this.objectWrapper = objectWrapper;
+        }
+
+        @Override
+        public LuaValue call(LuaValue table, LuaValue key) {
+            try {
+                LuaValue userdataValue = classUserdata.get(key);
+                if (userdataValue.isfunction()) {
+                    return new EnumMethodInterceptor(clazz, key.toString(), userdataValue,
+                            classUserdata, methodCache, enumRegistry, objectWrapper, true);
+                }
+                return userdataValue;
+            } catch (Exception e) {
+                return LuaValue.NIL;
+            }
+        }
     }
 
     /** __index: wrapper fields first, then Java userdata / intercepted methods */

@@ -13,6 +13,12 @@ return {
 
 	execute = function(context)
 		local changedetector = require("randomizer").changedetector
+		local itemRarityLabel = function(rarity)
+			if rarity == nil then
+				return ""
+			end
+			return context.ItemRarity.displayLabel(rarity)
+		end
 
 		-- Make sure change detector is in a clear/reset state
 		changedetector.stopMonitoringAll()
@@ -39,7 +45,13 @@ return {
 					{ field = "speed", header = "Speed", align = "right", getter = function(obj) return obj:getSpeed() end },
 					{ field = "defense", header = "Defense", align = "right", getter = function(obj) return obj:getDefense() end },
 					{ field = "type", header = "Type", getter = function(obj) return obj:getType() end },
-					{ field = "startingItemRarity", header = "Starting Rarity" },
+					{
+						field = "startingItemRarity",
+						header = "Starting Rarity",
+						getter = function(obj)
+							return itemRarityLabel(obj.startingItemRarity)
+						end,
+					},
 					{ field = "startingItem", header = "Starting Item", getter = function(obj) return obj:getStartingItem() end },
 				},
 			})
@@ -52,7 +64,13 @@ return {
 				title = "Items",
 				primaryKey = { field = "name", header = "Name" },
 				fields = {
-					{ field = "rarity", header = "Rarity" },
+					{
+						field = "rarity",
+						header = "Rarity",
+						getter = function(obj)
+							return itemRarityLabel(obj.rarity)
+						end,
+					},
 					{ field = "attackBonus", header = "Attack Bonus", align = "right" },
 					{ field = "defenseBonus", header = "Defense Bonus", align = "right" },
 					{ field = "healthBonus", header = "Health Bonus", align = "right" },

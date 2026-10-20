@@ -26,6 +26,11 @@ public class LuaJavaConverter {
         } else if (value instanceof Enum) {
             // Convert enum to string (using name())
             return LuaValue.valueOf(((Enum<?>) value).name());
+        } else if (value instanceof Class<?>) {
+            if (wrapper != null) {
+                return wrapper.wrapClass((Class<?>) value);
+            }
+            return CoerceJavaToLua.coerce(value);
         } else if (isPrimitiveOrWrapper(value) || value instanceof String) {
             // Use LuaJ's built-in coercion for primitives and strings
             return CoerceJavaToLua.coerce(value);
@@ -72,6 +77,11 @@ public class LuaJavaConverter {
     }
 
     public static LuaTable enumDefinitionToLuaTable(String enumName, EnumDefinition enumDef) {
+        return enumDefinitionToLuaTable(enumName, enumDef, null);
+    }
+
+    public static LuaTable enumDefinitionToLuaTable(String enumName, EnumDefinition enumDef,
+            JavaObjectWrapper objectWrapper) {
         if (enumDef == null) {
             return null;
         }
@@ -117,8 +127,11 @@ public class LuaJavaConverter {
             enumTable.set("displayNames", displayNamesTable);
         }
 
-        // Make the table read-only (best effort in LuaJ)
-        enumTable.setmetatable(createReadOnlyEnumMetatable());
+        if (enumClass != null && objectWrapper != null) {
+            objectWrapper.mergeEnumTableWithClassStatics(enumTable, enumClass);
+        } else {
+            enumTable.setmetatable(createReadOnlyEnumMetatable());
+        }
 
         return enumTable;
     }
