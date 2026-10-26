@@ -20,8 +20,7 @@ build
 # Ignore coverage reports
 coverage/
 
-# Ignore randomizer files from the core randomizer moved to the resources folder
-# or extracted by the appExample
-libUniversalRandomizerJava/src/main/resources/
+# Synced from UniversalRandomizerCore by copyRandomizerFiles (source of truth is URC)
+libUniversalRandomizerJava/src/main/resources/randomizer/
 appExample/randomizer/
 appExample/backups/

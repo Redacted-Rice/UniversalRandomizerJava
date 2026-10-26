@@ -3,6 +3,7 @@ package redactedrice.randomizer.lua.sandbox.security;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.lib.DebugLib;
 import org.luaj.vm2.lib.jse.JsePlatform;
+import redactedrice.randomizer.lua.LuaBootstrap;
 import redactedrice.randomizer.lua.sandbox.LuaLogFunctions;
 
 import java.nio.file.Path;
@@ -29,6 +30,7 @@ public class SecureLuaEnvironment {
         // Setup globals
         Globals globals = JsePlatform.standardGlobals();
         globals.load(new DebugLib());
+        LuaBootstrap.apply(globals);
 
         // Apply setup policies
         baseFunctionsPolicy.applyToGlobals(globals);
