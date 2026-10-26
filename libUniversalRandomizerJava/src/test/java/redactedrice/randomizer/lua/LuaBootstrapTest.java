@@ -41,6 +41,33 @@ public class LuaBootstrapTest {
     }
 
     @Test
+    void ipairsHonorsIpairsMetamethod() {
+        Globals globals = JsePlatform.standardGlobals();
+        LuaBootstrap.apply(globals);
+
+        LuaValue result = globals.load("""
+                local t = setmetatable({}, {
+                    __ipairs = function()
+                        local done = false
+                        return function()
+                            if not done then
+                                done = true
+                                return 1, 99
+                            end
+                        end
+                    end,
+                })
+                local value = nil
+                for _, v in ipairs(t) do
+                    value = v
+                end
+                return value
+                """).call();
+
+        assertEquals(99, result.toint());
+    }
+
+    @Test
     void pairsHonorsGroupMetatableInSandbox() {
         String randomizerPath =
                 new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();

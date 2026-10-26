@@ -7,17 +7,17 @@ import java.nio.charset.StandardCharsets;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaValue;
 
-// Runs once per Globals before user scripts. Installs Lua 5.2 style pairs/ipairs for LuaJ for more consistent
-// and expected behavior
+// SecureLuaEnvironment and ScriptTestCase call this once per Globals before user scripts. LuaJ targets
+// 5.2 but skips __pairs/__ipairs on pairs/ipairs.
 public final class LuaBootstrap {
     private static final String BOOTSTRAP_RESOURCE = "luaj/fix_pairs_ipairs.lua";
+    private static final String BOOTSTRAP_SOURCE = readBootstrapSource();
 
     private LuaBootstrap() {
     }
 
     public static void apply(Globals globals) {
-        String source = readBootstrapSource();
-        LuaValue chunk = globals.load(source, BOOTSTRAP_RESOURCE);
+        LuaValue chunk = globals.load(BOOTSTRAP_SOURCE, BOOTSTRAP_RESOURCE);
         chunk.call();
     }
 
