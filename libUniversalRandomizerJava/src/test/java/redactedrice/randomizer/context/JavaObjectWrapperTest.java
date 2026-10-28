@@ -6,7 +6,9 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import redactedrice.randomizer.context.testsupport.StaticMethodsTestEnum;
+import redactedrice.randomizer.lua.sandbox.LuaSandbox;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,6 +97,23 @@ public class JavaObjectWrapperTest {
         public Monster cards;
     }
 
+    public static class StaticDefaults {
+        public static Monster SHARED = new Monster("shared", 99);
+    }
+
+    public static class Labeled {
+        public String label;
+
+        public Labeled(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return "Labeled(" + label + ")";
+        }
+    }
+
     @Test
     public void publicJavaFieldReadReturnsWrapperLikeMethodReturn() {
         JavaContext context = new JavaContext();
@@ -109,6 +128,56 @@ public class JavaObjectWrapperTest {
 
         LuaValue monsters = cardsWrapper.get("getMonsters").call(cardsWrapper);
         assertTrue(monsters.istable());
+    }
+
+    @Test
+    public void staticPublicFieldReadReturnsWrapperLikeInstanceField() {
+        JavaObjectWrapper objectWrapper = new JavaObjectWrapper(new EnumRegistry());
+        LuaTable classTable = (LuaTable) objectWrapper.wrapClass(StaticDefaults.class);
+        LuaValue shared = classTable.get("SHARED");
+        assertTrue(shared.istable(), "static field should be extensible wrapper");
+        assertEquals("shared", shared.get("name").tojstring());
+        assertEquals(99, shared.get("hp").toint());
+    }
+
+    @Test
+    public void luaToStringOnWrapperUsesJavaToString() {
+        String randomizerPath =
+                new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
+        LuaSandbox sandbox = new LuaSandbox(List.of(randomizerPath));
+        JavaContext context = new JavaContext();
+        context.register("tagged", new Labeled("alpha"));
+        sandbox.set("context", context.toLuaTable());
+
+        LuaValue asString = sandbox.execute("return tostring(context.tagged)");
+        assertEquals("Labeled(alpha)", asString.tojstring());
+    }
+
+    @Test
+    public void urcAsTableKeyStringifiesWrapperViaJavaToString() {
+        String randomizerPath =
+                new File("../UniversalRandomizerCore/randomizer").getAbsolutePath();
+        LuaSandbox sandbox = new LuaSandbox(List.of(randomizerPath));
+        JavaContext context = new JavaContext();
+        context.register("tagged", new Labeled("beta"));
+        sandbox.set("context", context.toLuaTable());
+
+        LuaValue key = sandbox.execute("""
+                local utils = require("randomizer.utils")
+                return utils.asTableKey(context.tagged)
+                """);
+        assertEquals("Labeled(beta)", key.tojstring());
+    }
+
+    @Test
+    public void publicEnumFieldReadStaysUserdataNotString() {
+        JavaContext context = new JavaContext();
+        TypedItem item = new TypedItem();
+        context.register("item", item);
+
+        LuaValue typeField = context.toLuaTable().get("item").get("type");
+        assertTrue(typeField.isuserdata(), "enum fields stay userdata on read");
+        assertEquals(Kind.WATER, typeField.touserdata());
     }
 
     @Test
