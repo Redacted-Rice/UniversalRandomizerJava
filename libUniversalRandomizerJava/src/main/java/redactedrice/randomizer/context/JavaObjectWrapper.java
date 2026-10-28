@@ -2,9 +2,12 @@ package redactedrice.randomizer.context;
 
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+
+import redactedrice.randomizer.utils.LuaJavaConverter;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -113,6 +116,21 @@ public class JavaObjectWrapper {
         metatable.set(LuaValue.INDEX,
                 new WrapperIndex(javaObject, userdata, wrapper, methodCache, enumRegistry, this));
         metatable.set(LuaValue.NEWINDEX, new WrapperNewIndex(userdata, wrapper, this));
+        // Override to string in lua to use the Java toString fn so we can override it
+        // automatically in lua
+        metatable.set(LuaValue.TOSTRING, new OneArgFunction() {
+            @Override
+            public LuaValue call(LuaValue self) {
+                LuaValue inner = self.get("__userdata");
+                if (inner.isuserdata()) {
+                    Object java = inner.touserdata();
+                    if (java != null) {
+                        return LuaValue.valueOf(String.valueOf(java));
+                    }
+                }
+                return LuaValue.valueOf(String.valueOf(self));
+            }
+        });
 
         wrapper.rawset("__userdata", userdata);
         wrapper.setmetatable(metatable);
@@ -146,7 +164,9 @@ public class JavaObjectWrapper {
                     return new EnumMethodInterceptor(clazz, key.toString(), userdataValue,
                             classUserdata, methodCache, enumRegistry, objectWrapper, true);
                 }
-                return userdataValue;
+                // If its not a function attempt to coerce it so we can handle public fields on
+                // Java objects
+                return LuaJavaConverter.coerceJavaLuaValue(userdataValue, objectWrapper);
             } catch (Exception e) {
                 return LuaValue.NIL;
             }
@@ -186,7 +206,9 @@ public class JavaObjectWrapper {
                     return new EnumMethodInterceptor(javaObject, key.toString(), userdataValue,
                             userdata, methodCache, enumRegistry, objectWrapper);
                 }
-                return userdataValue;
+                // If its not a function attempt to coerce it so we can handle public fields on
+                // Java objects
+                return LuaJavaConverter.coerceJavaLuaValue(userdataValue, objectWrapper);
             } catch (Exception e) {
                 return LuaValue.NIL;
             }

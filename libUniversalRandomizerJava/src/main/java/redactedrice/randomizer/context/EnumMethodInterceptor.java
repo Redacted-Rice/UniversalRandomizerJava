@@ -46,10 +46,10 @@ public class EnumMethodInterceptor extends VarArgFunction {
     public Varargs invoke(Varargs args) {
         // Try to find the Java method using reflection
         int paramCount = isStaticMethod ? args.narg() : args.narg() - 1;
-        Method javaMethod =
-                findJavaMethod(resolveTargetClass(javaObject), methodName, paramCount, args);
+        Method javaMethod = findJavaMethod(resolveTargetClass(javaObject), methodName, paramCount, args);
 
-        // Instance calls pass a wrapper table as self. Static API uses the class userdata only.
+        // Instance calls pass a wrapper table as self. Static API uses the class
+        // userdata only.
         LuaValue self = isStaticMethod ? userdata : determineSelf(args);
 
         if (javaMethod != null) {
@@ -150,27 +150,19 @@ public class EnumMethodInterceptor extends VarArgFunction {
         return arg;
     }
 
+    // Java methods have at most one return (or void) so we handle none and 1 return
+    // value only
     private Varargs convertReturnValue(Varargs result) {
-        // Convert return value if it's a Java collection or other complex object so nested
-        // objects stay as extensible wrappers (dynamic Lua fields on cards, etc.)
-        LuaValue firstValue = result.narg() > 0 ? result.arg1() : LuaValue.NIL;
-        if (firstValue.isuserdata()) {
-            Object returned = firstValue.touserdata();
-            if (returned instanceof java.util.List || returned instanceof java.util.Map) {
-                return LuaJavaConverter.javaToLua(returned, objectWrapper);
-            }
-            if (objectWrapper != null && returned != null && !(returned instanceof String)
-                    && !isPrimitiveOrWrapper(returned) && !(returned instanceof Enum)) {
-                return objectWrapper.wrap(returned);
-            }
+        if (result.narg() == 0) {
+            return result;
+        }
+        LuaValue coerced = LuaJavaConverter.coerceJavaLuaValue(result.arg1(), objectWrapper);
+        // Pass through the original Varargs when arg1 did not change (i.e. it wasn't
+        // coerced) to avoid impacting lua fns
+        if (coerced != result.arg1()) {
+            return coerced;
         }
         return result;
-    }
-
-    private static boolean isPrimitiveOrWrapper(Object value) {
-        return value instanceof Boolean || value instanceof Byte || value instanceof Character
-                || value instanceof Short || value instanceof Integer || value instanceof Long
-                || value instanceof Float || value instanceof Double;
     }
 
     private static Class<?> resolveTargetClass(Object javaObject) {
