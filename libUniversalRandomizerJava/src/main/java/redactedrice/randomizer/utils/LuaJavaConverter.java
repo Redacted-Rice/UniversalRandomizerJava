@@ -9,7 +9,6 @@ import redactedrice.randomizer.context.JavaObjectWrapper;
 
 import java.util.*;
 
-
 public class LuaJavaConverter {
 
     // ----------- Java to Lua Conversion ------------------
@@ -47,6 +46,23 @@ public class LuaJavaConverter {
                 return CoerceJavaToLua.coerce(value);
             }
         }
+    }
+
+    // Method returns and public field reads both come back as raw Luaj userdata
+    // first.
+    public static LuaValue coerceJavaLuaValue(LuaValue value, JavaObjectWrapper wrapper) {
+        if (!value.isuserdata()) {
+            return value;
+        }
+        Object returned = value.touserdata();
+        if (returned instanceof List || returned instanceof Map) {
+            return javaToLua(returned, wrapper);
+        }
+        if (wrapper != null && returned != null && !(returned instanceof String)
+                && !isPrimitiveOrWrapper(returned) && !(returned instanceof Enum)) {
+            return wrapper.wrap(returned);
+        }
+        return value;
     }
 
     public static LuaTable listToLuaTable(List<?> list) {
@@ -143,7 +159,7 @@ public class LuaJavaConverter {
     private static LuaValue toNamedEnumLuaValue(Class<? extends Enum<?>> enumClass, String value) {
         if (enumClass != null) {
             try {
-                @SuppressWarnings({"unchecked", "rawtypes"})
+                @SuppressWarnings({ "unchecked", "rawtypes" })
                 Enum<?> constant = Enum.valueOf((Class) enumClass, value);
                 return CoerceJavaToLua.coerce(constant);
             } catch (IllegalArgumentException ignored) {
@@ -182,6 +198,15 @@ public class LuaJavaConverter {
                 return value;
             }
             LuaTable table = value.checktable();
+            // If its a wrapped object, then unwrap it to the java object and return that
+            // instead so Java will see it as the right object
+            LuaValue inner = table.get("__userdata");
+            if (inner.isuserdata()) {
+                Object java = inner.touserdata();
+                if (java != null) {
+                    return java;
+                }
+            }
             if (isLuaArray(table)) {
                 return luaTableToList(table);
             } else {
@@ -226,7 +251,8 @@ public class LuaJavaConverter {
         return map;
     }
 
-    // ----------- Lua Table Field Extraction Utilities (Lua to Java) ------------------
+    // ----------- Lua Table Field Extraction Utilities (Lua to Java)
+    // ------------------
 
     public static String tryGetStringFromTable(LuaTable table, String fieldName,
             String defaultValue, String context) {

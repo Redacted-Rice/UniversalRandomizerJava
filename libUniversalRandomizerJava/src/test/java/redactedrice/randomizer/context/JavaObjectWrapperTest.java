@@ -91,6 +91,26 @@ public class JavaObjectWrapperTest {
         }
     }
 
+    public static class DeckBundle {
+        public Monster cards;
+    }
+
+    @Test
+    public void publicJavaFieldReadReturnsWrapperLikeMethodReturn() {
+        JavaContext context = new JavaContext();
+        Monster inner = new Monster("inner", 5);
+        DeckBundle bundle = new DeckBundle();
+        bundle.cards = inner;
+        context.register("bundle", bundle);
+
+        LuaValue bundleWrapper = context.toLuaTable().get("bundle");
+        LuaValue cardsWrapper = bundleWrapper.get("cards");
+        assertTrue(cardsWrapper.istable(), "public field should be extensible wrapper");
+
+        LuaValue monsters = cardsWrapper.get("getMonsters").call(cardsWrapper);
+        assertTrue(monsters.istable());
+    }
+
     @Test
     public void methodReturnedListItemsAreExtensibleWrappers() {
         JavaContext context = new JavaContext();
