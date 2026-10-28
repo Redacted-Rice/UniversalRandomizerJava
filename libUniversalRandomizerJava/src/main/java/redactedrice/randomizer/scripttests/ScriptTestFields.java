@@ -39,15 +39,6 @@ public final class ScriptTestFields {
                 skipFieldSet(skipFields));
     }
 
-    public static List<String> skipFieldsFrom(Map<String, Object> caseData) {
-        if (caseData == null) {
-            return null;
-        }
-        List<String> fields =
-                ScriptTestValues.optionalStringList(caseData.get("skipFields"), "skipFields");
-        return fields.isEmpty() ? null : fields;
-    }
-
     public static void failIfMismatches(String label, List<String> mismatches) {
         if (mismatches == null || mismatches.isEmpty()) {
             return;

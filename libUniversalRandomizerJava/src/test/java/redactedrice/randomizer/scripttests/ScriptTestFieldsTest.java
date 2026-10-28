@@ -256,14 +256,6 @@ class ScriptTestFieldsTest {
     }
 
     @Test
-    void skipFieldsFromReadsCaseTable() {
-        assertEquals(null, ScriptTestFields.skipFieldsFrom(null));
-        assertEquals(null, ScriptTestFields.skipFieldsFrom(Map.of()));
-        assertEquals(List.of("a", "b"),
-                ScriptTestFields.skipFieldsFrom(Map.of("skipFields", List.of("a", "b"))));
-    }
-
-    @Test
     void collectMismatchesReportsWrongScalarAndDynamicFields() {
         Unit unit = appliedUnit();
         List<String> mismatches = mismatches(unit, Map.of("hp", 99, "groupId", 1));
