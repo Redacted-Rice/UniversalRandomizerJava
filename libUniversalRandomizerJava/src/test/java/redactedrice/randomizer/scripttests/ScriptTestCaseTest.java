@@ -12,8 +12,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import redactedrice.randomizer.utils.LogLevel;
-
 class ScriptTestCaseTest {
 
     @Test
@@ -65,13 +63,13 @@ class ScriptTestCaseTest {
         Files.writeString(tempDir.resolve("helper.lua"), "return {}");
 
         assertEquals(List.of(tempDir.resolve("test_one.lua")),
-                ScriptTestCli.selectCases(tempDir, "test_one"));
+                ScriptTestCaseFiles.selectCases(tempDir, "test_one"));
         assertThrows(IllegalArgumentException.class,
-                () -> ScriptTestCli.selectCases(tempDir, "../test_one.lua"));
+                () -> ScriptTestCaseFiles.selectCases(tempDir, "../test_one.lua"));
         assertThrows(IllegalArgumentException.class,
-                () -> ScriptTestCli.selectCases(tempDir, "helper"));
+                () -> ScriptTestCaseFiles.selectCases(tempDir, "helper"));
         assertEquals(List.of(tempDir.resolve("test_one.lua")),
-                ScriptTestCli.selectCases(tempDir, null));
+                ScriptTestCaseFiles.selectCases(tempDir, null));
     }
 
     @Test
@@ -80,9 +78,9 @@ class ScriptTestCaseTest {
         Files.writeString(tempDir.resolve("helper.lua"), "return {}");
         Files.writeString(tempDir.resolve("01_case.lua"), "return { module = \"x\" }");
 
-        assertTrue(ScriptTestCli.isLuaCase(tempDir.resolve("test_case.lua")));
-        assertFalse(ScriptTestCli.isLuaCase(tempDir.resolve("helper.lua")));
-        assertFalse(ScriptTestCli.isLuaCase(tempDir.resolve("01_case.lua")));
+        assertTrue(ScriptTestCaseFiles.isLuaCase(tempDir.resolve("test_case.lua")));
+        assertFalse(ScriptTestCaseFiles.isLuaCase(tempDir.resolve("helper.lua")));
+        assertFalse(ScriptTestCaseFiles.isLuaCase(tempDir.resolve("01_case.lua")));
     }
 
     @Test
@@ -93,37 +91,11 @@ class ScriptTestCaseTest {
         Files.writeString(nested.resolve("test_nested.lua"), "return { module = \"x\" }");
         Files.writeString(nested.resolve("helper.lua"), "return {}");
 
-        List<Path> cases = ScriptTestCli.selectCases(tempDir, null);
+        List<Path> cases = ScriptTestCaseFiles.selectCases(tempDir, null);
         assertEquals(2, cases.size());
         assertTrue(cases.contains(tempDir.resolve("test_root.lua")));
         assertTrue(cases.contains(nested.resolve("test_nested.lua")));
         assertEquals(List.of(nested.resolve("test_nested.lua")),
-                ScriptTestCli.selectCases(tempDir, "test_nested"));
-    }
-
-    @Test
-    void parseRunOptionsDefaultsLogLevelToWarn() {
-        ScriptTestCli.RunOptions options =
-                ScriptTestCli.parseRunOptions(new String[] { ScriptTestCli.FLAG });
-        assertEquals(ScriptTestCli.DEFAULT_LOG_LEVEL, options.logLevel());
-        assertEquals(null, options.testFile());
-    }
-
-    @Test
-    void parseRunOptionsReadsLogLevelAndTestFile() {
-        ScriptTestCli.RunOptions options = ScriptTestCli.parseRunOptions(new String[] {
-                ScriptTestCli.FLAG, ScriptTestCli.LOG_LEVEL_FLAG, "info", "test_one" });
-        assertEquals(LogLevel.INFO, options.logLevel());
-        assertEquals("test_one", options.testFile());
-    }
-
-    @Test
-    void parseRunOptionsRejectsUnknownFlagsAndExtraFiles() {
-        assertThrows(IllegalArgumentException.class,
-                () -> ScriptTestCli.parseRunOptions(new String[] { ScriptTestCli.FLAG, "--nope" }));
-        assertThrows(IllegalArgumentException.class, () -> ScriptTestCli.parseRunOptions(
-                new String[] { ScriptTestCli.FLAG, "test_one", "test_two" }));
-        assertThrows(IllegalArgumentException.class, () -> ScriptTestCli.parseRunOptions(
-                new String[] { ScriptTestCli.FLAG, ScriptTestCli.LOG_LEVEL_FLAG }));
+                ScriptTestCaseFiles.selectCases(tempDir, "test_nested"));
     }
 }

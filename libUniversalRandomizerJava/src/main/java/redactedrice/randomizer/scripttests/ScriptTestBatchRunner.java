@@ -14,7 +14,7 @@ public final class ScriptTestBatchRunner {
     public static ScriptTestRunResult runRequestedCases(Path testsDir, String requestedName,
             ScriptTestWrapperFactory wrapperFactory, ScriptTestFixtures fixtures)
             throws IOException {
-        return runCaseFiles(ScriptTestCli.selectCases(testsDir, requestedName), wrapperFactory,
+        return runCaseFiles(ScriptTestCaseFiles.selectCases(testsDir, requestedName), wrapperFactory,
                 fixtures);
     }
 
