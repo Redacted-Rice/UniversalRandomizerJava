@@ -9,7 +9,7 @@ import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-// Discover lua case files under a script_tests folder. Host CLIs pick files then call the batch runner.
+// Example discovery for script_tests/. Real hosts own their own layout rules.
 public final class ScriptTestCaseFiles {
     // Case files use a test_ prefix so helpers at the folder root are not picked up by mistake.
     private static final Pattern CASE_FILE_NAME = Pattern.compile("test_.+\\.lua",
