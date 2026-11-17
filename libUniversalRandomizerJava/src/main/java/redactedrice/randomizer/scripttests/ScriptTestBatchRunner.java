@@ -1,22 +1,14 @@
 package redactedrice.randomizer.scripttests;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 import redactedrice.randomizer.LuaRandomizerWrapper;
 
-// Shared run loop for CLI and programmatic hosts (e.g. JUnit).
+// Run loop for programmatic hosts. Hosts resolve case paths then call runCaseFiles.
 public final class ScriptTestBatchRunner {
     private ScriptTestBatchRunner() {}
-
-    public static ScriptTestRunResult runRequestedCases(Path testsDir, String requestedName,
-            ScriptTestWrapperFactory wrapperFactory, ScriptTestFixtures fixtures)
-            throws IOException {
-        return runCaseFiles(ScriptTestCaseFiles.selectCases(testsDir, requestedName), wrapperFactory,
-                fixtures);
-    }
 
     public static ScriptTestRunResult runCaseFiles(List<Path> caseFiles,
             ScriptTestWrapperFactory wrapperFactory, ScriptTestFixtures fixtures) {
