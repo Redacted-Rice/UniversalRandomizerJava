@@ -28,8 +28,8 @@ return {
 			function(entity, itemName)
 				entity:setStartingItem(itemName)
 			end, {
-				consumable = true,
-				regenerate = true,
+				consumesSelected = true,
+				autoRegenerates = true,
 			})
 	end,
 }
