@@ -28,7 +28,7 @@ return {
 			entity:setHealth(value)
 		end
 		randomizer.randomize(entitiesModified, healthPool, setter, {
-			consumable = true,
+			consumesSelected = true,
 		})
 	end,
 }

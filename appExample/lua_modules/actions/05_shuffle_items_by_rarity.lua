@@ -39,7 +39,7 @@ return {
 
 		-- Shuffle all stats together within rarity groups
 		randomizer.randomize(itemsModified, statTuplesPool, "rarity", setter, {
-			consumable = true,
+			consumesSelected = true,
 		})
 	end,
 }
