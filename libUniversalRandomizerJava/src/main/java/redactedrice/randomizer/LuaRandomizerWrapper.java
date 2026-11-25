@@ -116,11 +116,8 @@ public class LuaRandomizerWrapper {
         for (Module module : getAvailableModules()) {
             if (module.hasOnLoad()) {
                 try {
-                    // create a context with registered enum available
-                    org.luaj.vm2.LuaTable contextTable = sharedEnumContext.toLuaTable();
-
-                    // call onload with context
-                    module.getOnLoadFunction().call(contextTable);
+                    moduleExecutor.publishExecutionContext(sharedEnumContext);
+                    module.getOnLoadFunction().call();
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.err.println("[LuaRandomizerWrapper] Error calling onLoad for module '"

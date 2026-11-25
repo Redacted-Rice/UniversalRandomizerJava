@@ -52,7 +52,7 @@ return {
 		},
 	},
 
-	onLoad = function(context)
+	onLoad = function()
 		-- Register a custom enum with integer values
 		context.registerEnum("SpeedClass", {
 			"SLOW",
@@ -61,7 +61,7 @@ return {
 		})
 	end,
 
-	execute = function(context, arguments)
+	execute = function(arguments)
 		local entitiesModified = context.entitiesModified
 
 		-- Get arguments. These should always be provided

@@ -16,6 +16,8 @@ import java.util.*;
 
 // runs lua modules with the given context and arguments
 public class ModuleExecutor {
+    public static final String EXECUTION_CONTEXT_GLOBAL = "context";
+
     LuaSandbox sandbox;
     List<ExecutionResult> results;
     ModuleArgumentValidator argumentValidator;
@@ -66,7 +68,7 @@ public class ModuleExecutor {
             LuaTable argsTable = toLuaTable(validatedArgs);
 
             // Execute and return the results
-            LuaValue result = executeWithTraceback(metadata, context.toLuaTable(), argsTable);
+            LuaValue result = executeWithTraceback(metadata, context, argsTable);
             execResult = ExecutionResult.success(request, seedUsed, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(metadata, e);
@@ -116,7 +118,7 @@ public class ModuleExecutor {
                     scriptWhen, script, request);
 
             LuaTable argsTable = new LuaTable();
-            LuaValue result = executeWithTraceback(script, context.toLuaTable(), argsTable);
+            LuaValue result = executeWithTraceback(script, context, argsTable);
             execResult = ExecutionResult.scriptSuccess(request, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(script, e);
@@ -178,8 +180,16 @@ public class ModuleExecutor {
         return result;
     }
 
-    private LuaValue executeWithTraceback(Module metadata, LuaTable contextTable,
+    public void publishExecutionContext(JavaContext context) {
+        if (context == null) {
+            throw new IllegalArgumentException("Context cannot be null");
+        }
+        sandbox.set(EXECUTION_CONTEXT_GLOBAL, context.toLuaTable());
+    }
+
+    private LuaValue executeWithTraceback(Module metadata, JavaContext context,
             LuaTable argsTable) {
+        publishExecutionContext(context);
         try {
             // get xpcall and debug table from lua sandbox
             LuaValue xpcall = sandbox.getGlobals().get("xpcall");
@@ -190,7 +200,7 @@ public class ModuleExecutor {
                 LuaValue traceback = debug.get("traceback");
                 if (!traceback.isnil()) {
                     // use xpcall wrapper to get better stack traces on errors
-                    return executeWithXpcall(metadata, contextTable, argsTable, xpcall, traceback);
+                    return executeWithXpcall(metadata, argsTable, xpcall, traceback);
                 }
             }
         } catch (Exception e) {
@@ -198,11 +208,11 @@ public class ModuleExecutor {
         }
 
         // run without traceback if xpcall isnt available
-        return metadata.getExecuteFunction().call(contextTable, argsTable);
+        return metadata.getExecuteFunction().call(argsTable);
     }
 
-    private LuaValue executeWithXpcall(Module metadata, LuaTable contextTable, LuaTable argsTable,
-            LuaValue xpcall, LuaValue traceback) {
+    private LuaValue executeWithXpcall(Module metadata, LuaTable argsTable, LuaValue xpcall,
+            LuaValue traceback) {
         // make an error handler that captures the full stack trace
         // the 2 skips the error handler and xpcall frames
         LuaValue errorHandler = new OneArgFunction() {
@@ -214,7 +224,7 @@ public class ModuleExecutor {
 
         // call the lua function through xpcall so we catch errors
         Varargs result = xpcall.invoke(new LuaValue[] {metadata.getExecuteFunction(), errorHandler,
-                contextTable, argsTable});
+                argsTable});
 
         // first return is success boolean
         if (!result.arg1().checkboolean()) {

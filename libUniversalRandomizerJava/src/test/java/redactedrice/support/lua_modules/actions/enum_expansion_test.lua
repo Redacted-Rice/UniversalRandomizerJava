@@ -11,7 +11,7 @@ return {
 	author = "Test Author",
 	version = "1.0.0",
 
-	onLoad = function(context, config)
+	onLoad = function()
 		-- Extend enum with new types that don't exist in the Java enum
 		local extendedEnum = context.extendEnum("EntityType", {
 			"PALADIN",
@@ -52,7 +52,7 @@ return {
 		}
 	},
 
-	execute = function(context, args)
+	execute = function(args)
 		-- Verify we received the specific expanded enum value
 		local entityType = args.entityType
 		assert(entityType == "PALADIN")

@@ -13,7 +13,7 @@ return {
 		changedetector_snapshot = "0.58.123",
 	},
 
-	execute = function(context)
+	execute = function()
 		local changedetector = require("randomizer").changedetector
 
 		local changes = changedetector.detectChanges()

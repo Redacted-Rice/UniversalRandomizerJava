@@ -30,7 +30,7 @@ return {
 		},
 	},
 
-	execute = function(context, args)
+	execute = function(args)
 		local entitiesModified = context.entitiesModified
 
 		randomizer.randomize(entitiesModified, args.weightedRarityPool, function(entity, rarity)

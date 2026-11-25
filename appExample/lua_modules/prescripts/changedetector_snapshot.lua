@@ -12,7 +12,7 @@ return {
 		changedetector_setup = "1.0.0",
 	},
 
-	execute = function(context)
+	execute = function()
 		local changedetector = require("randomizer").changedetector
 		changedetector.takeSnapshots()
 	end,

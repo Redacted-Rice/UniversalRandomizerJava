@@ -44,7 +44,7 @@ public class ModuleParserTest {
                     when = "randomize",
                     author = "Test",
                     version = "0.1",
-                    execute = function(context) end,
+                    execute = function() end,
                 }
                 """));
 
@@ -65,7 +65,7 @@ public class ModuleParserTest {
                     author = "Test",
                     version = "0.1",
                     defaultSeedOffset = 10,
-                    execute = function(context) end,
+                    execute = function() end,
                 }
                 """));
         assertNotNull(defaultOffset);
@@ -83,7 +83,7 @@ public class ModuleParserTest {
                     author = "Test",
                     version = "0.1",
                     seeded = true,
-                    execute = function(context) end,
+                    execute = function() end,
                 }
                 """));
         assertNotNull(seededField);
@@ -102,7 +102,7 @@ public class ModuleParserTest {
                     groups = { "test" },
                     author = "Test",
                     version = "0.1",
-                    execute = function(context, args) end,
+                    execute = function(args) end,
                 }
                 """));
         assertNotNull(seeded);
@@ -118,7 +118,7 @@ public class ModuleParserTest {
                     author = "Test",
                     version = "0.1",
                     seeded = false,
-                    execute = function(context, args) end,
+                    execute = function(args) end,
                 }
                 """));
         assertNotNull(unseeded);

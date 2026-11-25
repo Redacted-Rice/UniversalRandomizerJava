@@ -1,6 +1,7 @@
 package redactedrice.randomizer.lua.sandbox.security;
 
 import org.luaj.vm2.Globals;
+import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.lib.DebugLib;
 import org.luaj.vm2.lib.jse.JsePlatform;
 import redactedrice.randomizer.lua.LuaBootstrap;
@@ -44,6 +45,9 @@ public class SecureLuaEnvironment {
         if (includeLogger) {
             setupLoggerFunctions(globals);
         }
+
+        // Host binds a fresh table before each module/script/onLoad run
+        globals.set("context", new LuaTable());
 
         // Apply (setup policy) GlobalsPolicy last
         globalsPolicy.applyToGlobals(globals);

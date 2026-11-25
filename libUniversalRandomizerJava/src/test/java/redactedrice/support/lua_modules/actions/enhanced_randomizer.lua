@@ -88,7 +88,7 @@ return {
 		},
 	},
 
-	execute = function(context, args)
+	execute = function(args)
 		local entity = context.entity
 
 		if entity == nil then

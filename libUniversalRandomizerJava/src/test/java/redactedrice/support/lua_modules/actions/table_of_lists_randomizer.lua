@@ -29,7 +29,7 @@ return {
 		},
 	},
 
-	execute = function(context, args)
+	execute = function(args)
 		local entities = context.entities
 		if entities == nil then
 			error("No entities found in context")

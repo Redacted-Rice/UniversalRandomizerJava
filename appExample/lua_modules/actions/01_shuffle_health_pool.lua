@@ -16,7 +16,7 @@ return {
 	},
 	defaultSeedOffset = 10,
 
-	execute = function(context)
+	execute = function()
 		local entitiesOriginal = context.entitiesOriginal
 		local entitiesModified = context.entitiesModified
 

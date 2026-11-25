@@ -11,7 +11,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	execute = function(context, args)
+	execute = function(args)
 		-- The FlagEnum should be available here because it was registered from Java
 		local FlagEnum = context.FlagEnum
 

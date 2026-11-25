@@ -7,7 +7,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	execute = function(context)
+	execute = function()
 		return "pre_module_ran"
 	end,
 }

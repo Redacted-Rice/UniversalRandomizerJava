@@ -15,7 +15,7 @@ return {
 		ExampleApp = "1.0.0",
 	},
 
-	execute = function(context)
+	execute = function()
 		local entitiesOriginal = context.entitiesOriginal
 		local entitiesModified = context.entitiesModified
 

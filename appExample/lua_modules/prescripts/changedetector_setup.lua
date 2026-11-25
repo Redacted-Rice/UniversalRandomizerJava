@@ -11,7 +11,7 @@ return {
 		ExampleApp = "1.0.0",
 	},
 
-	execute = function(context)
+	execute = function()
 		local changedetector = require("randomizer").changedetector
 		local itemRarityLabel = function(rarity)
 			if rarity == nil then

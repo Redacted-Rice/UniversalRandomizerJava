@@ -43,7 +43,7 @@ return {
 		},
 	},
 
-	execute = function(context, args)
+	execute = function(args)
 		-- Seed is already set by the Java wrapper before calling this function
 		-- No need to track changes - the wrapper does this automatically
 

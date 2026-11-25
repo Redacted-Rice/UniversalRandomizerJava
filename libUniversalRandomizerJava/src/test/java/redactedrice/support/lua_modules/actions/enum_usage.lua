@@ -11,7 +11,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	execute = function(context, args)
+	execute = function(args)
 		-- Test TestPriority (case 1: array with explicit values subtable)
 		local TestPriority = context.TestPriority
 		if not TestPriority then

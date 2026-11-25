@@ -11,7 +11,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	onLoad = function(context)
+	onLoad = function()
 		-- Register a custom enum with integer values
 		context.registerEnum("TestPriority", {
 			"LOW",
@@ -39,7 +39,7 @@ return {
 		print("  [onLoad] Registered TestPriority, TestPriority2, and TestPriority3 enums")
 	end,
 
-	execute = function(context, args)
+	execute = function(args)
 		-- This module doesn't do anything during execution
 		-- It's just for registering the enum in onLoad
 		print("  [execute] Enum OnLoad module executed (enums should be registered)")

@@ -15,7 +15,7 @@ return {
 		ExampleApp = "1.0.0",
 	},
 
-	execute = function(context)
+	execute = function()
 		local itemsOriginal = context.itemsOriginal
 		local itemsModified = context.itemsModified
 

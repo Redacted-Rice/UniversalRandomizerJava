@@ -7,7 +7,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	execute = function(context)
+	execute = function()
 		-- returning a value makes it easy to see the result from Java
 		return "pre_randomize_ran"
 	end,

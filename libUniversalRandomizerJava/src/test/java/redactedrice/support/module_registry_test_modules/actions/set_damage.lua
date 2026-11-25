@@ -12,7 +12,7 @@ return {
 	author = "Test Author",
 	version = "0.1",
 
-	execute = function(context, args)
+	execute = function(args)
 		local entity = context.entity
 		if entity == nil then
 			error("No entity found in context")
