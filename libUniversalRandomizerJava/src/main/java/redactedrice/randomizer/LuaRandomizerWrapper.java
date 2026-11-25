@@ -97,6 +97,9 @@ public class LuaRandomizerWrapper {
         IssueTracker.snapshot();
         int totalLoaded = 0;
 
+        // util modules may require() during parse and read context.* enums at load time
+        moduleExecutor.publishExecutionContext(sharedEnumContext);
+
         // Register every module and script before validating requires so filesystem load order
         // does not affect dependency resolution.
         for (String path : searchPaths) {
@@ -169,6 +172,10 @@ public class LuaRandomizerWrapper {
         sharedEnumContext.registerEnum(name, values);
     }
 
+    public void registerSharedObject(String name, Object object) {
+        sharedEnumContext.register(name, object);
+    }
+
     public EnumRegistry getEnumRegistry() {
         return sharedEnumContext.getEnumRegistry();
     }
@@ -179,6 +186,11 @@ public class LuaRandomizerWrapper {
             throw new IllegalArgumentException("Context cannot be null");
         }
         context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
+        for (String name : sharedEnumContext.getRegisteredNames()) {
+            if (!context.contains(name)) {
+                context.register(name, sharedEnumContext.get(name));
+            }
+        }
         context.mergeDynamicFieldTypes(getProvidedDynamicFieldTypes());
     }
 
