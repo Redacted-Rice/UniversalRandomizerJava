@@ -139,13 +139,13 @@ public class ExampleApp {
             itemsModified.add(i.copy());
         }
 
-        // Set up context with entities and items
-        JavaContext context = new JavaContext();
-        context.register("entitiesOriginal", entitiesOriginal);
-        context.register("entitiesModified", entitiesModified);
-        context.register("itemsOriginal", itemsOriginal);
-        context.register("itemsModified", itemsModified);
-        context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
+        // Per-run execution context with entities and items
+        JavaContext executionContext = new JavaContext();
+        executionContext.register("entitiesOriginal", entitiesOriginal);
+        executionContext.register("entitiesModified", entitiesModified);
+        executionContext.register("itemsOriginal", itemsOriginal);
+        executionContext.register("itemsModified", itemsModified);
+        executionContext.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
 
         // Print original state
         System.out.println("\n=== ORIGINAL STATE ===");
@@ -238,7 +238,8 @@ public class ExampleApp {
         // automatically for these.
         // This does it in batch but you can also run one by one if preferred. See functional
         // tests for an example of that
-        List<ExecutionResult> results = wrapper.executeModules(executionRequests, context, 12345);
+        List<ExecutionResult> results =
+                wrapper.executeModules(executionRequests, executionContext, 12345);
 
         // Print the results (logs and errors)
         for (int i = 0; i < results.size(); i++) {

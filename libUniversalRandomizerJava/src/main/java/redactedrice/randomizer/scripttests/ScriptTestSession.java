@@ -27,20 +27,20 @@ public final class ScriptTestSession {
 
     public void run(ScriptTestCase testCase) {
         IssueTracker.clear();
-        JavaContext context = new JavaContext();
-        wrapper.prepareContext(context);
-        context.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
-        fixtures.populateContext(context, testCase);
+        JavaContext executionContext = new JavaContext();
+        wrapper.prepareContext(executionContext);
+        executionContext.setConfig(JavaContext.CHANGE_DETECTION_ACTIVE, true);
+        fixtures.populateContext(executionContext, testCase);
 
-        wrapper.executePreRandomizeScripts(context);
+        wrapper.executePreRandomizeScripts(executionContext);
         failIfIssues("Pre randomize scripts failed", testCase);
 
-        runModule(testCase, context, testCase.moduleId(), testCase.args());
+        runModule(testCase, executionContext, testCase.moduleId(), testCase.args());
 
-        wrapper.executePostRandomizeScripts(context);
+        wrapper.executePostRandomizeScripts(executionContext);
         failIfIssues("Post randomize scripts failed", testCase);
 
-        fixtures.assertExpect(testCase, context);
+        fixtures.assertExpect(testCase, executionContext);
     }
 
     private void failIfIssues(String what, ScriptTestCase testCase) {
@@ -50,7 +50,7 @@ public final class ScriptTestSession {
         }
     }
 
-    private void runModule(ScriptTestCase testCase, JavaContext context, String moduleId,
+    private void runModule(ScriptTestCase testCase, JavaContext executionContext, String moduleId,
             Map<String, Object> args) {
         Module module = wrapper.getModule(moduleId);
         if (module == null) {
@@ -59,7 +59,8 @@ public final class ScriptTestSession {
         }
 
         ExecutionRequest request = ExecutionRequest.forModule(module, args);
-        ExecutionResult result = wrapper.executeModule(request, context, testCase.seed());
+        ExecutionResult result =
+                wrapper.executeModule(request, executionContext, testCase.seed());
         if (!result.isSuccess()) {
             throw new IllegalStateException("Module '" + moduleId + "' failed in "
                     + testCase.displayName() + ": " + result.getErrorMessage());

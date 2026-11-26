@@ -32,7 +32,7 @@ public class ModuleExecutor {
     }
 
     private ExecutionResult executeModule(ExecutionRequest request, Module metadata,
-            JavaContext context, int baseSeed) {
+            JavaContext executionContext, int baseSeed) {
         if (metadata == null) {
             throw new IllegalArgumentException("Module metadata cannot be null");
         }
@@ -56,8 +56,8 @@ public class ModuleExecutor {
         Logger.setCurrentModuleName(moduleName);
         try {
             // validate and convert arguements using enum context from javacontext
-            Map<String, Object> validatedArgs =
-                    argumentValidator.validate(metadata, request.getArguments(), context);
+            Map<String, Object> validatedArgs = argumentValidator.validate(metadata,
+                    request.getArguments(), executionContext);
 
             ExecutionErrorFormatter.logExecutionInfo(moduleName, validatedArgs, null, null,
                     metadata, baseSeed, absoluteSeed, request);
@@ -68,7 +68,7 @@ public class ModuleExecutor {
             LuaTable argsTable = toLuaTable(validatedArgs);
 
             // Execute and return the results
-            LuaValue result = executeWithTraceback(metadata, context, argsTable);
+            LuaValue result = executeWithTraceback(metadata, executionContext, argsTable);
             execResult = ExecutionResult.success(request, seedUsed, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(metadata, e);
@@ -93,7 +93,7 @@ public class ModuleExecutor {
     }
 
     // Pre/post scripts intentionally omit arguments and seed handling
-    private ExecutionResult executeLuaScript(Module script, JavaContext context,
+    private ExecutionResult executeLuaScript(Module script, JavaContext executionContext,
             String scriptTiming, String scriptWhen, String executionModuleName) {
         if (script == null) {
             throw new IllegalArgumentException("Script metadata cannot be null");
@@ -111,14 +111,14 @@ public class ModuleExecutor {
         Logger.setCurrentModuleName(moduleName);
         try {
             if (executionModuleName != null) {
-                context.setExecutionModuleName(executionModuleName);
+                executionContext.setExecutionModuleName(executionModuleName);
             }
 
             ExecutionErrorFormatter.logExecutionInfo(moduleName, Map.of(), scriptTiming,
                     scriptWhen, script, request);
 
             LuaTable argsTable = new LuaTable();
-            LuaValue result = executeWithTraceback(script, context, argsTable);
+            LuaValue result = executeWithTraceback(script, executionContext, argsTable);
             execResult = ExecutionResult.scriptSuccess(request, result);
         } catch (LuaError e) {
             String errorMsg = ExecutionErrorFormatter.formatLuaError(script, e);
@@ -131,7 +131,7 @@ public class ModuleExecutor {
             execResult = ExecutionResult.scriptFailure(request, errorMsg);
         } finally {
             if (executionModuleName != null) {
-                context.clearExecutionModuleName();
+                executionContext.clearExecutionModuleName();
             }
             IssueTracker.logDeltaSummary("Script '" + moduleName + "'");
             IssueTracker.clearSnapshot();
@@ -143,7 +143,7 @@ public class ModuleExecutor {
         return execResult;
     }
 
-    public ExecutionResult executeModule(Module metadata, JavaContext context,
+    public ExecutionResult executeModule(Module metadata, JavaContext executionContext,
             List<Module> preModuleScripts, List<Module> postModuleScripts, ExecutionRequest request,
             int baseSeed) {
 
@@ -151,7 +151,7 @@ public class ModuleExecutor {
         if (preModuleScripts != null) {
             for (Module script : preModuleScripts) {
                 try {
-                    executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_PRE,
+                    executeLuaScript(script, executionContext, ModuleRegistry.SCRIPT_TIMING_PRE,
                             ModuleRegistry.SCRIPT_WHEN_MODULE, null);
                 } catch (Exception e) {
                     Logger.error("Error executing pre module script '" + script.getName() + "': "
@@ -161,14 +161,14 @@ public class ModuleExecutor {
         }
 
         // Execute the module
-        ExecutionResult result = executeModule(request, metadata, context, baseSeed);
+        ExecutionResult result = executeModule(request, metadata, executionContext, baseSeed);
         String executedModuleName = metadata.getName();
 
         // Execute post module script(s)
         if (postModuleScripts != null) {
             for (Module script : postModuleScripts) {
                 try {
-                    executeLuaScript(script, context, ModuleRegistry.SCRIPT_TIMING_POST,
+                    executeLuaScript(script, executionContext, ModuleRegistry.SCRIPT_TIMING_POST,
                             ModuleRegistry.SCRIPT_WHEN_MODULE, executedModuleName);
                 } catch (Exception e) {
                     Logger.error("Error executing post module script '" + script.getName() + "': "
@@ -180,16 +180,16 @@ public class ModuleExecutor {
         return result;
     }
 
-    public void publishExecutionContext(JavaContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+    public void publishExecutionContext(JavaContext javaContext) {
+        if (javaContext == null) {
+            throw new IllegalArgumentException("Java context cannot be null");
         }
-        sandbox.set(EXECUTION_CONTEXT_GLOBAL, context.toLuaTable());
+        sandbox.set(EXECUTION_CONTEXT_GLOBAL, javaContext.toLuaTable());
     }
 
-    private LuaValue executeWithTraceback(Module metadata, JavaContext context,
+    private LuaValue executeWithTraceback(Module metadata, JavaContext executionContext,
             LuaTable argsTable) {
-        publishExecutionContext(context);
+        publishExecutionContext(executionContext);
         try {
             // get xpcall and debug table from lua sandbox
             LuaValue xpcall = sandbox.getGlobals().get("xpcall");
@@ -251,12 +251,12 @@ public class ModuleExecutor {
         }
     }
 
-    public void executeScripts(List<Module> scripts, JavaContext context, String scriptTiming,
+    public void executeScripts(List<Module> scripts, JavaContext executionContext, String scriptTiming,
             String scriptWhen) {
         if (scripts != null) {
             for (Module script : scripts) {
                 try {
-                    executeLuaScript(script, context, scriptTiming, scriptWhen, null);
+                    executeLuaScript(script, executionContext, scriptTiming, scriptWhen, null);
                 } catch (Exception e) {
                     Logger.error(
                             "Error executing script '" + script.getName() + "': " + e.getMessage());
@@ -267,7 +267,7 @@ public class ModuleExecutor {
 
     // Execute multiple modules with pre/post module scripts for each
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
-            ModuleRegistry moduleRegistry, JavaContext context, List<Module> preModuleScripts,
+            ModuleRegistry moduleRegistry, JavaContext executionContext, List<Module> preModuleScripts,
             List<Module> postModuleScripts, int baseSeed) {
         List<ExecutionResult> execResults = new ArrayList<>();
 
@@ -284,7 +284,7 @@ public class ModuleExecutor {
             }
 
             // Execute the module with the request (seed is resolved from metadata if needed)
-            ExecutionResult result = executeModule(module, context, preModuleScripts,
+            ExecutionResult result = executeModule(module, executionContext, preModuleScripts,
                     postModuleScripts, request, baseSeed);
             execResults.add(result);
         }

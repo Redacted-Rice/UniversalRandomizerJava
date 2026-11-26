@@ -73,9 +73,9 @@ Please see the example app for usage. More documentation will be comming later (
 
 See the lua modules in the example app for example structure.
 
-### Execution context
+### Shared and execution context
 
-Before each module or script `onLoad` or `execute`, URJ binds the current Java context as the global `context`. Lua cannot create new globals, but it can read and mutate fields on that table (for example `context.modified` and enums on `context.SomeEnum`).
+`LuaRandomizerWrapper` keeps a shared context for more static things like enums and consts and hosts create a per-run execution context for the dynamic data that is refreshed before each exection. Before `prepareContext`, module load and `onLoad` publish the shared context as the Lua global `context`. During runs, the merged execution context is published the same way.
 
 Modules should use `onLoad = function()` and `execute = function(args)`. If a script needs to create a new enum, it can do so in the onLoad function.
 

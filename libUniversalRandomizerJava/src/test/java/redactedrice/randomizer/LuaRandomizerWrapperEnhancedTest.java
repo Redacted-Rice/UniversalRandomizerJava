@@ -218,7 +218,7 @@ public class LuaRandomizerWrapperEnhancedTest {
         execContext.register("testEntity", testEntity);
 
         // Execute the flag_enum module
-        // The wrapper will merge the shared enum context (from onLoad) into execContext,
+        // The wrapper will merge sharedContext (from onLoad) into executionContext,
         // and FlagEnum will already be in execContext
         ExecutionRequest request =
                 ExecutionRequest.forModuleWithSeedOffset("flag_enum", new HashMap<>(), 0);

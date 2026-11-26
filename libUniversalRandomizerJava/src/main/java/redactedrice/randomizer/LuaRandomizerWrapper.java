@@ -27,7 +27,7 @@ public class LuaRandomizerWrapper {
     LuaSandbox sandbox;
     ModuleRegistry moduleRegistry;
     ModuleExecutor moduleExecutor;
-    JavaContext sharedEnumContext; // shared context for enum registration during onLoad
+    JavaContext sharedContext; // shared for all executuions - enums, types, onLoad registrations
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths,
             Set<String> definedGroups) {
@@ -44,14 +44,15 @@ public class LuaRandomizerWrapper {
         this.sandbox = new LuaSandbox(allowedDirectories);
         this.moduleRegistry = new ModuleRegistry(sandbox, definedGroups, requirementContext);
         this.moduleExecutor = new ModuleExecutor(sandbox);
-        this.sharedEnumContext = new JavaContext(); // Shared enum context
+        this.sharedContext = new JavaContext();
     }
 
     public LuaRandomizerWrapper(List<String> allowedDirectories, List<String> searchPaths) {
         this(allowedDirectories, searchPaths, null, null);
     }
 
-    // Same allowed/search layout live hosts use. Caller registers shared enums then loadModules.
+    // Same allowed/search layout live hosts use. Caller registers shared enums then
+    // loadModules.
     public static LuaRandomizerWrapper forApp(File randomizerDir, File modulesDir,
             CoreRequirements requirements) {
         if (randomizerDir == null || modulesDir == null) {
@@ -98,9 +99,10 @@ public class LuaRandomizerWrapper {
         int totalLoaded = 0;
 
         // util modules may require() during parse and read context.* enums at load time
-        moduleExecutor.publishExecutionContext(sharedEnumContext);
+        moduleExecutor.publishExecutionContext(sharedContext);
 
-        // Register every module and script before validating requires so filesystem load order
+        // Register every module and script before validating requires so filesystem
+        // load order
         // does not affect dependency resolution.
         for (String path : searchPaths) {
             totalLoaded += moduleRegistry.loadModulesFromDirectory(path);
@@ -119,7 +121,7 @@ public class LuaRandomizerWrapper {
         for (Module module : getAvailableModules()) {
             if (module.hasOnLoad()) {
                 try {
-                    moduleExecutor.publishExecutionContext(sharedEnumContext);
+                    moduleExecutor.publishExecutionContext(sharedContext);
                     module.getOnLoadFunction().call();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -151,57 +153,57 @@ public class LuaRandomizerWrapper {
     }
 
     public <E extends Enum<E>> void registerSharedEnum(Class<E> enumClass) {
-        sharedEnumContext.registerEnum(enumClass);
+        sharedContext.registerEnum(enumClass);
     }
 
     public <E extends Enum<E>> void registerSharedEnum(Class<E> enumClass,
             Map<String, String> valueDisplayNames) {
-        sharedEnumContext.registerEnum(enumClass, valueDisplayNames);
+        sharedContext.registerEnum(enumClass, valueDisplayNames);
     }
 
     public <E extends Enum<E>> void registerSharedEnum(String name, Class<E> enumClass) {
-        sharedEnumContext.registerEnum(name, enumClass);
+        sharedContext.registerEnum(name, enumClass);
     }
 
     public <E extends Enum<E>> void registerSharedEnum(String name, Class<E> enumClass,
             Map<String, String> valueDisplayNames) {
-        sharedEnumContext.registerEnum(name, enumClass, valueDisplayNames);
+        sharedContext.registerEnum(name, enumClass, valueDisplayNames);
     }
 
     public void registerSharedEnum(String name, String... values) {
-        sharedEnumContext.registerEnum(name, values);
+        sharedContext.registerEnum(name, values);
     }
 
     public void registerSharedObject(String name, Object object) {
-        sharedEnumContext.register(name, object);
+        sharedContext.register(name, object);
     }
 
     public EnumRegistry getEnumRegistry() {
-        return sharedEnumContext.getEnumRegistry();
+        return sharedContext.getEnumRegistry();
     }
 
-    // Copy onLoad enums and provided field types onto this execution context.
-    public void prepareContext(JavaContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+    // Copy shared contextand provided field types onto execution context.
+    public void prepareContext(JavaContext executionContext) {
+        if (executionContext == null) {
+            throw new IllegalArgumentException("Execution context cannot be null");
         }
-        context.mergeEnumRegistry(sharedEnumContext.getEnumRegistry());
-        for (String name : sharedEnumContext.getRegisteredNames()) {
-            if (!context.contains(name)) {
-                context.register(name, sharedEnumContext.get(name));
+        executionContext.mergeEnumRegistry(sharedContext.getEnumRegistry());
+        for (String name : sharedContext.getRegisteredNames()) {
+            if (!executionContext.contains(name)) {
+                executionContext.register(name, sharedContext.get(name));
             }
         }
-        context.mergeDynamicFieldTypes(getProvidedDynamicFieldTypes());
+        executionContext.mergeDynamicFieldTypes(getProvidedDynamicFieldTypes());
     }
 
-    // Start of a randomize batch manually executed piece by piece. This clears prior execution
-    // results and issues so the host can accumulate across executeModule calls, then read
-    // IssueTracker later if desired.
-    public void executePreRandomizeScripts(JavaContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+    // Start of a randomize batch manually executed piece by piece. This clears
+    // prior execution results and issues so the host can accumulate across
+    // executeModule calls, then read IssueTracker later if desired.
+    public void executePreRandomizeScripts(JavaContext executionContext) {
+        if (executionContext == null) {
+            throw new IllegalArgumentException("Execution context cannot be null");
         }
-        prepareContext(context);
+        prepareContext(executionContext);
 
         // Clear previous results
         moduleExecutor.clearResults();
@@ -209,38 +211,39 @@ public class LuaRandomizerWrapper {
         // get the pre randomize scripts and run them
         List<Module> preRandomizeScripts = moduleRegistry
                 .getScripts(ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeScripts(preRandomizeScripts, context,
+        moduleExecutor.executeScripts(preRandomizeScripts, executionContext,
                 ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
     }
 
-    public void executePostRandomizeScripts(JavaContext context) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+    public void executePostRandomizeScripts(JavaContext executionContext) {
+        if (executionContext == null) {
+            throw new IllegalArgumentException("Execution context cannot be null");
         }
-        prepareContext(context);
+        prepareContext(executionContext);
 
         // get the post randomize scripts and run them
         List<Module> postRandomizeScripts = moduleRegistry.getScripts(
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
-        moduleExecutor.executeScripts(postRandomizeScripts, context,
+        moduleExecutor.executeScripts(postRandomizeScripts, executionContext,
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
     }
 
-    // Full randomize batch. This clears prior results/issues once, validates the execution plan,
-    // runs all modules/scripts, then leaves issues in IssueTracker so the host can read them
-    // later if desired. Returns an empty list when plan validation fails (see IssueTracker).
-    // Otherwise returns one result per module request.
+    // Full randomize batch. This clears prior results/issues once, validates the
+    // execution plan, runs all modules/scripts, then leaves issues in IssueTracker
+    // so the host can read them later if desired. Returns an empty list when plan
+    // validation fails (see IssueTracker). Otherwise returns one result per module
+    // request.
     public List<ExecutionResult> executeModules(List<ExecutionRequest> requests,
-            JavaContext context, int baseSeed) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+            JavaContext executionContext, int baseSeed) {
+        if (executionContext == null) {
+            throw new IllegalArgumentException("Execution context cannot be null");
         }
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException("Requests list cannot be null or empty");
         }
-        prepareContext(context);
+        prepareContext(executionContext);
         // Clear any old wrappers
-        context.clearWrapperCache();
+        executionContext.clearWrapperCache();
 
         // Clear any previous results or errors and create/validate the execution plan
         moduleExecutor.clearResults();
@@ -252,42 +255,42 @@ public class LuaRandomizerWrapper {
         }
 
         // Execute the pre randomize scripts
-        moduleExecutor.executeScripts(plan.getPreRandomizeScripts(), context,
+        moduleExecutor.executeScripts(plan.getPreRandomizeScripts(), executionContext,
                 ModuleRegistry.SCRIPT_TIMING_PRE, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
         // Execute the modules running the pre/post scripts for each one
-        List<ExecutionResult> results =
-                moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry, context,
-                        plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
+        List<ExecutionResult> results = moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry,
+                executionContext, plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
 
         // Execute post randomize scripts
-        moduleExecutor.executeScripts(plan.getPostRandomizeScripts(), context,
+        moduleExecutor.executeScripts(plan.getPostRandomizeScripts(), executionContext,
                 ModuleRegistry.SCRIPT_TIMING_POST, ModuleRegistry.SCRIPT_WHEN_RANDOMIZE);
 
         return results;
     }
 
-    // Single module (plus its pre/post module scripts). Does not clear issues - call
-    // IssueTracker.clear or executePreRandomizeScripts once before a multi module host loop.
-    // Dynamic var order is not validated here. For one by one loops the host should build and
-    // validate an ExecutionPlan for the full request list up front (or revalidate as actions are
-    // added) via createExecutionPlan / validateExecutionPlan.
-    public ExecutionResult executeModule(ExecutionRequest request, JavaContext context,
+    // Single module (plus its pre/post module scripts). Does not clear issues -
+    // call IssueTracker.clear or executePreRandomizeScripts once before a multi
+    // module host loop. Dynamic var order is not validated here. For one by one
+    // loops the host should build and validate an ExecutionPlan for the full
+    // request list up front (or revalidate as actions are added) via
+    // createExecutionPlan / validateExecutionPlan.
+    public ExecutionResult executeModule(ExecutionRequest request, JavaContext executionContext,
             int baseSeed) {
-        if (context == null) {
-            throw new IllegalArgumentException("Context cannot be null");
+        if (executionContext == null) {
+            throw new IllegalArgumentException("Execution context cannot be null");
         }
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null");
         }
-        prepareContext(context);
+        prepareContext(executionContext);
 
         // Execute the module with only pre/post module scripts
-        // Do not validate here but assume outside orchestrator is validating the overall plan
+        // Do not validate here but assume outside orchestrator is validating the
+        // overall plan
         ExecutionPlan plan = ExecutionPlan.forSingleModule(moduleRegistry, request);
-        List<ExecutionResult> results =
-                moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry, context,
-                        plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
+        List<ExecutionResult> results = moduleExecutor.executeModules(plan.getModuleRequests(), moduleRegistry,
+                executionContext, plan.getPreModuleScripts(), plan.getPostModuleScripts(), baseSeed);
 
         return results.get(0);
     }
@@ -320,13 +323,11 @@ public class LuaRandomizerWrapper {
                 String argLabel = arg.getRegisteredDisplayName() != null
                         ? arg.getDisplayName() + " (" + arg.getName() + ")"
                         : arg.getName();
-                String descriptionInfo =
-                        arg.getDescription() != null && !arg.getDescription().isBlank()
-                                ? " - " + arg.getDescription()
-                                : "";
-                String defaultInfo =
-                        arg.getDefaultValue() != null ? " (default: " + arg.getDefaultValue() + ")"
-                                : "";
+                String descriptionInfo = arg.getDescription() != null && !arg.getDescription().isBlank()
+                        ? " - " + arg.getDescription()
+                        : "";
+                String defaultInfo = arg.getDefaultValue() != null ? " (default: " + arg.getDefaultValue() + ")"
+                        : "";
                 System.out.println(
                         "    - " + argLabel + descriptionInfo + " (" + arg.getTypeDefinition()
                                 + "): " + arg.getConstraint().getDescription() + defaultInfo);
@@ -368,18 +369,19 @@ public class LuaRandomizerWrapper {
     }
 
     /**
-     * Builds the run plan for a full randomize batch. Hosts that execute modules one by one should
-     * create this from the complete (or growing) request list and call ExecutionPlan.validate
-     * before the loop, revalidating whenever the list changes.
+     * Builds the run plan for a full randomize batch. Hosts that execute modules
+     * one by one should create this from the complete (or growing) request list and
+     * call ExecutionPlan.validate before the loop, revalidating whenever the list
+     * changes.
      */
     public ExecutionPlan createExecutionPlan(List<ExecutionRequest> requests) {
         return ExecutionPlan.forRandomizeBatch(moduleRegistry, requests);
     }
 
     /**
-     * Returns dynamic var execution order issues without reporting them to IssueTracker. Use
-     * createExecutionPlan and ExecutionPlan.validate when the host wants validation errors logged
-     * for popups.
+     * Returns dynamic var execution order issues without reporting them to
+     * IssueTracker. Use createExecutionPlan and ExecutionPlan.validate when the
+     * host wants validation errors logged for popups.
      */
     public List<Issue> validateExecutionPlan(List<ExecutionRequest> requests) {
         return ExecutionPlan.collectDynamicVarExecutionIssues(moduleRegistry, requests);

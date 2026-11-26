@@ -12,7 +12,7 @@ public class ModuleArgumentValidator {
 
     // Validate and convert arguments for a module
     public Map<String, Object> validate(Module module, Map<String, Object> arguments,
-            JavaContext context) {
+            JavaContext executionContext) {
         if (module == null) {
             throw new IllegalArgumentException("Module cannot be null");
         }
@@ -24,7 +24,8 @@ public class ModuleArgumentValidator {
         }
 
         // need enum registry for validating enum arguments
-        EnumRegistry enumRegistry = context != null ? context.getEnumRegistry() : null;
+        EnumRegistry enumRegistry =
+                executionContext != null ? executionContext.getEnumRegistry() : null;
 
         // go through each argument the module expects
         for (ArgumentDefinition argDef : module.getArguments()) {

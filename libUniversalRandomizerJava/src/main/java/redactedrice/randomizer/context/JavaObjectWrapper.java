@@ -48,7 +48,7 @@ public class JavaObjectWrapper {
     }
 
     // Exposes public static methods on a Java class or enum type (enum value lists
-    // stay on context.registerEnum/shared enums)
+    // stay on context.registerEnum / registerSharedEnum on sharedContext)
     public LuaValue wrapClass(Class<?> clazz) {
         if (clazz == null) {
             return LuaValue.NIL;
