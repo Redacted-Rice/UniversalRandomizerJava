@@ -46,6 +46,19 @@ public class JavaContext {
         return config.get(key);
     }
 
+    /**
+     * Copies config entries from source when this context has no value for that
+     * key.
+     */
+    public void mergeConfigFrom(JavaContext source) {
+        if (source == null) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : source.config.entrySet()) {
+            config.putIfAbsent(entry.getKey(), entry.getValue());
+        }
+    }
+
     public void setExecutionModuleName(String executionModuleName) {
         this.executionModuleName = executionModuleName;
     }
@@ -108,7 +121,8 @@ public class JavaContext {
         }
     }
 
-    // Types from module provides. Same map live Lua assignment uses for dynamic fields.
+    // Types from module provides. Same map live Lua assignment uses for dynamic
+    // fields.
     public void mergeDynamicFieldTypes(Map<String, String> types) {
         objectWrapper.mergeDynamicFieldTypes(types);
     }
@@ -207,11 +221,9 @@ public class JavaContext {
                 }
 
                 // Parse & register enum
-                ParsedEnumData parsedEnum =
-                        LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
-                Map<String, Integer> orderedValueMap =
-                        new LinkedHashMap<>(parsedEnum.getValueMap());
-                
+                ParsedEnumData parsedEnum = LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
+                Map<String, Integer> orderedValueMap = new LinkedHashMap<>(parsedEnum.getValueMap());
+
                 enumRegistry.registerEnum(enumName, parsedEnum.getValueNames(), orderedValueMap,
                         parsedEnum.getValueDisplayNames());
 
@@ -237,10 +249,8 @@ public class JavaContext {
                 }
 
                 // Parse the values to add as an enum
-                ParsedEnumData parsedEnum =
-                        LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
-                Map<String, Integer> orderedValueMap =
-                        new LinkedHashMap<>(parsedEnum.getValueMap());
+                ParsedEnumData parsedEnum = LuaEnumTableParser.parseEnumTable(enumName, valuesTable.checktable());
+                Map<String, Integer> orderedValueMap = new LinkedHashMap<>(parsedEnum.getValueMap());
 
                 // Extend the enum with the parsed values
                 EnumDefinition extended = enumRegistry.extendEnum(enumName,

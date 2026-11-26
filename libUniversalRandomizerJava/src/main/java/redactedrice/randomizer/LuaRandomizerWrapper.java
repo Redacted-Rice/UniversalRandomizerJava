@@ -178,6 +178,10 @@ public class LuaRandomizerWrapper {
         sharedContext.register(name, object);
     }
 
+    public void setSharedConfig(String key, Object value) {
+        sharedContext.setConfig(key, value);
+    }
+
     public EnumRegistry getEnumRegistry() {
         return sharedContext.getEnumRegistry();
     }
@@ -193,6 +197,7 @@ public class LuaRandomizerWrapper {
                 executionContext.register(name, sharedContext.get(name));
             }
         }
+        executionContext.mergeConfigFrom(sharedContext);
         executionContext.mergeDynamicFieldTypes(getProvidedDynamicFieldTypes());
     }
 

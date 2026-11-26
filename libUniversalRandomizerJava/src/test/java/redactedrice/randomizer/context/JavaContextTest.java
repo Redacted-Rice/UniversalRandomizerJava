@@ -58,6 +58,19 @@ public class JavaContextTest {
     }
 
     @Test
+    public void testMergeConfigFrom() {
+        JavaContext source = new JavaContext();
+        source.setConfig("changeDetectionActive", true);
+        source.setConfig("overrideMe", "fromShared");
+
+        context.setConfig("overrideMe", "fromExecution");
+        context.mergeConfigFrom(source);
+
+        assertEquals(true, context.getConfig(JavaContext.CHANGE_DETECTION_ACTIVE));
+        assertEquals("fromExecution", context.getConfig("overrideMe"));
+    }
+
+    @Test
     public void testRegisterDynamicFieldRejectsInvalidNames() {
         assertThrows(IllegalArgumentException.class,
                 () -> context.registerDynamicField(null, "Rank"));
